@@ -5,21 +5,11 @@ import { MainLayout } from "@/components/main-layout"
 import { Button } from "@/components/ui/button"
 import { useState } from "react"
 import { SimpleGame } from "@/components/games/simple-game"
-import { MemoryGame } from "@/components/games/memory-game"
-import { QuizGame } from "@/components/games/quiz-game"
-import { SpinWheel } from "@/components/games/spin-wheel"
-import { WordScrambler } from "@/components/games/word-scrambler"
 
 export default function MiniGames() {
   const [activeGame, setActiveGame] = useState<string | null>(null)
 
-  const games = [
-    { id: "simple", name: "Target Clicker", description: "Test your reflexes", component: SimpleGame },
-    { id: "memory", name: "Memory Match", description: "Find matching pairs", component: MemoryGame },
-    { id: "quiz", name: "Quiz Game", description: "Test your knowledge", component: QuizGame },
-    { id: "spinwheel", name: "Spin Wheel", description: "Try your luck", component: SpinWheel },
-    { id: "wordscrambler", name: "Word Scrambler", description: "Unscramble the words", component: WordScrambler },
-  ]
+  const games = [{ id: "simple", name: "Target Clicker", description: "Test your reflexes", component: SimpleGame }]
 
   const GameComponent = activeGame ? games.find((game) => game.id === activeGame)?.component : null
 

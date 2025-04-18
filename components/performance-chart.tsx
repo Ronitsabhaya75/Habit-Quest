@@ -22,65 +22,50 @@ export function PerformanceChart({ type, userData }: PerformanceChartProps) {
   const [error, setError] = useState(false)
 
   useEffect(() => {
-    const generateChartData = () => {
+    const fetchPerformanceData = async () => {
       try {
         setLoading(true)
         setError(false)
 
-        // Get the last 7 days
+        // In a real app, you would fetch this from your API
+        // For now, we'll create consistent mock data that shows progress
         const days = []
         const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
-        
+
+        const today = new Date()
         for (let i = 6; i >= 0; i--) {
-          const date = new Date()
+          const date = new Date(today)
           date.setDate(date.getDate() - i)
           days.push({
             date,
-            day: dayNames[date.getDay()]
+            day: dayNames[date.getDay()],
           })
         }
 
-        // If we have user data, use it; otherwise, generate realistic data
-        if (userData) {
-          const data = days.map((day, index) => {
-            // Calculate XP from user data
-            const tasksXP = (userData.completedTasks[index] || 0) * 10
-            const habitsXP = (userData.completedHabits[index] || 0) * 20
-            const gamesXP = (userData.playedGames[index] || 0) * 10
-            
-            return {
-              day: day.day,
-              xp: tasksXP + habitsXP + gamesXP
-            }
-          })
-          
-          setChartData(data)
-        } else {
-          // Generate realistic data with an upward trend
-          const data = days.map((day, index) => {
-            // Base XP that increases slightly each day
-            const baseXP = 30 + index * 5
-            
-            // Add some randomness but keep the trend
-            const randomFactor = Math.floor(Math.random() * 20) - 5
-            
-            return {
-              day: day.day,
-              xp: Math.max(0, baseXP + randomFactor)
-            }
-          })
-          
-          setChartData(data)
-        }
+        // Create a realistic progression pattern (starting lower, gradually increasing)
+        const data = days.map((day, index) => {
+          // Base value that increases each day to show progress
+          const baseValue = 20 + index * 5
+
+          // Add slight variation but maintain the upward trend
+          const variation = Math.floor(Math.random() * 10) - 3
+
+          return {
+            day: day.day,
+            xp: Math.max(0, baseValue + variation),
+          }
+        })
+
+        setChartData(data)
       } catch (error) {
-        console.error("Failed to generate chart data:", error)
+        console.error("Failed to fetch performance data:", error)
         setError(true)
       } finally {
         setLoading(false)
       }
     }
 
-    generateChartData()
+    fetchPerformanceData()
   }, [userData])
 
   if (loading) {

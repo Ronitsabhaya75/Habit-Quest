@@ -23,13 +23,13 @@ export function Leaderboard() {
         setError(false)
 
         // In a real app, you would fetch this from your API
-        // For now, we'll generate realistic data
+        // For now, we'll create consistent mock data
         const mockUsers = [
+          { username: "AstroAchiever", xp: 350, isCurrentUser: true },
           { username: "CosmicExplorer", xp: 520, isCurrentUser: false },
           { username: "StarGazer42", xp: 480, isCurrentUser: false },
           { username: "GalaxyQuester", xp: 410, isCurrentUser: false },
           { username: "NebulaNinja", xp: 380, isCurrentUser: false },
-          { username: "AstroAchiever", xp: 350, isCurrentUser: true },
           { username: "MoonWalker", xp: 320, isCurrentUser: false },
           { username: "SolarSurfer", xp: 290, isCurrentUser: false },
           { username: "CosmicCaptain", xp: 260, isCurrentUser: false },
@@ -45,7 +45,7 @@ export function Leaderboard() {
           ...user,
           rank: index + 1,
           level: Math.floor(user.xp / 100) + 1,
-          badge: getBadgeForUser(user.xp)
+          badge: getBadgeForUser(user.xp, index),
         }))
 
         setLeaderboardData(rankedUsers)
@@ -60,8 +60,11 @@ export function Leaderboard() {
     fetchLeaderboard()
   }, [])
 
-  // Function to determine badge based on XP
-  function getBadgeForUser(xp: number): string {
+  // Function to determine badge based on XP and rank
+  function getBadgeForUser(xp: number, rank: number): string {
+    if (rank === 0) return "🥇"
+    if (rank === 1) return "🥈"
+    if (rank === 2) return "🥉"
     if (xp >= 500) return "🌟"
     if (xp >= 400) return "🚀"
     if (xp >= 300) return "🌙"
@@ -123,9 +126,7 @@ export function Leaderboard() {
               </div>
             </div>
             <div className="flex items-center space-x-2">
-              <span className="text-[#40E0D0] font-bold bg-[#40E0D0]/10 px-3 py-1 rounded-full">
-                {user.xp} XP
-              </span>
+              <span className="text-[#40E0D0] font-bold bg-[#40E0D0]/10 px-3 py-1 rounded-full">{user.xp} XP</span>
               <span className="text-xs px-1.5 py-0.5 rounded bg-[#2a3343] text-gray-300">Lv.{user.level}</span>
             </div>
           </div>
