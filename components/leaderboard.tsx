@@ -22,36 +22,30 @@ export function Leaderboard() {
         setLoading(true)
         setError(false)
 
-        // In a real app, you would fetch this from your API
-        // For now, we'll create consistent mock data
-        const mockUsers = [
-          { username: "AstroAchiever", xp: 350, isCurrentUser: true },
-          { username: "CosmicExplorer", xp: 520, isCurrentUser: false },
-          { username: "StarGazer42", xp: 480, isCurrentUser: false },
-          { username: "GalaxyQuester", xp: 410, isCurrentUser: false },
-          { username: "NebulaNinja", xp: 380, isCurrentUser: false },
-          { username: "MoonWalker", xp: 320, isCurrentUser: false },
-          { username: "SolarSurfer", xp: 290, isCurrentUser: false },
-          { username: "CosmicCaptain", xp: 260, isCurrentUser: false },
-          { username: "VoyagerVIP", xp: 230, isCurrentUser: false },
-          { username: "OrbitObtainer", xp: 200, isCurrentUser: false },
-        ]
+        // Fetch leaderboard data from API
+        const res = await fetch("/api/users/leaderboard")
 
-        // Sort by XP
-        const sortedUsers = mockUsers.sort((a, b) => b.xp - a.xp)
+        if (!res.ok) {
+          console.error("Leaderboard fetch failed with status:", res.status)
+          setError(true)
+          // Use placeholder data as fallback
+          setLeaderboardData(generatePlaceholderData())
+          return
+        }
 
-        // Add rank and level
-        const rankedUsers = sortedUsers.map((user, index) => ({
-          ...user,
-          rank: index + 1,
-          level: Math.floor(user.xp / 100) + 1,
-          badge: getBadgeForUser(user.xp, index),
-        }))
-
-        setLeaderboardData(rankedUsers)
+        const data = await res.json()
+        if (data.success) {
+          setLeaderboardData(data.data)
+        } else {
+          setError(true)
+          // Use placeholder data as fallback
+          setLeaderboardData(generatePlaceholderData())
+        }
       } catch (error) {
         console.error("Leaderboard error:", error)
         setError(true)
+        // Use placeholder data as fallback
+        setLeaderboardData(generatePlaceholderData())
       } finally {
         setLoading(false)
       }
@@ -59,6 +53,35 @@ export function Leaderboard() {
 
     fetchLeaderboard()
   }, [])
+
+  // Generate placeholder data if the API fails
+  function generatePlaceholderData(): LeaderboardEntry[] {
+    const mockUsers = [
+      { username: "AstroAchiever", xp: 350, isCurrentUser: true },
+      { username: "CosmicExplorer", xp: 520, isCurrentUser: false },
+      { username: "StarGazer42", xp: 480, isCurrentUser: false },
+      { username: "GalaxyQuester", xp: 410, isCurrentUser: false },
+      { username: "NebulaNinja", xp: 380, isCurrentUser: false },
+      { username: "MoonWalker", xp: 320, isCurrentUser: false },
+      { username: "SolarSurfer", xp: 290, isCurrentUser: false },
+      { username: "CosmicCaptain", xp: 260, isCurrentUser: false },
+      { username: "VoyagerVIP", xp: 230, isCurrentUser: false },
+      { username: "OrbitObtainer", xp: 200, isCurrentUser: false },
+    ]
+
+    // Sort by XP
+    const sortedUsers = mockUsers.sort((a, b) => b.xp - a.xp)
+
+    // Add rank and level
+    const rankedUsers = sortedUsers.map((user, index) => ({
+      ...user,
+      rank: index + 1,
+      level: Math.floor(user.xp / 100) + 1,
+      badge: getBadgeForUser(user.xp, index),
+    }))
+
+    return rankedUsers
+  }
 
   // Function to determine badge based on XP and rank
   function getBadgeForUser(xp: number, rank: number): string {

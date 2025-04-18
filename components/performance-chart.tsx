@@ -27,8 +27,30 @@ export function PerformanceChart({ type, userData }: PerformanceChartProps) {
         setLoading(true)
         setError(false)
 
-        // In a real app, you would fetch this from your API
-        // For now, we'll create consistent mock data that shows progress
+        // Fetch performance data from API
+        const response = await fetch("/api/stats/performance")
+
+        if (!response.ok) {
+          throw new Error(`API request failed with status ${response.status}`)
+        }
+
+        const data = await response.json()
+
+        if (data.success) {
+          setChartData(
+            data.data.map((item: any) => ({
+              day: item.day,
+              xp: item.xp,
+            })),
+          )
+        } else {
+          throw new Error(data.message || "Failed to fetch performance data")
+        }
+      } catch (error) {
+        console.error("Failed to fetch performance data:", error)
+        setError(true)
+
+        // Generate fallback data
         const days = []
         const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
 
@@ -43,7 +65,7 @@ export function PerformanceChart({ type, userData }: PerformanceChartProps) {
         }
 
         // Create a realistic progression pattern (starting lower, gradually increasing)
-        const data = days.map((day, index) => {
+        const fallbackData = days.map((day, index) => {
           // Base value that increases each day to show progress
           const baseValue = 20 + index * 5
 
@@ -56,10 +78,7 @@ export function PerformanceChart({ type, userData }: PerformanceChartProps) {
           }
         })
 
-        setChartData(data)
-      } catch (error) {
-        console.error("Failed to fetch performance data:", error)
-        setError(true)
+        setChartData(fallbackData)
       } finally {
         setLoading(false)
       }
