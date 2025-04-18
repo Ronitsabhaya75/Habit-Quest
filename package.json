@@ -63,7 +63,8 @@
     "jose": "latest",
     "jsonwebtoken": "latest",
     "bcryptjs": "latest",
-    "framer-motion": "latest"
+    "framer-motion": "latest",
+    "styled-components": "latest"
   },
   "devDependencies": {
     "@types/node": "^22",
