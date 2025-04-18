@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { useState, useEffect } from "react"
 import { usePathname, useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
@@ -46,6 +45,10 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
     { path: "/review", label: "Review", icon: BarChart4 },
   ]
 
+  const handleNavigation = (path: string) => {
+    router.push(path)
+  }
+
   return (
     <div className="flex h-screen w-screen bg-[#0d1520] overflow-hidden">
       {/* Desktop Sidebar */}
@@ -58,7 +61,7 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
             {navItems.map((item) => (
               <button
                 key={item.path}
-                onClick={() => router.push(item.path)}
+                onClick={() => handleNavigation(item.path)}
                 className={`flex items-center w-full px-3 py-2 text-sm rounded-md ${
                   pathname === item.path
                     ? "bg-[#4cc9f0] text-black font-medium"
@@ -106,7 +109,7 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
                       {navItems.map((item) => (
                         <button
                           key={item.path}
-                          onClick={() => router.push(item.path)}
+                          onClick={() => handleNavigation(item.path)}
                           className={`flex items-center w-full px-3 py-2 text-sm rounded-md ${
                             pathname === item.path
                               ? "bg-[#4cc9f0] text-black font-medium"

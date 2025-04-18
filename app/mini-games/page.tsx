@@ -4,23 +4,21 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { MainLayout } from "@/components/main-layout"
 import { Button } from "@/components/ui/button"
 import { useState } from "react"
-import { ChessGame } from "@/components/games/chess-game"
-import { PacmanGame } from "@/components/games/pacman-game"
+import { SimpleGame } from "@/components/games/simple-game"
+import { MemoryGame } from "@/components/games/memory-game"
 import { QuizGame } from "@/components/games/quiz-game"
 import { SpinWheel } from "@/components/games/spin-wheel"
 import { WordScrambler } from "@/components/games/word-scrambler"
-import { MemoryGame } from "@/components/games/memory-game"
 
 export default function MiniGames() {
   const [activeGame, setActiveGame] = useState<string | null>(null)
 
   const games = [
-    { id: "chess", name: "Chess", description: "Challenge your strategic thinking", component: ChessGame },
-    { id: "pacman", name: "Pacman", description: "Classic arcade game", component: PacmanGame },
+    { id: "simple", name: "Target Clicker", description: "Test your reflexes", component: SimpleGame },
+    { id: "memory", name: "Memory Match", description: "Find matching pairs", component: MemoryGame },
     { id: "quiz", name: "Quiz Game", description: "Test your knowledge", component: QuizGame },
     { id: "spinwheel", name: "Spin Wheel", description: "Try your luck", component: SpinWheel },
     { id: "wordscrambler", name: "Word Scrambler", description: "Unscramble the words", component: WordScrambler },
-    { id: "memory", name: "Memory Match", description: "Find matching pairs", component: MemoryGame },
   ]
 
   const GameComponent = activeGame ? games.find((game) => game.id === activeGame)?.component : null
@@ -29,7 +27,7 @@ export default function MiniGames() {
     <MainLayout>
       <div className="mb-6">
         <h1 className="text-3xl font-bold text-white">Mini Games</h1>
-        <p className="text-gray-400">Play games to earn XP (max 10 XP per game)</p>
+        <p className="text-gray-400">Play games to earn XP (10 XP per game)</p>
       </div>
 
       {!activeGame ? (

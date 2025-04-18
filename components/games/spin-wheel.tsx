@@ -21,43 +21,6 @@ export function SpinWheel() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [rotation, setRotation] = useState(0)
   const [spinSpeed, setSpinSpeed] = useState(0)
-  const [lastSpinTime, setLastSpinTime] = useState<number | null>(null)
-  const [timeRemaining, setTimeRemaining] = useState<string>("")
-
-  // Check localStorage for last spin time on component mount
-  useEffect(() => {
-    const storedTime = localStorage.getItem("lastSpinTime")
-    if (storedTime) {
-      setLastSpinTime(parseInt(storedTime))
-    }
-  }, [])
-
-  // Calculate time remaining for next spin
-  useEffect(() => {
-    if (lastSpinTime) {
-      const updateTimeRemaining = () => {
-        const now = Date.now()
-        const timePassed = now - lastSpinTime
-        const twentyFourHours = 24 * 60 * 60 * 1000
-        
-        if (timePassed < twentyFourHours) {
-          const remaining = twentyFourHours - timePassed
-          const hours = Math.floor(remaining / (1000 * 60 * 60))
-          const minutes = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60))
-          const seconds = Math.floor((remaining % (1000 * 60)) / 1000)
-          setTimeRemaining(`${hours}h ${minutes}m ${seconds}s`)
-        } else {
-          setTimeRemaining("")
-          setLastSpinTime(null)
-          localStorage.removeItem("lastSpinTime")
-        }
-      }
-
-      updateTimeRemaining()
-      const interval = setInterval(updateTimeRemaining, 1000)
-      return () => clearInterval(interval)
-    }
-  }, [lastSpinTime])
 
   useEffect(() => {
     if (gameStarted && canvasRef.current) {
@@ -85,13 +48,7 @@ export function SpinWheel() {
             const segmentSize = 360 / wheelItems.length
             const normalizedRotation = (360 - rotation) % 360
             const segmentIndex = Math.floor(normalizedRotation / segmentSize)
-            const spinResult = wheelItems[segmentIndex].value
-            setResult(spinResult)
-
-            // Store the spin time
-            const now = Date.now()
-            setLastSpinTime(now)
-            localStorage.setItem("lastSpinTime", now.toString())
+            setResult(wheelItems[segmentIndex].value)
 
             return 0
           }
@@ -103,7 +60,7 @@ export function SpinWheel() {
   }, [spinning, spinSpeed])
 
   const handleSpin = () => {
-    if (!spinning && !lastSpinTime) {
+    if (!spinning) {
       setSpinning(true)
       setSpinSpeed(10 + Math.random() * 10)
       setResult(null)
@@ -162,8 +119,6 @@ export function SpinWheel() {
     ctx.fill()
   }
 
-  const canSpin = !lastSpinTime || (Date.now() - lastSpinTime) >= 24 * 60 * 60 * 1000
-
   return (
     <div className="flex flex-col items-center space-y-6">
       {!gameStarted ? (
@@ -188,20 +143,9 @@ export function SpinWheel() {
             )}
           </div>
 
-          {lastSpinTime && !canSpin ? (
-            <div className="text-center">
-              <p className="text-gray-400">You can spin again in:</p>
-              <p className="text-[#4cc9f0] font-bold">{timeRemaining}</p>
-            </div>
-          ) : (
-            <Button 
-              className="bg-[#4cc9f0] hover:bg-[#4cc9f0]/80 text-black" 
-              onClick={handleSpin} 
-              disabled={spinning || !canSpin}
-            >
-              {spinning ? "Spinning..." : "Spin"}
-            </Button>
-          )}
+          <Button className="bg-[#4cc9f0] hover:bg-[#4cc9f0]/80 text-black" onClick={handleSpin} disabled={spinning}>
+            {spinning ? "Spinning..." : "Spin"}
+          </Button>
         </>
       )}
     </div>

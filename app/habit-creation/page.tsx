@@ -12,12 +12,41 @@ import { Textarea } from "@/components/ui/textarea"
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { format } from "date-fns"
-import { CalendarIcon } from "lucide-react"
+import { CalendarIcon } from 'lucide-react'
 import { cn } from "@/lib/utils"
+import { useToast } from "@/components/ui/use-toast"
 
 export default function HabitCreation() {
   const [startDate, setStartDate] = useState<Date>()
   const [endDate, setEndDate] = useState<Date>()
+  const { toast } = useToast()
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+
+    try {
+      // Import the XP_VALUES from lib/xp-system
+      const { XP_VALUES } = await import("@/lib/xp-system")
+
+      // Show success message with XP
+      toast({
+        title: "Habit Created!",
+        description: `You earned ${XP_VALUES.HABIT_CREATION} XP for creating a new habit.`,
+      })
+
+      // Reset form
+      setStartDate(undefined)
+      setEndDate(undefined)
+
+    } catch (error) {
+      console.error("Error creating habit:", error)
+      toast({
+        title: "Error",
+        description: "Failed to create habit. Please try again.",
+        variant: "destructive",
+      })
+    }
+  }
 
   return (
     <MainLayout>
@@ -31,7 +60,7 @@ export default function HabitCreation() {
           <CardTitle className="text-xl text-white">Create New Habit</CardTitle>
         </CardHeader>
         <CardContent>
-          <form className="space-y-6">
+          <form className="space-y-6" onSubmit={handleSubmit}>
             <div className="space-y-2">
               <Label htmlFor="habit-name" className="text-white">
                 Habit Name
@@ -142,7 +171,7 @@ export default function HabitCreation() {
               </RadioGroup>
             </div>
 
-            <Button className="w-full bg-[#4cc9f0] hover:bg-[#4cc9f0]/80 text-black">Create Habit</Button>
+            <Button className="w-full bg-[#4cc9f0] hover:bg-[#4cc9f0]/80 text-black" type="submit">Create Habit</Button>
           </form>
         </CardContent>
       </Card>

@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
-import { Plus } from "lucide-react"
+import { Plus } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -185,6 +185,62 @@ export function TodaysTasks() {
     }
   }
 
+  const handleTaskToggle = async (id: string) => {
+    try {
+      const task = tasks.find((task) => task._id === id)
+      if (!task) {
+        console.error("Task not found")
+        return
+      }
+      const completed = !task.completed
+
+      const res = await fetch(`/api/tasks/${id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ completed }),
+      })
+
+      if (res.ok) {
+        const data = await res.json()
+        if (data.success) {
+          // Update tasks list
+          setTasks(tasks.map((task) => (task._id === id ? { ...task, completed } : task)))
+
+          // If task was completed, update user XP
+          if (completed) {
+            // Import the XP_VALUES from lib/xp-system
+            const { XP_VALUES } = await import("@/lib/xp-system")
+            
+            // In a real app, you would update the user's XP in the database
+            // For now, we'll just show a toast notification
+            toast({
+              title: "Task Completed!",
+              description: `You earned ${XP_VALUES.TASK_COMPLETION} XP`,
+            })
+          }
+        } else {
+          throw new Error(data.message || "Failed to update task")
+        }
+      } else {
+        throw new Error("Failed to update task")
+      }
+    } catch (error) {
+      console.error("Toggle task error:", error)
+      // Update task locally for demo purposes
+      setTasks(tasks.map((task) => (task._id === id ? { ...task, completed: !task.completed } : task)))
+
+      const task = tasks.find((task) => task._id === id)
+      if (task && task.completed) {
+        toast({
+          title: "Task Completed!",
+          description: `You earned 20 XP (offline mode)`,
+        })
+      }
+    }
+  }
+
   if (loading) {
     return <div className="text-center py-8 text-gray-400">Loading tasks...</div>
   }
@@ -201,7 +257,7 @@ export function TodaysTasks() {
               <Checkbox
                 id={`task-${task._id}`}
                 checked={task.completed}
-                onCheckedChange={(checked) => toggleTask(task._id, checked === true)}
+                onCheckedChange={() => handleTaskToggle(task._id)}
                 className="text-[#4cc9f0] border-[#4cc9f0]"
               />
               <label

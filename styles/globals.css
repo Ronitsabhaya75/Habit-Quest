@@ -2,11 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-@keyframes starGlow {
-  0% { opacity: 0.6; filter: blur(1px); transform: scale(0.9); }
-  50% { opacity: 1; filter: blur(0px); transform: scale(1.1); }
-  100% { opacity: 0.6; filter: blur(1px); transform: scale(0.9); }
-}
 body {
   font-family: Arial, Helvetica, sans-serif;
 }
