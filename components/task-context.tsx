@@ -1,7 +1,6 @@
 "use client"
 
 import React, { createContext, useContext, useState, useEffect } from "react"
-import axios from "axios"
 import { toast } from "react-hot-toast"
 
 // Define the task interface
@@ -69,16 +68,22 @@ export const TaskProvider = ({ children }: { children: React.ReactNode }) => {
   const fetchTasks = async () => {
     try {
       setLoading(true)
-      const response = await axios.get("/api/tasks")
+      const response = await fetch("/api/tasks")
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`)
+      }
+      
+      const data = await response.json()
       
       // Ensure we're setting tasks to an array
       // The API might return data in different formats
-      if (response.data && response.data.data && Array.isArray(response.data.data)) {
-        setTasks(response.data.data)
-      } else if (response.data && Array.isArray(response.data)) {
-        setTasks(response.data)
+      if (data && data.data && Array.isArray(data.data)) {
+        setTasks(data.data)
+      } else if (data && Array.isArray(data)) {
+        setTasks(data)
       } else {
-        console.error("Unexpected API response format:", response.data)
+        console.error("Unexpected API response format:", data)
         setTasks([])
       }
       
@@ -95,16 +100,28 @@ export const TaskProvider = ({ children }: { children: React.ReactNode }) => {
   const addTask = async (taskData: AddTaskInput) => {
     try {
       setLoading(true)
-      const response = await axios.post("/api/tasks", {
-        ...taskData,
-        xpReward: taskData.xpReward || 10,
-        isHabit: taskData.isHabit || false,
-        isRecurring: taskData.isRecurring || false,
-        frequency: taskData.frequency || "daily",
-        recurringEndDate: taskData.isRecurring ? taskData.recurringEndDate : null
+      const response = await fetch("/api/tasks", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          ...taskData,
+          xpReward: taskData.xpReward || 10,
+          isHabit: taskData.isHabit || false,
+          isRecurring: taskData.isRecurring || false,
+          frequency: taskData.frequency || "daily",
+          recurringEndDate: taskData.isRecurring ? taskData.recurringEndDate : null
+        }),
       })
       
-      const newTask = response.data.task
+      if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`)
+      }
+      
+      const data = await response.json()
+      const newTask = data.task
+      
       setTasks((prevTasks) => [...prevTasks, newTask])
       toast.success("Task added successfully!")
       return newTask
@@ -121,14 +138,24 @@ export const TaskProvider = ({ children }: { children: React.ReactNode }) => {
   const updateTask = async (taskData: UpdateTaskInput) => {
     try {
       setLoading(true)
-      const response = await axios.put("/api/tasks", taskData)
+      const response = await fetch("/api/tasks", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(taskData),
+      })
       
-      const updatedTask = response.data.data
+      if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`)
+      }
+      
+      const data = await response.json()
+      const updatedTask = data.data
       
       // If we're updating all instances (array of tasks returned)
       if (Array.isArray(updatedTask)) {
         // Replace all the updated tasks in our state
-        const updatedIds = updatedTask.map(t => t._id)
         setTasks((prevTasks) =>
           prevTasks.map((t) => {
             const matchingTask = updatedTask.find(ut => ut._id === t._id)
@@ -166,7 +193,15 @@ export const TaskProvider = ({ children }: { children: React.ReactNode }) => {
   const removeTask = async (id: string, deleteRecurring = false) => {
     try {
       setLoading(true)
-      await axios.delete(`/api/tasks?id=${id}${deleteRecurring ? '&deleteRecurring=true' : ''}`)
+      const url = `/api/tasks?id=${id}${deleteRecurring ? '&deleteRecurring=true' : ''}`
+      const response = await fetch(url, {
+        method: "DELETE",
+      })
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`)
+      }
+      
       if (deleteRecurring) {
         // If we're deleting a recurring task and all its instances, we need to refresh the task list
         await fetchTasks()
@@ -187,12 +222,23 @@ export const TaskProvider = ({ children }: { children: React.ReactNode }) => {
   const completeTask = async (id: string) => {
     try {
       setLoading(true)
-      const response = await axios.put("/api/tasks", { 
-        id, 
-        completed: true 
+      const response = await fetch("/api/tasks", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ 
+          id, 
+          completed: true 
+        }),
       })
       
-      const updatedTask = response.data.data
+      if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`)
+      }
+      
+      const data = await response.json()
+      const updatedTask = data.data
       
       // Update the completed task in state
       setTasks((prevTasks) =>

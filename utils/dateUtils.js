@@ -1,34 +1,72 @@
 import { addDays, addWeeks, addMonths } from 'date-fns';
 
 /**
+ * Safely parses a date string or Date object into a valid Date object
+ * @param {string|Date} dateInput - The date input to parse
+ * @returns {Date} - A valid Date object
+ */
+export function safelyParseDate(dateInput) {
+  if (!dateInput) return null;
+  
+  try {
+    // If it's already a Date object
+    if (dateInput instanceof Date) {
+      return new Date(dateInput);
+    }
+    
+    // If it's an ISO string or other string format
+    return new Date(dateInput);
+  } catch (error) {
+    console.error("Date parsing error:", error);
+    // Fallback to current date
+    return new Date();
+  }
+}
+
+/**
  * Calculates the next occurrence date for a recurring task
- * @param {Date} currentDate - The current due date
+ * @param {Date|string} currentDate - The current due date
  * @param {string} frequency - The recurrence frequency ('daily', 'weekly', 'biweekly', 'monthly')
- * @param {Date|null} endDate - Optional end date for recurring tasks
+ * @param {Date|string|null} endDate - Optional end date for recurring tasks
  * @returns {Date|null} - The next occurrence date or null if beyond end date
  */
 export function getNextOccurrenceDate(currentDate, frequency, endDate = null) {
+  // Safely parse dates
+  const parsedCurrentDate = safelyParseDate(currentDate);
+  const parsedEndDate = endDate ? safelyParseDate(endDate) : null;
+  
+  if (!parsedCurrentDate) {
+    console.error("Invalid current date provided:", currentDate);
+    return null;
+  }
+  
   let nextDate;
   
-  switch (frequency) {
-    case 'daily':
-      nextDate = addDays(new Date(currentDate), 1);
-      break;
-    case 'weekly':
-      nextDate = addWeeks(new Date(currentDate), 1);
-      break;
-    case 'biweekly':
-      nextDate = addWeeks(new Date(currentDate), 2);
-      break;
-    case 'monthly':
-      nextDate = addMonths(new Date(currentDate), 1);
-      break;
-    default:
-      nextDate = addDays(new Date(currentDate), 1);
+  try {
+    switch (frequency) {
+      case 'daily':
+        nextDate = addDays(parsedCurrentDate, 1);
+        break;
+      case 'weekly':
+        nextDate = addWeeks(parsedCurrentDate, 1);
+        break;
+      case 'biweekly':
+        nextDate = addWeeks(parsedCurrentDate, 2);
+        break;
+      case 'monthly':
+        nextDate = addMonths(parsedCurrentDate, 1);
+        break;
+      default:
+        nextDate = addDays(parsedCurrentDate, 1);
+    }
+  } catch (error) {
+    console.error("Error calculating next date:", error);
+    // Default to tomorrow if calculation fails
+    nextDate = addDays(new Date(), 1);
   }
   
   // If there's an end date and the next occurrence is after that date, return null
-  if (endDate && nextDate > new Date(endDate)) {
+  if (parsedEndDate && nextDate > parsedEndDate) {
     return null;
   }
   
@@ -42,6 +80,12 @@ export function getNextOccurrenceDate(currentDate, frequency, endDate = null) {
  */
 export function shouldCreateNextInstance(task) {
   if (!task.isRecurring) {
+    return false;
+  }
+  
+  // Validate task object
+  if (!task.dueDate) {
+    console.error("Task missing dueDate:", task);
     return false;
   }
   

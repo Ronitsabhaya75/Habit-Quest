@@ -49,32 +49,55 @@ export async function GET(request) {
 // Create a new task
 export async function POST(request) {
   try {
+    console.log("Starting task creation...")
     await connectToDatabase()
+    console.log("Database connected")
+    
     const user = await getUserFromToken(request)
+    console.log("User authentication:", user ? "successful" : "failed")
     
     if (!user) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
     }
     
     const body = await request.json()
+    console.log("Request body:", JSON.stringify(body))
+    
     const { title, description, dueDate, xpReward, isHabit, isRecurring, frequency, recurringEndDate } = body
     
+    // Validate required fields
+    if (!title) {
+      return NextResponse.json({ error: 'Title is required' }, { status: 400 })
+    }
+    
+    if (!dueDate) {
+      return NextResponse.json({ error: 'Due date is required' }, { status: 400 })
+    }
+    
+    // Create task with proper date handling
     const task = await Task.create({
       user: user._id,
       title,
       description,
-      dueDate,
+      dueDate: new Date(dueDate),
       xpReward: xpReward || 10,
       isHabit: isHabit || false,
       isRecurring: isRecurring || false,
       frequency: frequency || 'daily',
-      recurringEndDate: recurringEndDate || null
+      recurringEndDate: recurringEndDate ? new Date(recurringEndDate) : null
     })
     
+    console.log("Task created successfully:", task._id)
     return NextResponse.json({ task }, { status: 200 })
   } catch (error) {
     console.error('Error creating task:', error)
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    // Detailed error information
+    return NextResponse.json({ 
+      error: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+      name: error.name,
+      code: error.code
+    }, { status: 500 })
   }
 }
 
