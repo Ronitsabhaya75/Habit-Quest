@@ -1,91 +1,268 @@
 "use client"
 
-import type React from "react"
-import { createContext, useContext, useState, useEffect } from "react"
+import React, { createContext, useContext, useState, useEffect } from "react"
+import axios from "axios"
+import { toast } from "react-hot-toast"
 
-// Define the Task type
+// Define the task interface
 export interface Task {
-  id: number | string
+  _id: string
   title: string
+  description?: string
+  dueDate: Date
   completed: boolean
-  date?: Date
-  isHabit?: boolean
-  estimatedTime?: number
+  completedAt?: Date | null
+  xpReward: number
+  isHabit: boolean
+  isRecurring: boolean
+  frequency?: "daily" | "weekly" | "biweekly" | "monthly"
+  recurringEndDate?: Date | null
+  parentTaskId?: string
+  createdAt: Date
+  updatedAt: Date
 }
 
-// Define the context type
 interface TaskContextType {
   tasks: Task[]
-  addTask: (task: Omit<Task, "id">) => void
-  updateTask: (id: number | string, updates: Partial<Task>) => void
-  removeTask: (id: number | string) => void
+  loading: boolean
+  error: string | null
+  fetchTasks: () => Promise<void>
+  addTask: (task: Omit<Task, "_id" | "completed" | "createdAt" | "updatedAt">) => Promise<void>
+  updateTask: (id: string, task: Partial<Task>, updateAllInstances?: boolean) => Promise<void>
+  removeTask: (id: string, deleteRecurring?: boolean) => Promise<void>
+  completeTask: (id: string) => Promise<void>
   getTasksForDate: (date: Date) => Task[]
 }
 
-// Create the context
-const TaskContext = createContext<TaskContextType | undefined>(undefined)
+const TaskContext = createContext<TaskContextType | null>(null)
 
-// Task provider component
-export function TaskProvider({ children }: { children: React.ReactNode }) {
-  const [tasks, setTasks] = useState<Task[]>([
-    { id: 1, title: "Morning meditation", completed: false, date: new Date() },
-    { id: 2, title: "Read for 30 minutes", completed: true, date: new Date() },
-  ])
+interface AddTaskInput {
+  title: string
+  description?: string
+  dueDate: Date
+  xpReward?: number
+  isHabit?: boolean
+  isRecurring?: boolean
+  frequency?: "daily" | "weekly" | "biweekly" | "monthly"
+  recurringEndDate?: Date | null
+}
 
-  // Add a new task
-  const addTask = (task: Omit<Task, "id">) => {
-    const newTask = {
-      ...task,
-      id: Date.now(),
-    }
-    setTasks((prevTasks) => [...prevTasks, newTask])
-  }
+interface UpdateTaskInput {
+  id: string
+  title?: string
+  description?: string
+  dueDate?: Date
+  completed?: boolean
+  xpReward?: number
+  isHabit?: boolean
+  isRecurring?: boolean
+  frequency?: "daily" | "weekly" | "biweekly" | "monthly"
+  recurringEndDate?: Date | null
+  updateAllInstances?: boolean
+}
 
-  // Update a task
-  const updateTask = (id: number | string, updates: Partial<Task>) => {
-    setTasks((prevTasks) => prevTasks.map((task) => (task.id === id ? { ...task, ...updates } : task)))
-  }
+export const TaskProvider = ({ children }: { children: React.ReactNode }) => {
+  const [tasks, setTasks] = useState<Task[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-  // Remove a task
-  const removeTask = (id: number | string) => {
-    setTasks((prevTasks) => prevTasks.filter((task) => task.id !== id))
-  }
-
-  // Get tasks for a specific date
-  const getTasksForDate = (date: Date) => {
-    return tasks.filter((task) => task.date && task.date.toDateString() === date.toDateString())
-  }
-
-  // In a real app, you would fetch tasks from the API here
-  useEffect(() => {
-    // Simulating API fetch
-    const fetchTasks = async () => {
-      try {
-        // const response = await fetch('/api/tasks');
-        // const data = await response.json();
-        // if (data.success) {
-        //   setTasks(data.data);
-        // }
-      } catch (error) {
-        console.error("Failed to fetch tasks:", error)
+  const fetchTasks = async () => {
+    try {
+      setLoading(true)
+      const response = await axios.get("/api/tasks")
+      
+      // Ensure we're setting tasks to an array
+      // The API might return data in different formats
+      if (response.data && response.data.data && Array.isArray(response.data.data)) {
+        setTasks(response.data.data)
+      } else if (response.data && Array.isArray(response.data)) {
+        setTasks(response.data)
+      } else {
+        console.error("Unexpected API response format:", response.data)
+        setTasks([])
       }
+      
+      setError(null)
+    } catch (err) {
+      console.error("Error fetching tasks:", err)
+      setError("Failed to fetch tasks")
+      setTasks([]) // Ensure tasks is an array even on error
+    } finally {
+      setLoading(false)
     }
+  }
 
+  const addTask = async (taskData: AddTaskInput) => {
+    try {
+      setLoading(true)
+      const response = await axios.post("/api/tasks", {
+        ...taskData,
+        xpReward: taskData.xpReward || 10,
+        isHabit: taskData.isHabit || false,
+        isRecurring: taskData.isRecurring || false,
+        frequency: taskData.frequency || "daily",
+        recurringEndDate: taskData.isRecurring ? taskData.recurringEndDate : null
+      })
+      
+      const newTask = response.data.task
+      setTasks((prevTasks) => [...prevTasks, newTask])
+      toast.success("Task added successfully!")
+      return newTask
+    } catch (err) {
+      console.error("Error adding task:", err)
+      setError("Failed to add task")
+      toast.error("Failed to add task")
+      return null
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const updateTask = async (taskData: UpdateTaskInput) => {
+    try {
+      setLoading(true)
+      const response = await axios.put("/api/tasks", taskData)
+      
+      const updatedTask = response.data.data
+      
+      // If we're updating all instances (array of tasks returned)
+      if (Array.isArray(updatedTask)) {
+        // Replace all the updated tasks in our state
+        const updatedIds = updatedTask.map(t => t._id)
+        setTasks((prevTasks) =>
+          prevTasks.map((t) => {
+            const matchingTask = updatedTask.find(ut => ut._id === t._id)
+            return matchingTask || t
+          })
+        )
+      } else {
+        // Just update the single task
+        setTasks((prevTasks) =>
+          prevTasks.map((t) => (t._id === taskData.id ? updatedTask : t))
+        )
+      }
+      
+      toast.success("Task updated successfully!")
+      
+      // If the update involved completing a recurring task
+      if (taskData.completed && 
+          ((!Array.isArray(updatedTask) && updatedTask.isRecurring) || 
+           (Array.isArray(updatedTask) && updatedTask.some(t => t.isRecurring)))) {
+        // Fetch tasks to get the newly created recurring task
+        fetchTasks()
+      }
+      
+      return updatedTask
+    } catch (err) {
+      console.error("Error updating task:", err)
+      setError("Failed to update task")
+      toast.error("Failed to update task")
+      return null
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const removeTask = async (id: string, deleteRecurring = false) => {
+    try {
+      setLoading(true)
+      await axios.delete(`/api/tasks?id=${id}${deleteRecurring ? '&deleteRecurring=true' : ''}`)
+      if (deleteRecurring) {
+        // If we're deleting a recurring task and all its instances, we need to refresh the task list
+        await fetchTasks()
+      } else {
+        // Otherwise just remove the single task from state
+        setTasks((prevTasks) => prevTasks.filter((task) => task._id !== id))
+      }
+      toast.success("Task removed successfully!")
+    } catch (err) {
+      console.error("Error removing task:", err)
+      setError("Failed to remove task")
+      toast.error("Failed to remove task")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const completeTask = async (id: string) => {
+    try {
+      setLoading(true)
+      const response = await axios.put("/api/tasks", { 
+        id, 
+        completed: true 
+      })
+      
+      const updatedTask = response.data.data
+      
+      // Update the completed task in state
+      setTasks((prevTasks) =>
+        prevTasks.map((t) => (t._id === id ? updatedTask : t))
+      )
+      
+      // If this was a recurring task, fetch tasks to get the newly created recurring instance
+      if (updatedTask.isRecurring) {
+        await fetchTasks()
+      }
+      
+      toast.success("Task completed!")
+      return updatedTask
+    } catch (err) {
+      console.error("Error completing task:", err)
+      setError("Failed to complete task")
+      toast.error("Failed to complete task")
+      return null
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Function to get tasks for a specific date
+  const getTasksForDate = (date: Date) => {
+    const startOfDay = new Date(date)
+    startOfDay.setHours(0, 0, 0, 0)
+    
+    const endOfDay = new Date(date)
+    endOfDay.setHours(23, 59, 59, 999)
+    
+    // Make sure tasks is actually an array before filtering
+    if (!Array.isArray(tasks)) {
+      return []
+    }
+    
+    return tasks.filter(task => {
+      if (!task.dueDate) return false
+      const taskDate = new Date(task.dueDate)
+      return taskDate >= startOfDay && taskDate <= endOfDay
+    })
+  }
+
+  useEffect(() => {
     fetchTasks()
   }, [])
 
   return (
-    <TaskContext.Provider value={{ tasks, addTask, updateTask, removeTask, getTasksForDate }}>
+    <TaskContext.Provider
+      value={{
+        tasks,
+        loading,
+        error,
+        fetchTasks,
+        addTask,
+        updateTask,
+        removeTask,
+        completeTask,
+        getTasksForDate,
+      }}
+    >
       {children}
     </TaskContext.Provider>
   )
 }
 
-// Custom hook to use the task context
-export function useTasks() {
+export const useTask = () => {
   const context = useContext(TaskContext)
-  if (context === undefined) {
-    throw new Error("useTasks must be used within a TaskProvider")
+  if (!context) {
+    throw new Error("useTask must be used within a TaskProvider")
   }
   return context
 }

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Calendar } from "@/components/ui/calendar"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -11,13 +11,29 @@ import { TaskList } from "@/components/task-list"
 import { Plus, Send } from "lucide-react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { useToast } from "@/components/ui/use-toast"
+import { TaskProvider } from "@/components/task-context"
 
 export default function TrackPage() {
   const [date, setDate] = useState<Date | undefined>(new Date())
   const [showAI, setShowAI] = useState(false)
   const [tasks, setTasks] = useState([])
   const [inputMessage, setInputMessage] = useState("")
+  const [defaultDateTimeValue, setDefaultDateTimeValue] = useState("")
   const { toast } = useToast()
+
+  // Use a client-side effect to avoid hydration issues with dates
+  useEffect(() => {
+    // This ensures the date is set client-side, avoiding hydration errors
+    const now = new Date()
+    setDate(now)
+    
+    // Set default date time value for input
+    if (now) {
+      const dateWithTime = new Date(now)
+      dateWithTime.setHours(9, 0, 0, 0)
+      setDefaultDateTimeValue(dateWithTime.toISOString().substring(0, 16))
+    }
+  }, [])
 
   // Handle task creation from the AI
   const handleAddTaskWithDate = (taskDate, task) => {
@@ -63,84 +79,86 @@ export default function TrackPage() {
         <p className="text-gray-400">Manage your tasks and track your habits</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card className="bg-[#1a2332]/80 border-[#2a3343]">
-          <CardHeader>
-            <CardTitle className="text-xl text-white">Calendar</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Calendar
-              mode="single"
-              selected={date}
-              onSelect={setDate}
-              className="rounded-md border border-[#2a3343] bg-[#1a2332]"
-            />
-            <div className="mt-4 flex justify-between">
-              <Button
-                variant="outline"
-                className="bg-[#2a3343] hover:bg-[#3a4353] text-white border-[#3a4353]"
-                onClick={() => setShowAI(!showAI)}
-              >
-                {showAI ? "Hide AI Coach" : "Show AI Coach"}
-              </Button>
+      <TaskProvider>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <Card className="bg-[#1a2332]/80 border-[#2a3343]">
+            <CardHeader>
+              <CardTitle className="text-xl text-white">Calendar</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Calendar
+                mode="single"
+                selected={date}
+                onSelect={setDate}
+                className="rounded-md border border-[#2a3343] bg-[#1a2332]"
+              />
+              <div className="mt-4 flex justify-between">
+                <Button
+                  variant="outline"
+                  className="bg-[#2a3343] hover:bg-[#3a4353] text-white border-[#3a4353]"
+                  onClick={() => setShowAI(!showAI)}
+                >
+                  {showAI ? "Hide AI Coach" : "Show AI Coach"}
+                </Button>
 
-              <Dialog>
-                <DialogTrigger asChild>
-                  <Button className="bg-[#4cc9f0] hover:bg-[#4cc9f0]/80 text-black">
-                    <Plus className="mr-2 h-4 w-4" /> Add Task
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="bg-[#1a2332] border-[#2a3343] text-white">
-                  <DialogHeader>
-                    <DialogTitle>Add New Task</DialogTitle>
-                  </DialogHeader>
-                  <div className="space-y-4 py-4">
-                    <div className="space-y-2">
-                      <Input placeholder="Task name" className="bg-[#2a3343] border-[#3a4353] text-white" />
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button className="bg-[#4cc9f0] hover:bg-[#4cc9f0]/80 text-black">
+                      <Plus className="mr-2 h-4 w-4" /> Add Task
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="bg-[#1a2332] border-[#2a3343] text-white">
+                    <DialogHeader>
+                      <DialogTitle>Add New Task</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                      <div className="space-y-2">
+                        <Input placeholder="Task name" className="bg-[#2a3343] border-[#3a4353] text-white" />
+                      </div>
+                      <div className="space-y-2">
+                        <Input
+                          type="datetime-local"
+                          className="bg-[#2a3343] border-[#3a4353] text-white"
+                          defaultValue={defaultDateTimeValue}
+                        />
+                      </div>
+                      <Button className="w-full bg-[#4cc9f0] hover:bg-[#4cc9f0]/80 text-black">Save Task</Button>
                     </div>
-                    <div className="space-y-2">
-                      <Input
-                        type="datetime-local"
-                        className="bg-[#2a3343] border-[#3a4353] text-white"
-                        defaultValue={date ? new Date(date.setHours(9, 0, 0, 0)).toISOString().substring(0, 16) : ""}
-                      />
-                    </div>
-                    <Button className="w-full bg-[#4cc9f0] hover:bg-[#4cc9f0]/80 text-black">Save Task</Button>
-                  </div>
-                </DialogContent>
-              </Dialog>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="md:col-span-2 bg-[#1a2332]/80 border-[#2a3343]">
-          <CardHeader>
-            <CardTitle className="text-xl text-white">
-              Tasks for {date?.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {showAI ? (
-              <div className="space-y-4">
-                <AIChat onAddTaskWithDate={handleAddTaskWithDate} />
-                <div className="flex space-x-2">
-                  <Input
-                    placeholder="Ask your AI coach about tasks or habits..."
-                    className="bg-[#2a3343] border-[#3a4353] text-white"
-                    value={inputMessage}
-                    onChange={(e) => setInputMessage(e.target.value)}
-                  />
-                  <Button className="bg-[#4cc9f0] hover:bg-[#4cc9f0]/80 text-black" onClick={handleSendMessage}>
-                    <Send className="h-4 w-4" />
-                  </Button>
-                </div>
+                  </DialogContent>
+                </Dialog>
               </div>
-            ) : (
-              <TaskList date={date} />
-            )}
-          </CardContent>
-        </Card>
-      </div>
+            </CardContent>
+          </Card>
+
+          <Card className="md:col-span-2 bg-[#1a2332]/80 border-[#2a3343]">
+            <CardHeader>
+              <CardTitle className="text-xl text-white">
+                Tasks for {date?.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {showAI ? (
+                <div className="space-y-4">
+                  <AIChat onAddTaskWithDate={handleAddTaskWithDate} />
+                  <div className="flex space-x-2">
+                    <Input
+                      placeholder="Ask your AI coach about tasks or habits..."
+                      className="bg-[#2a3343] border-[#3a4353] text-white"
+                      value={inputMessage}
+                      onChange={(e) => setInputMessage(e.target.value)}
+                    />
+                    <Button className="bg-[#4cc9f0] hover:bg-[#4cc9f0]/80 text-black" onClick={handleSendMessage}>
+                      <Send className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <TaskList date={date} />
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      </TaskProvider>
     </MainLayout>
   )
 }

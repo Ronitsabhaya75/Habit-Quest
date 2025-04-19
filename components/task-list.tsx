@@ -7,7 +7,7 @@ import { Pencil, Trash2 } from "lucide-react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { useTasks, type Task } from "./task-context"
+import { useTask, type Task } from "./task-context"
 import { useToast } from "@/components/ui/use-toast"
 
 interface TaskListProps {
@@ -15,19 +15,30 @@ interface TaskListProps {
 }
 
 export function TaskList({ date = new Date() }: TaskListProps) {
-  const { tasks, addTask, updateTask, removeTask, getTasksForDate } = useTasks()
+  const { tasks, addTask, updateTask, removeTask, getTasksForDate } = useTask()
   const [filteredTasks, setFilteredTasks] = useState<Task[]>([])
   const [editingTask, setEditingTask] = useState<{ id: number | string; title: string } | null>(null)
   const [newTaskTitle, setNewTaskTitle] = useState("")
   const [dialogOpen, setDialogOpen] = useState(false)
   const { toast } = useToast()
+  const [isRecurring, setIsRecurring] = useState(false)
+  const [frequency, setFrequency] = useState("daily")
 
   // Filter tasks based on the selected date
   useEffect(() => {
-    if (date) {
-      setFilteredTasks(getTasksForDate(date))
+    try {
+      if (date) {
+        // Make sure getTasksForDate doesn't throw errors
+        const tasksForDate = getTasksForDate(date);
+        setFilteredTasks(tasksForDate || []);
+      } else {
+        setFilteredTasks([]);
+      }
+    } catch (error) {
+      console.error("Error filtering tasks by date:", error);
+      setFilteredTasks([]);
     }
-  }, [date, tasks, getTasksForDate])
+  }, [date, tasks, getTasksForDate]);
 
   const toggleTask = (id: number | string) => {
     const task = tasks.find((t) => t.id === id)
@@ -50,6 +61,8 @@ export function TaskList({ date = new Date() }: TaskListProps) {
         title: newTaskTitle,
         completed: false,
         date: date,
+        isRecurring: isRecurring,
+        frequency: frequency,
       })
 
       setNewTaskTitle("")
@@ -135,6 +148,11 @@ export function TaskList({ date = new Date() }: TaskListProps) {
                   >
                     {task.title}
                     {task.isHabit && <span className="text-sm opacity-80 ml-2">(daily habit)</span>}
+                    {task.isRecurring && !task.isHabit && (
+                      <span className="text-sm opacity-80 ml-2">
+                        ({task.frequency} · repeating)
+                      </span>
+                    )}
                   </label>
 
                   <div className="flex space-x-1">
@@ -184,6 +202,33 @@ export function TaskList({ date = new Date() }: TaskListProps) {
                 className="bg-[#2a3343] border-[#3a4353] text-white"
               />
             </div>
+            <div className="flex items-center space-x-2 mt-2">
+              <Checkbox
+                id="task-recurring"
+                checked={isRecurring}
+                onCheckedChange={(checked) => setIsRecurring(checked === true)}
+                className="text-[#4cc9f0] border-[#4cc9f0]"
+              />
+              <label htmlFor="task-recurring" className="text-sm text-white cursor-pointer">
+                Make this a recurring task
+              </label>
+            </div>
+            {isRecurring && (
+              <div className="space-y-2 mt-2">
+                <Label htmlFor="task-frequency">Frequency</Label>
+                <select
+                  id="task-frequency"
+                  value={frequency}
+                  onChange={(e) => setFrequency(e.target.value)}
+                  className="w-full bg-[#2a3343] border-[#3a4353] text-white rounded-md p-2"
+                >
+                  <option value="daily">Daily</option>
+                  <option value="weekly">Weekly</option>
+                  <option value="biweekly">Bi-weekly</option>
+                  <option value="monthly">Monthly</option>
+                </select>
+              </div>
+            )}
             <Button className="w-full bg-[#4cc9f0] hover:bg-[#4cc9f0]/80 text-black" onClick={handleAddTask}>
               Add Task
             </Button>

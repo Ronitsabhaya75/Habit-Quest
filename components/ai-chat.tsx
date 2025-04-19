@@ -93,11 +93,15 @@ export default function AIChat({ onTaskUpdate, onAddTask, activeTasks = [] }: AI
       timestamp: new Date()
     }
     
+    const userInput = input.trim();
     setMessages(prev => [...prev, userMessage])
     setInput('')
     setIsLoading(true)
 
     try {
+      console.log("Sending to AI:", userInput);
+      console.log("Active tasks:", activeTasks);
+      
       // Send message to API
       const response = await fetch('/api/ai-chat', {
         method: 'POST',
@@ -105,22 +109,23 @@ export default function AIChat({ onTaskUpdate, onAddTask, activeTasks = [] }: AI
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          userInput: input.trim(),
+          userInput: userInput,
           activeTasks: activeTasks,
           messages: messages.map(m => ({ text: m.text, sender: m.sender }))
         }),
       })
 
       if (!response.ok) {
-        throw new Error('Failed to get AI response')
+        throw new Error(`Failed to get AI response: ${response.status}`)
       }
 
-      const data: AIMessage = await response.json()
+      const data = await response.json()
+      console.log("AI response:", data);
       
       // Add AI message
       const aiMessage: Message = {
         id: (Date.now() + 1).toString(),
-        text: data.message,
+        text: data.message || "I didn't understand that. Can you try rephrasing?",
         sender: 'ai',
         timestamp: new Date()
       }
@@ -129,6 +134,7 @@ export default function AIChat({ onTaskUpdate, onAddTask, activeTasks = [] }: AI
 
       // Handle any actions from the AI
       if (data.action) {
+        console.log("Processing AI action:", data.action);
         handleAIAction(data.action)
       }
     } catch (error) {
@@ -150,23 +156,31 @@ export default function AIChat({ onTaskUpdate, onAddTask, activeTasks = [] }: AI
 
   const handleAIAction = (action: AIMessage['action']) => {
     if (!action) return
+    console.log("Handling AI action:", action);
 
     switch (action.type) {
       case 'addTask':
         if (onAddTask && action.payload?.title) {
+          console.log("Adding task:", action.payload.title);
           const date = action.payload.date ? new Date(action.payload.date) : new Date()
           onAddTask(date, {
             title: action.payload.title,
             completed: false
           })
+        } else {
+          console.warn("Cannot add task: missing handler or title", { onAddTask, payload: action.payload });
         }
         break
       case 'completeTask':
         if (onTaskUpdate && action.payload?.taskId !== undefined) {
+          console.log("Completing task:", action.payload.taskId);
           onTaskUpdate(action.payload.taskId, true)
+        } else {
+          console.warn("Cannot complete task: missing handler or taskId", { onTaskUpdate, payload: action.payload });
         }
         break
       default:
+        console.warn("Unknown action type:", action.type);
         break
     }
   }
