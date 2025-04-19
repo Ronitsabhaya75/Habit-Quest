@@ -10,6 +10,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Home, Mail, Lock } from "lucide-react"
+import { useAuth } from "@/context/auth-context"
 
 export default function LoginPage() {
   const [email, setEmail] = useState("")
@@ -19,8 +20,9 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
   const router = useRouter()
+  const { login } = useAuth()
 
-  // Generate background elements
+  // Optimize the star generation - reduce count
   const generateStars = (count: number) => {
     const stars = []
     for (let i = 0; i < count; i++) {
@@ -46,6 +48,7 @@ export default function LoginPage() {
     return stars
   }
 
+  // Reduce planet count for better performance
   const generatePlanets = (count: number) => {
     const colors = [
       "bg-gradient-to-br from-blue-500 to-blue-800",
@@ -78,10 +81,11 @@ export default function LoginPage() {
     return planets
   }
 
-  const stars = generateStars(100)
-  const planets = generatePlanets(3)
+  // Reduced count of stars and planets for better performance
+  const stars = generateStars(50) // Reduced from 100
+  const planets = generatePlanets(2) // Reduced from 3
 
-  // Handle form submission
+  // Handle form submission - use real login function
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!email || !password) {
@@ -93,14 +97,15 @@ export default function LoginPage() {
     setError("")
 
     try {
-      // Simulate login API call
-      await new Promise((resolve) => setTimeout(resolve, 1500))
-
-      // For demo purposes, let's just redirect to dashboard
-      // In a real app, you would validate credentials with your backend
-      router.push("/dashboard")
-    } catch (error) {
-      setError("Failed to login. Please check your credentials.")
+      // Use the actual login function from auth context
+      const result = await login(email, password)
+      
+      if (!result.success) {
+        setError(result.message || "Failed to login. Please check your credentials.")
+      }
+      // No need for router.push - the login function already handles redirection
+    } catch (error: any) {
+      setError(error.message || "Failed to login. Please check your credentials.")
     } finally {
       setLoading(false)
     }
@@ -108,59 +113,50 @@ export default function LoginPage() {
 
   return (
     <div className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden">
-      {/* Background with stars and planets */}
+      {/* Background with stars and planets - simplified */}
       <div className="fixed inset-0 w-full h-full bg-gradient-to-br from-[#0f2027] via-[#203a43] to-[#2c5364] z-0">
         {/* Background gradient overlay */}
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_30%,rgba(34,95,137,0.5)_0%,transparent_40%),radial-gradient(circle_at_80%_70%,rgba(60,100,190,0.5)_0%,transparent_40%)]"></div>
 
-        {/* Stars */}
+        {/* Stars - with will-change optimization */}
         {stars.map((star) => (
           <div
             key={star.id}
-            className="absolute rounded-full bg-white animate-twinkle"
+            className="absolute rounded-full bg-white"
             style={{
               width: `${star.size}px`,
               height: `${star.size}px`,
               top: `${star.top}%`,
               left: `${star.left}%`,
               opacity: star.opacity,
-              animationDuration: `${star.duration}s`,
-              animationDelay: `${star.delay}s`,
               boxShadow: `0 0 ${star.glow}px #B8FFF9`,
+              // Animation applied only to larger stars for performance
+              animation: star.size > 2 ? `twinkle ${star.duration}s infinite` : 'none',
+              animationDelay: `${star.delay}s`,
+              willChange: star.size > 2 ? 'opacity' : 'auto',
             }}
           />
         ))}
 
-        {/* Planets */}
+        {/* Planets - with will-change optimization */}
         {planets.map((planet) => (
           <div
             key={planet.id}
-            className={`absolute rounded-full animate-float ${planet.color}`}
+            className={`absolute rounded-full ${planet.color}`}
             style={{
               width: `${planet.size}px`,
               height: `${planet.size}px`,
               top: `${planet.top}%`,
               left: `${planet.left}%`,
               boxShadow: `0 0 ${planet.glow}px rgba(0, 255, 198, 0.5)`,
-              animationDuration: `${planet.duration}s`,
+              animation: `float ${planet.duration}s infinite ease-in-out`,
               animationDelay: `${planet.delay}s`,
+              willChange: 'transform',
             }}
           >
             <div className="absolute inset-0 rounded-full shadow-[inset_-10px_-10px_30px_rgba(0,0,0,0.5),inset_5px_5px_10px_rgba(255,255,255,0.3)]"></div>
           </div>
         ))}
-
-        {/* Rocket */}
-        <div
-          className="absolute w-[30px] h-[50px] animate-float"
-          style={{
-            top: "30%",
-            left: "20%",
-            animationDuration: "15s",
-          }}
-        >
-          <div className="text-4xl">🚀</div>
-        </div>
       </div>
 
       {/* Back to home button */}
@@ -171,18 +167,12 @@ export default function LoginPage() {
         <Home className="h-4 w-4" /> Back to Home
       </Link>
 
-      {/* Login form */}
-      <motion.div
+      {/* Login form - simplified animation */}
+      <div
         className="z-10 w-full max-w-md px-8"
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
       >
         <Card className="bg-[rgba(21,38,66,0.8)] backdrop-blur-md border-[rgba(0,255,198,0.3)] shadow-xl relative overflow-hidden">
-          {/* Card shimmer effect */}
-          <div className="absolute inset-0 overflow-hidden pointer-events-none">
-            <div className="absolute top-0 left-[-100%] w-1/2 h-full bg-gradient-to-r from-transparent via-white/5 to-transparent transform skew-x-[-25deg] animate-shimmer"></div>
-          </div>
+          {/* Remove card shimmer effect for performance */}
 
           <CardContent className="p-10">
             <h2 className="text-3xl font-bold text-center text-[#B8FFF9] mb-1 drop-shadow-[0_0_10px_rgba(0,255,245,0.5)]">
@@ -265,27 +255,21 @@ export default function LoginPage() {
                 className="w-full py-3 bg-gradient-to-r from-[#00FFC6] to-[#4A90E2] text-[#152642] font-semibold rounded-lg relative overflow-hidden hover:-translate-y-1 hover:shadow-[0_4px_15px_rgba(0,255,198,0.4)] transition-all duration-300 disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none"
               >
                 <span className="relative z-10">{loading ? "Logging in..." : "Login"}</span>
-                <div className="absolute inset-0 overflow-hidden">
-                  <div className="absolute top-0 left-[-100%] w-full h-full bg-gradient-to-r from-white/20 via-white/40 to-white/20 animate-pulse-glow"></div>
-                </div>
               </Button>
 
-              {loading && (
-                <div className="w-full h-1 bg-[rgba(0,255,198,0.2)] rounded overflow-hidden">
-                  <div className="h-full bg-gradient-to-r from-[#00FFC6] to-[#4A90E2] animate-progress"></div>
-                </div>
-              )}
-
-              <p className="text-center text-[#B8FFF9] text-sm mt-6">
-                New to the cosmos?{" "}
-                <Link href="/register" className="text-[#00FFF5] hover:underline font-medium">
-                  Create Account
+              <div className="mt-2 text-center text-sm text-[#B8FFF9] opacity-80">
+                Don&apos;t have an account?{" "}
+                <Link 
+                  href="/register" 
+                  className="text-[#00FFF5] hover:underline transition-all"
+                >
+                  Register now
                 </Link>
-              </p>
+              </div>
             </form>
           </CardContent>
         </Card>
-      </motion.div>
+      </div>
     </div>
   )
 }

@@ -1,0 +1,16 @@
+PAgilla Siddartha Reddy
+ID: 11737564
+
+What I have Accomplished
+
+In the Sprint week 3, I worked to improve user interaction and make the experience more personalized and engaging. I added a logout button just next to the profile icon, making it easier for users to manage their sessions simply. I also introduced a help tool to the dashboard that allows users to immediately contact assistance, increasing accessibility and user confidence in the software. One of the most notable changes was a daily check-in window that opens upon login, asking users to share their intentions for the day. This not only motivates users to interact more deeply with the habit-tracking features, but also aids in the collection of data for future customisation.This week's outstanding addition was the ability to upload a personalized image for their profile card. The profile card now shows essential metrics such as in-game health, XP, level, and streak, adding a gamified element to the experience.
+
+What I Learned
+I now have a better knowledge of user experience design thanks to this sprint, particularly with regard to how to make features seem useful and natural. I became more adept at managing state across components to reflect things like user profile changes in real-time, processing image uploads, and presenting dynamic data. Additionally, I became more knowledgeable about how to handle user sessions, interface feedback mechanisms (such as the check-in popup), and the significance of a smooth transition between user features and assistance. Above all, I discovered how considerate, minor additions, such as a personalized profile picture or check-in prompt, may significantly affect user happiness and engagement.
+
+Challenges Encountered
+One of the key challenges was ensuring the logout feature worked reliably for all users and handled session cleanup correctly. Implementing the image upload for the profile card required careful handling of file formats, storage, and updating the display across components without delay. It was also a bit tricky to design the daily check-in popup in a way that was helpful but not intrusive. Maintaining visual consistency and responsiveness across different devices and user states added complexity to the development process.
+
+What Could Be Improved in Sprint 4
+In Sprint 4, I want to improve the check-in popup in order to expand on the groundwork established in this sprint. In order to make it smarter, it will be integrated with user history. For example, if someone was playing chess the previous week, the popup might recommend that they resume their game. This will make it easier for users to find features they have previously used and return to them. Additionally, I intend to create a new profile popup that displays in the upper-right corner of the screen, with the user's submitted photo acting as the icon that can be clicked.When clicked, this will show a menu with more profile options, and it should work consistently across all user accounts with immediate image updates. Additionally, I will focus on improving performance and optimizing the image upload process to increase its speed and reliability.
+

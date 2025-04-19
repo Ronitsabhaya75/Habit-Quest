@@ -1,0 +1,27 @@
+During Sprint 3,
+I focused on improving the user interface and experience by integrating a more interactive XP reward system, simplifying the codebase,
+and enhancing engagement within the Habit Challenge App. Key changes included transforming the Spin Wheel into a modal-style popup and
+removing a redundant feature component called HabitProgressTracker and added meaningful gameplay components that would motivate users to build habits while having fun.
+
+Major Accomplishments
+1) The HabitQuizGame was one of the main features built this sprint. It challenges users with three rounds of randomized habit-related multiple-choice questions.
+Users earn 10 XP for each correct answer, and after each round, they spin the newly integrated SpinWheelPopup for bonus XP.
+2) To centralize the XP challenge experience, I revamped the HabitChallengeCenter into a two-tab hub for Hourly Challenges and Weekly Challenges.
+Users can earn XP by completing short tasks, choosing difficulty levels, or checking off daily habits over a week.
+I used React state management to handle game logic, and styled-components to deliver a smooth UI.
+
+My learnings-
+Sprint 3 helped me gain deeper experience in building multi-step user interactions, managing React state and effects, and integrating reward mechanics like XP systems and modals.
+I also improved my understanding of clean component design by removing unnecessary parts and focusing on reusability, user motivation, and responsive design.
+
+Challenges faced-
+While Sprint 3 was rewarding, it also came with its fair share of challenges. One of the trickiest parts was integrating the SpinWheelPopup into the HabitQuizGame
+flow without disrupting the quiz logic. I had to carefully manage state variables like showSpinWheel and initialSpinDone to ensure the wheel appeared only at the right moments 
+— once per round and only once per day — without overlapping with question transitions or resetting XP incorrectly. Designing games that were both fun and functional took time.
+I wanted each game to not only entertain but also reinforce positive habits. That meant balancing difficulty, feedback, and user flow while keeping the UI clean and responsive.
+
+Areas needed Improvement-
+Although this sprint brought many exciting updates, there are still several areas that can be improved to make the overall experience smoother and more scalable.
+I need to connect the games to the leaderboard where the users can check leaderboard stats immediately after completion of playing games.
+I can even improve the interface and graphics of the games. 
+

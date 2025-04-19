@@ -1,0 +1,57 @@
+Updated Sprint 3 Summary
+During Sprint 3, I focused on enhancing user interaction and engagement by implementing key features such as an AI-powered chatbot, Google authentication, real-time chess gameplay, and deeper integration between the leaderboard, tasks, and calendar. Additionally, I added a dedicated Login Page that mirrors the Register Page for a consistent and smooth authentication experience.
+
+Key Accomplishments
+AI Chatbot Integration
+Successfully implemented an AI chatbot using the Gemini API, enabling users to interact with the system for task-related queries, game assistance, and general support.
+
+Ensured smooth API communication and designed an intuitive chat interface for seamless user experience.
+
+Google Login Authentication
+Integrated Firebase Authentication to allow users to sign in via Google, improving security and simplifying the login process.
+
+Configured Firebase properly to handle user sessions and data access securely.
+
+Login Page Implementation
+Developed a responsive and user-friendly Login Page using Firebase Authentication.
+
+Matched the design and structure of the Register Page to ensure UI/UX consistency.
+
+Added support for email/password and Google login options.
+
+Real-Time Chess Game
+Developed a real-time multiplayer chess game, allowing users to challenge each other with live updates.
+
+Managed game state synchronization and move validation to ensure a smooth gaming experience.
+
+Leaderboard-Task-Calendar Integration
+Connected the leaderboard with tasks and calendar events, rewarding users with points upon task completion.
+
+Ensured real-time updates to the leaderboard to reflect user progress dynamically.
+
+Challenges Faced
+Managing real-time data flow in the chess game required careful handling of WebSocket connections and state updates.
+
+Integrating Firebase Auth with existing user data while maintaining consistency was initially complex.
+
+Ensuring accurate point allocation between tasks, calendar events, and the leaderboard demanded precise backend logic.
+
+Lessons Learned
+Improved my understanding of real-time applications (chess game, live leaderboard updates).
+
+Gained hands-on experience with Firebase Auth and Gemini API integration.
+
+Strengthened my skills in state management for dynamic, interconnected features.
+
+Learned how to maintain consistent UX design across related components (login/register).
+
+Areas for Improvement
+Optimizing API calls to reduce latency in the AI chatbot responses.
+
+Enhancing error handling in Firebase Auth for a smoother login experience.
+
+Improving chess game performance by minimizing unnecessary re-renders.
+
+
+Conclusion
+Sprint 3 was highly productive, introducing advanced features that significantly improved user interaction. With the addition of the Login Page and real-time systems, the app is now more cohesive and user-friendly. Moving forward, I aim to refine performance, optimize API usage, and enhance real-time synchronization for an even smoother experience.

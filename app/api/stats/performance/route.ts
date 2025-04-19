@@ -33,32 +33,64 @@ export async function GET(request: NextRequest) {
     // Check if user is new (registered less than 7 days ago)
     const isNewUser = new Date().getTime() - new Date(user.createdAt).getTime() < 7 * 24 * 60 * 60 * 1000
 
-    // For new users, show minimal starting XP
-    if (isNewUser) {
+    // Always provide real-time data, even for new users
+    // For users with 0 XP, show at least their starting point
+    if (isNewUser || !user.xp || user.xp === 0) {
+      // Create minimal real-time data showing the user's starting point
+      // Use user's registration date as the starting point
+      const userCreatedDate = new Date(user.createdAt)
+      const registrationDay = userCreatedDate.getDay() // 0-6, where 0 is Sunday
+      
       const performanceData = days.map((day, index) => {
-        // For new users, start from 0 and show very gradual progress
-        const daysRegistered = Math.max(0, 6 - index) // How many days since registration (0 for day of registration)
-
-        return {
-          day: day.day,
-          xp: Math.max(0, daysRegistered * 2), // Minimal XP gain per day
+        // If this day is on or after registration, set 0 XP (starting point)
+        // Otherwise, make it null (no data for days before registration)
+        const currentDayName = day.day;
+        const currentDayIndex = dayNames.indexOf(currentDayName);
+        const daysSinceRegistration = (currentDayIndex >= registrationDay)
+          ? currentDayIndex - registrationDay
+          : 7 - registrationDay + currentDayIndex;
+        
+        // For days since registration, show 0 XP as starting point
+        // For days after today, show null
+        if (index === 6) {
+          // Today always shows the current XP
+          return {
+            day: day.day,
+            xp: user.xp || 0
+          }
+        } else if (daysSinceRegistration <= 6 - index) {
+          // This is after registration but before today
+          return {
+            day: day.day,
+            xp: 0 // Starting point
+          }
+        } else {
+          // This is before registration
+          return {
+            day: day.day,
+            xp: null // No data yet
+          }
         }
-      })
-
-      return NextResponse.json({ success: true, data: performanceData }, { status: 200 })
+      });
+      
+      // Filter out null values
+      const filteredData = performanceData.filter(item => item.xp !== null);
+      
+      return NextResponse.json({ success: true, data: filteredData }, { status: 200 })
     }
 
-    // For existing users, generate more realistic data showing progress
+    // For existing users, generate progress data based on actual user data
+    // This would normally come from a database query of user activities
+    // For now, we'll create simulated data based on the user's XP
     const performanceData = days.map((day, index) => {
-      // Base value that increases each day to show progress
-      const baseValue = 20 + index * 5
-
-      // Add slight variation but maintain the upward trend
-      const variation = Math.floor(Math.random() * 10) - 3
+      // Calculate a portion of their total XP for each day
+      // This is just a placeholder until real activity data is implemented
+      const dailyXpPercent = 0.1 + (index * 0.9 / 6); // Start at 10% and end at 100% of their XP
+      const dailyXp = Math.floor(user.xp * dailyXpPercent);
 
       return {
         day: day.day,
-        xp: Math.max(0, baseValue + variation),
+        xp: dailyXp,
       }
     })
 

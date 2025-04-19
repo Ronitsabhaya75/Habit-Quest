@@ -1,0 +1,21 @@
+Sprint Reflection-3
+
+Student Name- Jay Ashwinbhai Findoliya
+Student ID- 11861304
+Student EUID- jaf0496
+
+What I Accomplished
+During this sprint, I focused primarily on UI enhancements and theme-related improvements across multiple pages of our application. My key contributions included updating the Dashboard page by removing the distracting white border that affected the overall visual flow. I also made significant changes to the login page, implementing a more cosmetic theme that improved the user experience and visual appeal.
+Additionally, I addressed consistency issues by updating the register page to align its theme with the home page, which created a more cohesive user journey. A recurring challenge I tackled was the elimination of white space/border issues that appeared across several pages, including the login page and home page UI.
+
+Challenges I Encountered
+The main challenge I faced was maintaining consistency across different pages while implementing theme changes. Each page had unique layout requirements, which made applying uniform styling difficult. For instance, the login page required multiple revisions (evident from the repeated commits about removing the white border), suggesting that the solution wasn't straightforward the first time.
+Another challenge was balancing cosmetic improvements with functional usability, particularly when making the home page more intuitive. This required me to think beyond just visual enhancements to consider how users would interact with the interface.
+
+What I Learned
+This sprint strengthened my CSS troubleshooting skills, particularly in identifying and resolving layout issues like unwanted white spaces and borders. I gained deeper insights into theme consistency and how small visual discrepancies can impact the overall user experience.
+I also learned the importance of incremental improvements, as shown by my progressive updates to different pages over the course of several days to a week.
+
+What Could Be Improved
+For future sprints, I could improve my commit messaging to provide more specific details about what changes were made rather than general descriptions. This would help team members better understand the exact nature of my modifications without having to examine the code.
+I could also adopt a more systematic approach to UI updates by creating a comprehensive style guide first, which might have prevented the need for repeated fixes to the same elements (like the recurring white border issues).

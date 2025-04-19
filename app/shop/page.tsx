@@ -1,9 +1,9 @@
 "use client"
 
 import { useState } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { MainLayout } from "@/components/main-layout"
+import SharedLayout from "@/components/shared-layout"
+import { ThemedCard } from "@/components/themed-card"
+import { ThemedButton } from "@/components/themed-button"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -31,80 +31,96 @@ export default function Shop() {
   const filteredBadges = activeTab === "all" ? badges : badges.filter((badge) => badge.rarity === activeTab)
 
   return (
-    <MainLayout>
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-white">Shop</h1>
-        <p className="text-gray-400">Use your XP to purchase badges and show them off on the leaderboard</p>
-      </div>
+    <SharedLayout>
+      <div className="px-6 py-8">
+        <div className="mb-6">
+          <h1 className="text-3xl font-bold text-[#00FFF5] drop-shadow-[0_0_10px_rgba(0,255,245,0.3)]">Shop</h1>
+          <p className="text-[#B8FFF9] opacity-80">Use your XP to purchase badges and show them off on the leaderboard</p>
+        </div>
 
-      <div className="flex justify-between items-center mb-6">
-        <Tabs defaultValue="all" className="w-full" onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-4 bg-[#2a3343]">
-            <TabsTrigger value="all" className={activeTab === "all" ? "bg-[#4cc9f0] text-black" : "text-white"}>
-              All
-            </TabsTrigger>
-            <TabsTrigger value="common" className={activeTab === "common" ? "bg-[#4cc9f0] text-black" : "text-white"}>
-              Common
-            </TabsTrigger>
-            <TabsTrigger value="rare" className={activeTab === "rare" ? "bg-[#4cc9f0] text-black" : "text-white"}>
-              Rare
-            </TabsTrigger>
-            <TabsTrigger value="epic" className={activeTab === "epic" ? "bg-[#4cc9f0] text-black" : "text-white"}>
-              Epic
-            </TabsTrigger>
-          </TabsList>
-        </Tabs>
-      </div>
+        <div className="flex justify-between items-center mb-6">
+          <Tabs defaultValue="all" className="w-full" onValueChange={setActiveTab}>
+            <TabsList className="grid w-full grid-cols-4 bg-[rgba(11,26,44,0.8)] border border-[rgba(0,255,198,0.2)]">
+              <TabsTrigger 
+                value="all" 
+                className={activeTab === "all" ? "bg-gradient-to-r from-[#00ffc8] to-[#00a6ff] text-[#0d1520]" : "text-[#B8FFF9]"}
+              >
+                All
+              </TabsTrigger>
+              <TabsTrigger 
+                value="common" 
+                className={activeTab === "common" ? "bg-gradient-to-r from-[#00ffc8] to-[#00a6ff] text-[#0d1520]" : "text-[#B8FFF9]"}
+              >
+                Common
+              </TabsTrigger>
+              <TabsTrigger 
+                value="rare" 
+                className={activeTab === "rare" ? "bg-gradient-to-r from-[#00ffc8] to-[#00a6ff] text-[#0d1520]" : "text-[#B8FFF9]"}
+              >
+                Rare
+              </TabsTrigger>
+              <TabsTrigger 
+                value="epic" 
+                className={activeTab === "epic" ? "bg-gradient-to-r from-[#00ffc8] to-[#00a6ff] text-[#0d1520]" : "text-[#B8FFF9]"}
+              >
+                Epic
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+        </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredBadges.map((badge) => (
-          <Card key={badge.id} className="bg-[#1a2332]/80 border-[#2a3343]">
-            <CardHeader className="pb-2">
-              <div className="flex justify-between items-start">
-                <CardTitle className="text-xl text-white">{badge.name}</CardTitle>
-                <Badge
-                  className={
-                    badge.rarity === "common"
-                      ? "bg-gray-500"
-                      : badge.rarity === "rare"
-                        ? "bg-blue-500"
-                        : "bg-purple-500"
-                  }
-                >
-                  {badge.rarity}
-                </Badge>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredBadges.map((badge) => (
+            <ThemedCard key={badge.id} glowEffect>
+              <div className="pb-2 mb-2 border-b border-[rgba(255,255,255,0.1)]">
+                <div className="flex justify-between items-start">
+                  <h3 className="text-xl font-semibold text-[#B8FFF9]">{badge.name}</h3>
+                  <Badge
+                    className={
+                      badge.rarity === "common"
+                        ? "bg-gray-500/20 text-gray-300 border-gray-500/30"
+                        : badge.rarity === "rare"
+                          ? "bg-blue-500/20 text-blue-300 border-blue-500/30"
+                          : "bg-purple-500/20 text-purple-300 border-purple-500/30"
+                    }
+                  >
+                    {badge.rarity}
+                  </Badge>
+                </div>
               </div>
-            </CardHeader>
-            <CardContent>
-              <p className="text-gray-400 mb-4">{badge.description}</p>
-              <div className="flex justify-between items-center">
-                <span className="text-white font-bold">{badge.price} XP</span>
-                <Dialog>
-                  <DialogTrigger asChild>
-                    <Button className="bg-[#4cc9f0] hover:bg-[#4cc9f0]/80 text-black">
-                      <ShoppingCart className="mr-2 h-4 w-4" /> Purchase
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="bg-[#1a2332] border-[#2a3343] text-white">
-                    <DialogHeader>
-                      <DialogTitle>Purchase Badge</DialogTitle>
-                      <DialogDescription className="text-gray-400">
-                        Are you sure you want to purchase the {badge.name} badge for {badge.price} XP?
-                      </DialogDescription>
-                    </DialogHeader>
-                    <div className="flex justify-end space-x-2 mt-4">
-                      <Button variant="outline" className="bg-[#2a3343] hover:bg-[#3a4353] text-white border-[#3a4353]">
-                        Cancel
-                      </Button>
-                      <Button className="bg-[#4cc9f0] hover:bg-[#4cc9f0]/80 text-black">Confirm Purchase</Button>
-                    </div>
-                  </DialogContent>
-                </Dialog>
+              <div>
+                <p className="text-[#B8FFF9] opacity-80 mb-4">{badge.description}</p>
+                <div className="flex justify-between items-center">
+                  <span className="text-[#00FFF5] font-bold">{badge.price} XP</span>
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <ThemedButton glowEffect>
+                        <ShoppingCart className="mr-2 h-4 w-4" /> Purchase
+                      </ThemedButton>
+                    </DialogTrigger>
+                    <DialogContent className="bg-[rgba(11,26,44,0.95)] backdrop-blur-md border-[rgba(0,255,198,0.3)] text-[#B8FFF9]">
+                      <DialogHeader>
+                        <DialogTitle className="text-[#00FFF5]">Purchase Badge</DialogTitle>
+                        <DialogDescription className="text-[#B8FFF9] opacity-80">
+                          Are you sure you want to purchase the {badge.name} badge for {badge.price} XP?
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="flex justify-end space-x-2 mt-4">
+                        <ThemedButton variant="outline">
+                          Cancel
+                        </ThemedButton>
+                        <ThemedButton>
+                          Confirm Purchase
+                        </ThemedButton>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+                </div>
               </div>
-            </CardContent>
-          </Card>
-        ))}
+            </ThemedCard>
+          ))}
+        </div>
       </div>
-    </MainLayout>
+    </SharedLayout>
   )
 }

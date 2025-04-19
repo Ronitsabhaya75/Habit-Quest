@@ -1,0 +1,17 @@
+During Sprint 4, I focused on finalizing core backend integrations, improving the design of existing features, and adding new functionality to enhance the overall user experience. This included deploying the backend, building the habit creation page, and launching the shop feature for badge purchases using XP.
+
+One of my key accomplishments this sprint was successfully connecting the backend to AWS and setting up a live MongoDB database. This backend was then deployed on Vercel, allowing seamless communication between the frontend and backend services. Ensuring secure and efficient data handling across all endpoints was a major milestone.
+
+I also developed the habit creation page, which enables users to create and manage daily, weekly, and monthly habits. This feature plays a crucial role in personal habit tracking and ties directly into XP progression and leaderboard rankings.
+
+Another major feature was the shop for purchasing badges. Users can now redeem XP for badges categorized as common, rare, or epic. This added a new layer of gamification and reward, increasing user motivation and engagement.
+
+In terms of visual improvements, I updated the design for several key components, including mini games, Pacman, Breakthrough game, Chess, and the dashboard and review pages. These UI enhancements provided a more polished and cohesive experience across the application.
+
+One of the primary challenges this sprint was managing environment configurations and deployment flow between local development and cloud services. Connecting the backend to AWS and ensuring proper communication with the MongoDB instance required careful handling of security, CORS settings, and environment variables.
+
+Through this sprint, I strengthened my skills in full-stack development, especially backend deployment and API integration. I also gained hands-on experience with cloud-based database hosting and secured routing, which are essential for building scalable web applications.
+
+Moving forward, I plan to further optimize data sync between the frontend and backend, improve performance for game components, and ensure consistency in XP tracking across all user activities.
+
+Overall, Sprint 4 was a pivotal phase in solidifying the project’s infrastructure, polishing the UI, and delivering new features that elevate the user experience.

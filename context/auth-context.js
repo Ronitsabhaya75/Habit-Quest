@@ -48,21 +48,33 @@ export function AuthProvider({ children }) {
   const login = async (email, password) => {
     try {
       setLoading(true)
+      setUser(null) // Clear previous user data
+      
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ email, password }),
+        // Add cache control to avoid stale responses
+        cache: "no-store"
       })
 
       if (!res.ok) {
-        const errorText = await res.text()
-        console.error("Login error response:", errorText)
+        let errorData;
+        try {
+          errorData = await res.json();
+          console.error("Login error response:", errorData);
+        } catch (parseError) {
+          const errorText = await res.text();
+          console.error("Login error response (text):", errorText);
+          errorData = { message: `Login failed with status ${res.status}` };
+        }
+        
         return {
           success: false,
-          message: `Login failed with status ${res.status}`,
-        }
+          message: errorData.message || `Login failed with status ${res.status}`,
+        };
       }
 
       const contentType = res.headers.get("content-type")
@@ -78,14 +90,27 @@ export function AuthProvider({ children }) {
 
       if (data.success) {
         setUser(data.data)
-        router.push("/dashboard")
-        return { success: true }
+        
+        // Check for redirect URL in query parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        const redirectPath = urlParams.get('from');
+        
+        // Use a setTimeout to ensure state updates are processed before navigation
+        setTimeout(() => {
+          if (redirectPath && !redirectPath.includes('/login') && !redirectPath.includes('/register')) {
+            router.push(redirectPath);
+          } else {
+            router.push("/dashboard");
+          }
+        }, 100);
+        
+        return { success: true };
       } else {
-        return { success: false, message: data.message || "Login failed" }
+        return { success: false, message: data.message || "Login failed" };
       }
     } catch (error) {
       console.error("Login error:", error)
-      return { success: false, message: "An error occurred during login" }
+      return { success: false, message: error.message || "An error occurred during login" }
     } finally {
       setLoading(false)
     }
@@ -104,12 +129,12 @@ export function AuthProvider({ children }) {
       })
 
       if (!res.ok) {
-        const errorText = await res.text()
-        console.error("Registration error response:", errorText)
+        const errorData = await res.json();
+        console.error("Registration error response:", errorData);
         return {
           success: false,
-          message: `Registration failed with status ${res.status}`,
-        }
+          message: errorData.message || `Registration failed with status ${res.status}`,
+        };
       }
 
       const contentType = res.headers.get("content-type")
@@ -128,7 +153,7 @@ export function AuthProvider({ children }) {
         const loginResult = await login(email, password)
 
         if (loginResult.success) {
-          return { success: true }
+          return { success: true, message: "Registration successful!" }
         } else {
           return {
             success: false,
@@ -140,7 +165,7 @@ export function AuthProvider({ children }) {
       }
     } catch (error) {
       console.error("Registration error:", error)
-      return { success: false, message: "An error occurred during registration" }
+      return { success: false, message: error.message || "An error occurred during registration" }
     } finally {
       setLoading(false)
     }

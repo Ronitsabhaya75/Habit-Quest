@@ -1,0 +1,14 @@
+Sprint 2 Summary
+During Sprint 2, I focused on enhancing the project’s front-end features by implementing a calendar, event tracking, and improving connections between different components such as the leaderboard, graph, games, and event tracking. Additionally, I developed a review component to improve user engagement.
+
+One of my major accomplishments was integrating the calendar feature, which allows users to track events and important milestones. This required careful handling of date selection, event management, and UI consistency. I also worked on event tracking, ensuring that user activities were logged and displayed dynamically for better insights.
+
+Another significant improvement was establishing connections between the leaderboard and graph, as well as linking games and event tracking. This helped in creating a more cohesive user experience by ensuring that data flows seamlessly between different sections of the application. Additionally, I developed a review component that enables users to provide feedback, improving the overall user interaction within the platform.
+
+One of the primary challenges in this sprint was synchronizing event tracking across different components while maintaining real-time updates. Ensuring smooth UI interactions and responsiveness was also a key focus.
+
+Throughout this sprint, I gained a deeper understanding of managing dynamic data in front-end applications and improved my skills in handling complex component interactions. Additionally, I strengthened my ability to design intuitive UI elements that enhance user experience.
+
+However, I recognize areas for improvement. I need to refine my approach to managing state effectively, especially when dealing with multiple interconnected components. Additionally, optimizing performance by reducing unnecessary re-renders is something I plan to address in the next sprint.
+
+Overall, Sprint 2 was a valuable learning experience, allowing me to further develop my front-end development skills. Moving forward, I aim to improve state management and optimize performance for a smoother user experience.

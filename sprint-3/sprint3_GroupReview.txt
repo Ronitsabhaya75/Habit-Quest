@@ -1,0 +1,78 @@
+Summary of Accomplishments – Sprint 3
+During Sprint 3, our team made significant strides in feature development, backend integration, and design improvements. This sprint was largely focused on building interactive components, improving authentication, and enhancing the leaderboard system for better user engagement.
+
+1. Feature Development and Game Integration
+AI Chatbot (Habit Coach): Built an AI-powered chatbot rebranded as the "Habit Coach" to guide users with habit-building tips and motivation.
+
+Habit Quiz Game: Created a gamified quiz experience that reinforces habit-learning through interactive questions.
+
+Habit Challenger Game: Designed and implemented a challenge-based game where users complete tasks to earn XP, encouraging consistent habit tracking.
+
+Chess Game: Integrated a chess mini-game for users to engage with, contributing to XP and leaderboard activity.
+
+2. Leaderboard Integration
+Connected to Games and Tasks: Updated the leaderboard to reflect user performance in games like chess and challenge tasks, promoting healthy competition.
+
+XP Integration: Users now gain XP from various activities across the app, including games and task completion, which dynamically updates the leaderboard.
+
+3. Authentication and Configuration
+Google Login Integration: Enabled Google OAuth login for easy user access and increased security.
+
+Firebase Authentication Setup: Configured Firebase authentication for both login and registration directly from the frontend, streamlining the onboarding process.
+
+4. Design and Backend Refactoring
+UI Enhancements: Redesigned the homepage and register page for a more modern and intuitive user experience.
+
+ES Modules Refactor: Migrated backend codebase to ES module format, enhancing maintainability and future compatibility.
+
+Improved Backend Logic: Refactored server.js with better error handling and modularized backend logic by creating 3 new files focused on local storage syncing with MongoDB.
+
+Challenges and Roadblocks
+1. AI Calendar Integration Bug
+Challenge: The AI chatbot was not properly updating the calendar when instructed to set tasks.
+
+Solution: Identified missing state sync logic and began work on tighter AI-calendar integration for future sprints.
+
+2. Streak Inconsistency
+Challenge: Streak tracking was not consistent across newly registered users.
+
+Solution: Initiated fixes by modifying the onboarding flow and ensuring every new user is initialized with a consistent streak system.
+
+3. Incomplete Leaderboard Visibility
+Challenge: Leaderboard initially displayed only active users from games and tasks.
+
+Solution: Plans implemented to pull and display all registered users, not just those with XP or task history.
+
+4. Misleading Terminology
+Challenge: Users found "Event" unclear for calendar-based tasks, and "AI Chatbot" was too generic.
+
+Solution: Renamed “Event” to “Calendar” and rebranded “AI Chatbot” to “Habit Coach” for better clarity and user understanding.
+
+Client/Stakeholder Feedback
+Positive Feedback
+The addition of the Habit Coach and interactive games was praised for increasing user engagement and providing value beyond basic tracking.
+
+Integration of the leaderboard with tasks and games was viewed as a great motivator for users.
+
+UI improvements on the homepage and register page enhanced the overall visual experience.
+
+Constructive Feedback
+Calendar Integration Bug: Task updates via the AI coach need to reflect on the calendar immediately.
+
+User Streak Consistency: Need to ensure all users have a consistent and fair streak-tracking system.
+
+Complete Leaderboard Visibility: All registered users should be listed, even if they haven’t completed tasks or played games yet.
+
+Future Impact
+Improved Habit Tracking: Sprint 4 will introduce a dedicated habit creation page with daily, weekly, and monthly habit tracking options.
+
+Expanded XP System: Further integration of all games with the XP system is planned to make leaderboard rankings more dynamic.
+
+UI Overhaul Completion: Remaining pages will receive updated design layouts for consistency.
+
+Deployment: Frontend and backend deployment will be completed to move the app closer to production readiness.
+
+Conclusion
+Sprint 3 marked a turning point in our application’s development, introducing advanced features like the Habit Coach, quiz and challenge games, and XP-driven leaderboards. We successfully addressed backend inconsistencies and improved the user journey through thoughtful design and interaction updates. While a few bugs remain, stakeholder feedback has been instrumental in shaping the roadmap for Sprint 4, which will focus on deployment, progress tracking, and complete UI redesign.
+
+Let me know if you'd like a visual summary or slide format for presentation!

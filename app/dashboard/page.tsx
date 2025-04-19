@@ -10,26 +10,42 @@ import { useAuth } from "@/context/auth-context"
 import { LogOut, Search, RefreshCw } from "lucide-react"
 import AIChat from "@/components/ai-chat"
 
+// Define types for tasks and notifications
+type Task = {
+  id: number | string
+  title: string
+  completed: boolean
+  isHabit?: boolean
+  estimatedTime?: number
+  isEditing?: boolean
+}
+
+type Notification = {
+  id: number
+  message: string
+  actions: { label: string; onClick: () => void }[]
+}
+
 export default function Dashboard() {
   const router = useRouter()
   const { user, logout } = useAuth()
-  const [chartData, setChartData] = useState([])
+  const [chartData, setChartData] = useState<Array<{ day: string; progress: number }>>([])
   const [loading, setLoading] = useState(true)
   const [newTask, setNewTask] = useState("")
   const [showInput, setShowInput] = useState(false)
-  const [leaderboard, setLeaderboard] = useState([])
+  const [leaderboard, setLeaderboard] = useState<Array<{ username?: string; name?: string; xp: number; isCurrentUser?: boolean }>>([])
   const [chartType, setChartType] = useState("line")
-  const [streak, setStreak] = useState(7)
-  const [totalXP, setTotalXP] = useState(350)
-  const [tasks, setTasks] = useState([])
-  const [notifications, setNotifications] = useState([])
-  const [selectedTask, setSelectedTask] = useState(null)
+  const [streak, setStreak] = useState(0)
+  const [totalXP, setTotalXP] = useState(0)
+  const [tasks, setTasks] = useState<Task[]>([])
+  const [notifications, setNotifications] = useState<Notification[]>([])
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null)
   const [timeAllocation, setTimeAllocation] = useState("")
   const [activeSection, setActiveSection] = useState("dashboard")
   const [showMobileMenu, setShowMobileMenu] = useState(false)
   const [searchTerm, setSearchTerm] = useState("")
   const [showAllAchievements, setShowAllAchievements] = useState(false)
-  const inputRef = useRef(null)
+  const inputRef = useRef<HTMLInputElement>(null)
 
   // Calculate derived values from totalXP
   const currentLevel = Math.floor(totalXP / 100) + 1
@@ -37,94 +53,447 @@ export default function Dashboard() {
   const streakPercentage = Math.min((streak / 14) * 100, 100)
 
   // Add notification with animation and auto-dismissal
-  const addNotification = useCallback((message, actions = []) => {
-    const newNotification = { id: Date.now(), message, actions }
+  const addNotification = useCallback((message: string, actions: { label: string; onClick: () => void }[] = []) => {
+    const newNotification: Notification = { id: Date.now(), message, actions }
     setNotifications((prev) => [...prev, newNotification])
     setTimeout(() => setNotifications((prev) => prev.filter((n) => n.id !== newNotification.id)), 5000)
   }, [])
 
-  // Enhanced achievements with more visual appeal
+  // Enhanced achievements with more visual appeal - set all to not earned by default for new users
   const achievements = [
-    { id: 1, title: "First Week Streak", description: "Completed 7 days of habits", earned: streak >= 7 },
-    { id: 2, title: "Milestone 100 XP", description: "Reached 100 XP points", earned: totalXP >= 100 },
-    { id: 3, title: "Habit Master", description: "Completed 3 habits consistently", earned: true },
+    { id: 1, title: "First Week Streak", description: "Completed 7 days of habits", earned: false },
+    { id: 2, title: "Milestone 100 XP", description: "Reached 100 XP points", earned: false },
+    { id: 3, title: "Habit Master", description: "Completed 3 habits consistently", earned: false },
     {
       id: 4,
       title: "Task Champion",
       description: "Completed 5 tasks in a day",
-      earned: tasks.filter((t) => t.completed).length >= 5,
+      earned: false,
     },
-    { id: 5, title: "Early Bird", description: "Complete tasks before 9am", earned: true },
-    { id: 6, title: "Game Player", description: "Played mini-games", earned: true },
+    { id: 5, title: "Early Bird", description: "Complete tasks before 9am", earned: false },
+    { id: 6, title: "Game Player", description: "Played mini-games", earned: false },
     { id: 7, title: "Badge Collector", description: "Purchased badges from shop", earned: false },
     {
       id: 8,
       title: "Perfect Week",
       description: "Complete all scheduled tasks for 7 days",
-      earned: streak >= 7 && totalXP > 300,
+      earned: false,
     },
     { id: 9, title: "Fitness Enthusiast", description: "Track fitness activities", earned: false },
-    { id: 10, title: "Productivity Master", description: "Reached level 5", earned: currentLevel >= 5 },
+    { id: 10, title: "Productivity Master", description: "Reached level 5", earned: false },
   ]
+
+  // Add a function to fetch the user profile with XP and streak
+  const fetchUserProfile = useCallback(async () => {
+    try {
+      // Use the user profile API endpoint
+      const res = await fetch("/api/user/profile", {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        cache: "no-store" // Ensure fresh data
+      })
+
+      if (!res.ok) {
+        throw new Error(`Failed to fetch user profile: ${res.status}`)
+      }
+
+      const data = await res.json()
+      
+      if (data.success && data.data) {
+        // Update XP and streak from the user profile
+        setTotalXP(data.data.xp || 0)
+        setStreak(data.data.streak || 0)
+      } else {
+        throw new Error(data.message || "Failed to fetch user profile")
+      }
+    } catch (error) {
+      console.error("Error fetching user profile:", error)
+      // Keep the current values of XP and streak if there's an error
+    }
+  }, [])
 
   const fetchUserProgress = useCallback(async () => {
     setLoading(true)
 
-    // Simulate API call
-    setTimeout(() => {
-      const startDate = new Date()
-      startDate.setDate(startDate.getDate() - 6)
-
-      const data = Array.from({ length: 7 }, (_, i) => {
-        const date = new Date(startDate)
-        date.setDate(date.getDate() + i)
-        return {
-          day: date.toLocaleDateString("en-US", { weekday: "short" }),
-          progress: Math.floor(Math.random() * 50) + i * 10, // Increasing trend
-        }
+    try {
+      // Use the real API endpoint for performance data
+      const res = await fetch("/api/stats/performance", {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        cache: "no-store" // Ensure fresh data
       })
 
-      setChartData(data)
+      if (!res.ok) {
+        throw new Error(`Failed to fetch performance data: ${res.status}`)
+      }
+
+      const data = await res.json()
+      
+      if (data.success) {
+        // For new users with no data, show empty state
+        if (data.data && data.data.length > 0) {
+          // Format the data for the chart
+          const formattedData = data.data.map((item: any) => ({
+            day: item.day,
+            progress: item.xp // Use the xp value as progress
+          }))
+          
+          setChartData(formattedData)
+        } else {
+          // No data yet - show empty state
+          setChartData([])
+        }
+      } else {
+        throw new Error(data.message || "Failed to fetch performance data")
+      }
+    } catch (error) {
+      console.error("Error fetching progress data:", error)
+      
+      // For new users, show empty state
+      setChartData([])
+    } finally {
       setLoading(false)
-    }, 1000)
+    }
   }, [])
 
   const fetchLeaderboard = useCallback(async () => {
-    // Simulate API call
-    setTimeout(() => {
-      const data = [
-        { name: user?.username || "You", xp: totalXP, isCurrentUser: true },
-        { name: "CosmicHabitMaster", xp: 520 },
-        { name: "StarGazer42", xp: 480 },
-        { name: "GalaxyQuester", xp: 410 },
-        { name: "NebulaNinja", xp: 380 },
-      ]
+    try {
+      // Use the real API endpoint for leaderboard data
+      const res = await fetch("/api/users/leaderboard", {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        cache: "no-store" // Ensure fresh data
+      })
 
-      setLeaderboard(data.sort((a, b) => b.xp - a.xp))
-    }, 800)
-  }, [user, totalXP])
+      if (!res.ok) {
+        throw new Error(`Failed to fetch leaderboard data: ${res.status}`)
+      }
+
+      const data = await res.json()
+      
+      if (data.success) {
+        // Validate data exists and is an array
+        if (!data.data || !Array.isArray(data.data)) {
+          setLeaderboard([])
+          return
+        }
+        
+        // Debug: Log the data structure
+        console.log("Leaderboard data:", JSON.stringify(data.data));
+        
+        // Map the API response to the leaderboard format needed for the UI
+        // Take the top 5 users
+        let leaderboardData = data.data.slice(0, 5).map((entry: any) => ({
+          username: entry.username,
+          name: entry.name,
+          xp: entry.xp,
+          isCurrentUser: entry.isCurrentUser
+        }))
+        
+        // If the current user is not in the top 5, add a note about their position
+        if (!leaderboardData.some((entry: { isCurrentUser?: boolean }) => entry.isCurrentUser)) {
+          addNotification(`You're not in the top 5 yet. Keep earning XP!`)
+        }
+        
+        setLeaderboard(leaderboardData)
+      } else {
+        // No successful response, show empty state
+        setLeaderboard([])
+        throw new Error(data.message || "Failed to fetch leaderboard data")
+      }
+    } catch (error) {
+      console.error("Error fetching leaderboard data:", error)
+      
+      // Show empty state instead of mock data
+      setLeaderboard([])
+    }
+  }, [addNotification])
+
+  // Fetch user tasks from API
+  const fetchUserTasks = useCallback(async () => {
+    try {
+      // Call the tasks API endpoint
+      const res = await fetch("/api/tasks", {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        cache: "no-store"
+      })
+
+      if (!res.ok) {
+        throw new Error(`Failed to fetch tasks: ${res.status}`)
+      }
+
+      const data = await res.json()
+      
+      if (data.success) {
+        // Map API response to the task format
+        const tasksData = data.data.map((task: any) => ({
+          id: task.id || task._id,
+          title: task.title,
+          completed: task.completed,
+          isHabit: task.isHabit || false,
+          estimatedTime: task.estimatedTime
+        }))
+        
+        setTasks(tasksData)
+      } else {
+        throw new Error(data.message || "Failed to fetch tasks")
+      }
+    } catch (error) {
+      console.error("Error fetching tasks:", error)
+      // Initialize with empty tasks instead of hardcoded ones
+      setTasks([])
+    }
+  }, [])
+
+  // Fetch achievements from API
+  const fetchUserAchievements = useCallback(async () => {
+    try {
+      // Call the achievements API endpoint
+      const res = await fetch("/api/achievements", {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        cache: "no-store"
+      })
+
+      if (!res.ok) {
+        throw new Error(`Failed to fetch achievements: ${res.status}`)
+      }
+
+      const data = await res.json()
+      
+      if (data.success) {
+        // Update achievements based on API data
+        // Instead of replacing the achievements array, update the earned status
+        const updatedAchievements = achievements.map(achievement => {
+          const apiAchievement = data.data.find((a: any) => a.id === achievement.id || a.title === achievement.title)
+          if (apiAchievement) {
+            return {
+              ...achievement,
+              earned: apiAchievement.earned || apiAchievement.completed
+            }
+          }
+          return achievement
+        })
+        
+        // We're not setting state directly since achievements is already defined in the component
+        // If you want to make achievements a state, you'd need to refactor that part
+      } else {
+        throw new Error(data.message || "Failed to fetch achievements")
+      }
+    } catch (error) {
+      console.error("Error fetching achievements:", error)
+      // Keep existing achievements definition but don't assume any are earned
+    }
+  }, [achievements])
+
+  // Update the useEffect to fetch all required data
+  useEffect(() => {
+    // Fetch all data when component mounts
+    fetchUserProfile()
+    fetchLeaderboard()
+    fetchUserProgress()
+    fetchUserTasks()
+    fetchUserAchievements()
+    
+    // Optional: Set up a refresh interval (e.g., every 5 minutes) instead of continuous fetching
+    const refreshInterval = setInterval(() => {
+      fetchUserProfile()
+      fetchLeaderboard()
+      fetchUserProgress()
+      fetchUserTasks()
+      fetchUserAchievements()
+    }, 300000) // 5 minutes
+    
+    // Clean up the interval on unmount
+    return () => clearInterval(refreshInterval)
+    
+    // Empty dependency array to run only on mount/unmount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // Handle task completion with notification
-  const handleTaskCompletion = (taskId, completed) => {
+  const handleTaskCompletion = async (taskId: number | string, completed: boolean) => {
     setTasks((prevTasks) =>
       prevTasks.map((task) => {
         if (task.id === taskId) {
-          if (!task.completed && completed) {
-            // Task is being completed
-            const xpGain = 10
-            setTotalXP((prev) => prev + xpGain)
-            addNotification(`✅ Task "${task.title}" completed! (+${xpGain} XP)`, [
-              { label: "Review", onClick: () => router.push("/review") },
-            ])
-          }
           return { ...task, completed }
         }
         return task
       }),
     )
+    
+    try {
+      if (completed) {
+        // Task is being completed, update XP
+        const xpGain = 10
+        
+        // Update XP on the server
+        const xpResponse = await fetch("/api/users/update-xp", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ xpGain, taskId })
+        })
+        
+        if (xpResponse.ok) {
+          const xpData = await xpResponse.json()
+          if (xpData.success) {
+            // Update local state with new XP and possibly streak
+            setTotalXP(xpData.data.xp)
+            if (xpData.data.streak) {
+              setStreak(xpData.data.streak)
+            }
+            
+            // Show notification
+            addNotification(`✅ Task completed! (+${xpGain} XP)`, [
+              { label: "Review", onClick: () => router.push("/review") },
+            ])
+            
+            // Refresh data
+            fetchUserProgress()
+            fetchLeaderboard()
+          }
+        }
+      }
+      
+      // Update task status on the server regardless of completed state
+      await fetch("/api/tasks/update", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          taskId, 
+          completed 
+        })
+      })
+    } catch (err) {
+      console.error("Error updating task:", err)
+      addNotification("Failed to update task. Please try again.")
+    }
   }
 
-  const openTimeAllocationModal = (task) => setSelectedTask(task)
+  // Add a new task (both locally and on the server)
+  const handleAddTask = async (title: string) => {
+    // Add to local state temporarily with placeholder ID
+    const tempId = Date.now()
+    const newTask: Task = { 
+      id: tempId,
+      title: title.trim(),
+      completed: false,
+      isHabit: false
+    }
+    
+    setTasks(prevTasks => [...prevTasks, newTask])
+    
+    try {
+      // Send to server
+      const response = await fetch("/api/tasks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          title: title.trim(),
+          isHabit: false,
+        })
+      })
+      
+      if (response.ok) {
+        const data = await response.json()
+        if (data.success) {
+          // Replace temporary task with real one from server
+          setTasks(prevTasks => prevTasks.map(task => 
+            task.id === tempId ? { ...task, id: data.data._id } : task
+          ))
+          
+          // Add notification
+          addNotification(`🌟 New task "${title.trim()}" added!`)
+        }
+      } else {
+        // If failed, remove the temporary task
+        setTasks(prevTasks => prevTasks.filter(task => task.id !== tempId))
+        addNotification("Failed to create task. Please try again.")
+      }
+    } catch (err) {
+      console.error("Error creating task:", err)
+      // If failed, remove the temporary task
+      setTasks(prevTasks => prevTasks.filter(task => task.id !== tempId))
+      addNotification("Failed to create task. Please try again.")
+    }
+  }
+
+  // Updated keyboard handler for adding tasks
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter" && newTask.trim()) {
+      handleAddTask(newTask)
+      setNewTask("")
+      setShowInput(false)
+    }
+  }
+
+  // Delete a task
+  const deleteTask = async (taskId: number | string) => {
+    const task = tasks.find((t) => t.id === taskId)
+    if (task) {
+      // Remove from local state
+      setTasks((prevTasks) => prevTasks.filter((t) => t.id !== taskId))
+      
+      try {
+        // Delete from server
+        const response = await fetch(`/api/tasks/delete`, {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ taskId })
+        })
+        
+        if (response.ok) {
+          addNotification(`Task "${task.title}" deleted`)
+        } else {
+          // Restore task if server deletion failed
+          setTasks(prevTasks => [...prevTasks, task])
+          addNotification("Failed to delete task. Please try again.")
+        }
+      } catch (err) {
+        console.error("Error deleting task:", err)
+        // Restore task if server deletion failed
+        setTasks(prevTasks => [...prevTasks, task])
+        addNotification("Failed to delete task. Please try again.")
+      }
+    }
+  }
+
+  // Handle task update from AI chatbot
+  const handleTaskUpdateFromAI = (taskId: number | string, completed: boolean) => {
+    handleTaskCompletion(taskId, completed)
+  }
+
+  // Add task with date from AI chatbot
+  const handleAddTaskWithDate = (date: Date, taskInput: { title: string, completed: boolean }) => {
+    const newTask: Task = { 
+      id: Date.now(),
+      title: taskInput.title,
+      completed: taskInput.completed,
+      isHabit: false 
+    }
+    
+    setTasks(prevTasks => [...prevTasks, newTask])
+    
+    // Add notification about the new task
+    const dateStr = date.toDateString() === new Date().toDateString() 
+      ? "today" 
+      : date.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })
+    
+    addNotification(`🆕 New task "${taskInput.title}" added for ${dateStr}!`)
+  }
+
+  const openTimeAllocationModal = (task: Task) => setSelectedTask(task)
 
   const saveTimeAllocation = () => {
     if (!selectedTask || !timeAllocation) return
@@ -143,20 +512,6 @@ export default function Dashboard() {
     setTimeAllocation("")
   }
 
-  useEffect(() => {
-    fetchLeaderboard()
-    fetchUserProgress()
-
-    // Initialize sample tasks
-    setTasks([
-      { id: 1, title: "Morning meditation", completed: true, isHabit: true },
-      { id: 2, title: "Read for 30 minutes", completed: false, isHabit: true },
-      { id: 3, title: "Complete project proposal", completed: false, isHabit: false },
-      { id: 4, title: "Exercise", completed: false, isHabit: true, estimatedTime: 45 },
-      { id: 5, title: "Plan tomorrow's tasks", completed: false, isHabit: false },
-    ])
-  }, [fetchLeaderboard, fetchUserProgress])
-
   // Use effect to focus input when shown
   useEffect(() => {
     if (showInput && inputRef.current) {
@@ -166,49 +521,7 @@ export default function Dashboard() {
 
   const addTask = () => setShowInput(true)
 
-  const handleKeyPress = (e) => {
-    if (e.key === "Enter" && newTask.trim()) {
-      setTasks((prevTasks) => [
-        ...prevTasks,
-        { id: Date.now(), title: newTask.trim(), completed: false, isHabit: false },
-      ])
-      setNewTask("")
-      setShowInput(false)
-      addNotification(`🌟 New task "${newTask.trim()}" added!`)
-    }
-  }
-
-  const deleteTask = (taskId) => {
-    const task = tasks.find((t) => t.id === taskId)
-    if (task) {
-      setTasks((prevTasks) => prevTasks.filter((t) => t.id !== taskId))
-      addNotification(`Task "${task.title}" deleted`)
-    }
-  }
-
-  const toggleEdit = (taskId) => {
-    setTasks((prevTasks) =>
-      prevTasks.map((task) => {
-        if (task.id === taskId) {
-          return { ...task, isEditing: !task.isEditing }
-        }
-        return task
-      }),
-    )
-  }
-
-  const updateTaskTitle = (taskId, newTitle) => {
-    setTasks((prevTasks) =>
-      prevTasks.map((task) => {
-        if (task.id === taskId) {
-          return { ...task, title: newTitle }
-        }
-        return task
-      }),
-    )
-  }
-
-  const handleNavigation = (section) => {
+  const handleNavigation = (section: string) => {
     setActiveSection(section)
     if (section !== "dashboard") {
       router.push(`/${section}`)
@@ -217,7 +530,7 @@ export default function Dashboard() {
   }
 
   // Generate stars for the background
-  const generateStars = (count) => {
+  const generateStars = (count: number) => {
     const stars = []
     for (let i = 0; i < count; i++) {
       stars.push({
@@ -236,48 +549,143 @@ export default function Dashboard() {
 
   const stars = generateStars(100)
 
-  // Handle task updates from AI Chat
-  const handleTaskUpdateFromAI = (taskId, completed, type = "") => {
-    if (type === "add") {
-      // Add new task
-      setTasks((prevTasks) => [...prevTasks, { id: taskId, title: completed.title, completed: false }])
-      return
-    }
-
-    if (type === "remove") {
-      // Remove task
-      deleteTask(taskId)
-      return
-    }
-
-    if (type === "edit") {
-      // Edit task
-      setTasks((prevTasks) =>
-        prevTasks.map((task) => {
-          if (task.id === taskId) {
-            return { ...task, title: completed.title || task.title }
-          }
-          return task
-        }),
-      )
-      return
-    }
-
-    // Toggle completion
-    handleTaskCompletion(taskId, completed)
+  // Handle task editing functions
+  const toggleEdit = (taskId: number | string) => {
+    setTasks((prevTasks) =>
+      prevTasks.map((task) => {
+        if (task.id === taskId) {
+          return { ...task, isEditing: !task.isEditing }
+        }
+        return task
+      }),
+    )
   }
 
-  // Add task with date from AI Chat
-  const handleAddTaskWithDate = (date, task) => {
-    const newTask = {
-      ...task,
-      id: Date.now(),
-      completed: false,
+  const updateTaskTitle = (taskId: number | string, newTitle: string) => {
+    if (!newTitle.trim()) return
+
+    setTasks((prevTasks) =>
+      prevTasks.map((task) => {
+        if (task.id === taskId) {
+          // Update task locally
+          const updatedTask = { ...task, title: newTitle, isEditing: false }
+          
+          // Update task on server
+          fetch("/api/tasks/update", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ 
+              taskId, 
+              title: newTitle 
+            })
+          }).catch(err => console.error("Error updating task title:", err))
+          
+          return updatedTask
+        }
+        return task
+      }),
+    )
+  }
+
+  // Update the Today's Task card to show better guidance for new users
+  const renderEmptyTasksMessage = () => {
+    return (
+      <div className="text-center py-6 flex flex-col items-center">
+        <div className="text-5xl mb-4">👋</div>
+        <p className="text-[#B8F0F9] text-lg mb-3">Welcome! You're just getting started.</p>
+        <p className="text-[#E0F7FA]/70 mb-5">Start by adding your first task below.</p>
+        <div className="bg-[#40E0D0]/10 border border-[#40E0D0]/20 rounded-lg p-4 text-[#E0F7FA]/90 text-sm">
+          <p className="mb-2"><strong>Tips:</strong></p>
+          <ul className="list-disc pl-5 space-y-1">
+            <li>Start with small, achievable tasks</li>
+            <li>Build consistent daily habits</li>
+            <li>Track your progress to stay motivated</li>
+          </ul>
+        </div>
+      </div>
+    )
+  }
+
+  // Render welcome message for the graph when there's no data
+  const renderEmptyChartMessage = () => {
+    return (
+      <div className="h-[200px] flex items-center justify-center flex-col">
+        <div className="text-4xl mb-3">📈</div>
+        <p className="text-[#B8F0F9] text-base mb-2">No progress data yet</p>
+        <p className="text-[#E0F7FA]/70 text-sm">Complete tasks to see your progress!</p>
+      </div>
+    )
+  }
+
+  // Render empty leaderboard message
+  const renderEmptyLeaderboardMessage = () => {
+    return (
+      <div className="text-center py-8 flex flex-col items-center">
+        <div className="text-4xl mb-3">🏆</div>
+        <p className="text-[#B8F0F9] text-base mb-2">Leaderboard data unavailable</p>
+        <p className="text-[#E0F7FA]/70 text-sm">Complete tasks to join the rankings!</p>
+      </div>
+    )
+  }
+
+  // Override the chart component to ensure it properly displays for new users
+  const renderChart = () => {
+    // If no data or empty array, always show the empty state
+    if (!chartData || chartData.length === 0) {
+      return renderEmptyChartMessage()
     }
 
-    setTasks((prevTasks) => [...prevTasks, newTask])
-
-    addNotification(`🗓️ New task scheduled for ${date.toLocaleDateString()}: "${task.title}"`)
+    // Otherwise render the appropriate chart
+    return (
+      <div className="h-[200px]">
+        <ResponsiveContainer width="100%" height="100%">
+          {chartType === "bar" ? (
+            <BarChart data={chartData}>
+              <XAxis dataKey="day" stroke="#E0F7FA" axisLine={{ stroke: "rgba(224, 247, 250, 0.3)" }} />
+              <YAxis hide />
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: "rgba(32, 58, 67, 0.95)",
+                  border: "1px solid rgba(64, 224, 208, 0.3)",
+                  borderRadius: "8px",
+                  color: "#E0F7FA",
+                }}
+              />
+              <Bar
+                dataKey="progress"
+                fill="#40E0D0"
+                radius={[4, 4, 0, 0]}
+                animationDuration={1500}
+                animationEasing="ease"
+              />
+            </BarChart>
+          ) : (
+            <LineChart data={chartData}>
+              <XAxis dataKey="day" stroke="#E0F7FA" axisLine={{ stroke: "rgba(224, 247, 250, 0.3)" }} />
+              <YAxis hide />
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: "rgba(32, 58, 67, 0.95)",
+                  border: "1px solid rgba(64, 224, 208, 0.3)",
+                  borderRadius: "8px",
+                  color: "#E0F7FA",
+                }}
+              />
+              <Line
+                type="monotone"
+                dataKey="progress"
+                stroke="#40E0D0"
+                strokeWidth={3}
+                dot={{ fill: "#40E0D0", strokeWidth: 2, r: 6 }}
+                activeDot={{ fill: "#64B4FF", r: 8, strokeWidth: 0 }}
+                animationDuration={1500}
+                animationEasing="ease"
+              />
+            </LineChart>
+          )}
+        </ResponsiveContainer>
+      </div>
+    )
   }
 
   return (
@@ -486,60 +894,7 @@ export default function Dashboard() {
             </CardHeader>
             <CardContent>
               <div className="bg-[#203A43]/60 rounded-xl p-6 shadow-inner border border-[#40E0D0]/10 transition-all hover:border-[#40E0D0]/20 hover:shadow-lg">
-                {loading ? (
-                  <div className="h-[200px] flex items-center justify-center">
-                    <p className="text-[#B8F0F9]">Loading your progress data...</p>
-                  </div>
-                ) : (
-                  <div className="h-[200px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                      {chartType === "bar" ? (
-                        <BarChart data={chartData}>
-                          <XAxis dataKey="day" stroke="#E0F7FA" axisLine={{ stroke: "rgba(224, 247, 250, 0.3)" }} />
-                          <YAxis hide />
-                          <Tooltip
-                            contentStyle={{
-                              backgroundColor: "rgba(32, 58, 67, 0.95)",
-                              border: "1px solid rgba(64, 224, 208, 0.3)",
-                              borderRadius: "8px",
-                              color: "#E0F7FA",
-                            }}
-                          />
-                          <Bar
-                            dataKey="progress"
-                            fill="#40E0D0"
-                            radius={[4, 4, 0, 0]}
-                            animationDuration={1500}
-                            animationEasing="ease"
-                          />
-                        </BarChart>
-                      ) : (
-                        <LineChart data={chartData}>
-                          <XAxis dataKey="day" stroke="#E0F7FA" axisLine={{ stroke: "rgba(224, 247, 250, 0.3)" }} />
-                          <YAxis hide />
-                          <Tooltip
-                            contentStyle={{
-                              backgroundColor: "rgba(32, 58, 67, 0.95)",
-                              border: "1px solid rgba(64, 224, 208, 0.3)",
-                              borderRadius: "8px",
-                              color: "#E0F7FA",
-                            }}
-                          />
-                          <Line
-                            type="monotone"
-                            dataKey="progress"
-                            stroke="#40E0D0"
-                            strokeWidth={3}
-                            dot={{ fill: "#40E0D0", strokeWidth: 2, r: 6 }}
-                            activeDot={{ fill: "#64B4FF", r: 8, strokeWidth: 0 }}
-                            animationDuration={1500}
-                            animationEasing="ease"
-                          />
-                        </LineChart>
-                      )}
-                    </ResponsiveContainer>
-                  </div>
-                )}
+                {loading ? renderEmptyChartMessage() : renderChart()}
               </div>
 
               <h3 className="mt-6 text-[#E0F7FA] flex items-center gap-2 font-medium">
@@ -570,9 +925,7 @@ export default function Dashboard() {
             <CardContent>
               <ul className="space-y-2 mt-2">
                 {leaderboard.length === 0 ? (
-                  <div className="text-center py-8 text-[#B8F0F9] italic bg-[#2A3A57]/30 rounded-lg">
-                    Loading leaderboard data...
-                  </div>
+                  renderEmptyLeaderboardMessage()
                 ) : (
                   leaderboard.map((entry, index) => {
                     // Determine medal or rank display
@@ -584,7 +937,8 @@ export default function Dashboard() {
                     } else if (index === 2) {
                       rankDisplay = "🥉"
                     } else {
-                      rankDisplay = `${index + 1}`
+                      // Use a trophy icon instead of numbers for other positions
+                      rankDisplay = "🏆"
                     }
 
                     return (
@@ -600,7 +954,9 @@ export default function Dashboard() {
                         <div className="flex items-center gap-3">
                           <span className="font-bold text-lg min-w-8 text-center">{rankDisplay}</span>
                           <div className="flex items-center gap-2">
-                            <span className="text-[#E0F7FA] font-medium">{entry.name}</span>
+                            <span className="text-[#E0F7FA] font-medium">
+                              {entry.username || entry.name || "User"}
+                            </span>
                             {entry.isCurrentUser && (
                               <span className="bg-[#40E0D0]/20 border border-[#40E0D0]/40 text-[#40E0D0] text-xs px-1.5 py-0.5 rounded">
                                 You
@@ -671,11 +1027,11 @@ export default function Dashboard() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <ul className="space-y-1 mt-2">
-                {tasks.length === 0 ? (
-                  <p className="text-center py-8 text-[#B8F0F9]">No tasks for today. Add one below!</p>
-                ) : (
-                  tasks.map((task, index) => (
+              {tasks.length === 0 ? (
+                renderEmptyTasksMessage()
+              ) : (
+                <ul className="space-y-1 mt-2">
+                  {tasks.map((task, index) => (
                     <li
                       key={task.id}
                       className="flex items-center gap-4 py-3 px-2 border-b border-[#40E0D0]/10 last:border-b-0 hover:bg-[#40E0D0]/5 hover:rounded-lg hover:translate-x-1 transition-all animate-slideIn"
@@ -698,7 +1054,7 @@ export default function Dashboard() {
                           onChange={(e) => updateTaskTitle(task.id, e.target.value)}
                           onBlur={() => toggleEdit(task.id)}
                           onKeyDown={(e) => {
-                            if (e.key === "Enter") toggleEdit(task.id)
+                            if (e.key === "Enter") updateTaskTitle(task.id, task.title)
                           }}
                           className="flex-1 py-2 px-3 bg-[#2A3343]/70 border border-[#40E0D0]/30 text-[#E0F7FA] rounded-lg focus:shadow-[0_0_10px_rgba(64,224,208,0.1)]"
                           autoFocus
@@ -720,14 +1076,17 @@ export default function Dashboard() {
 
                       <button
                         className="w-9 h-9 flex items-center justify-center bg-red-500/20 text-white rounded-lg hover:bg-red-500/50 hover:-translate-y-1 transition-all"
-                        onClick={() => deleteTask(task.id)}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          deleteTask(task.id)
+                        }}
                       >
                         ×
                       </button>
                     </li>
-                  ))
-                )}
-              </ul>
+                  ))}
+                </ul>
+              )}
 
               {showInput ? (
                 <Input
@@ -742,7 +1101,7 @@ export default function Dashboard() {
                 />
               ) : (
                 <Button
-                  onClick={addTask}
+                  onClick={() => setShowInput(true)}
                   className="w-full mt-5 bg-gradient-to-r from-[#40E0D0] to-[#64B4FF] text-white font-semibold py-3 rounded-lg hover:-translate-y-1 hover:shadow-lg transition-all flex items-center justify-center gap-2"
                 >
                   <span className="text-xl">+</span> Add New Task
@@ -787,10 +1146,9 @@ export default function Dashboard() {
 
       {/* AI Chat Component */}
       <AIChat
-        user={user}
-        tasks={tasks}
+        activeTasks={tasks}
         onTaskUpdate={handleTaskUpdateFromAI}
-        onAddTaskWithDate={handleAddTaskWithDate}
+        onAddTask={handleAddTaskWithDate}
       />
     </div>
   )

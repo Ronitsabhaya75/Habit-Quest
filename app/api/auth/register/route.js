@@ -7,21 +7,53 @@ export async function POST(request) {
   try {
     const { username, email, password } = await request.json()
 
-    // Validate input
-    if (!username || !email || !password) {
-      return NextResponse.json({ success: false, message: "Please provide all required fields" }, { status: 400 })
+    // Enhanced validation
+    const errors = [];
+    
+    if (!username) errors.push("Username is required");
+    else if (username.length < 3) errors.push("Username must be at least 3 characters");
+    else if (username.length > 20) errors.push("Username cannot be more than 20 characters");
+    
+    if (!email) errors.push("Email is required");
+    else if (!/^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/.test(email)) {
+      errors.push("Please provide a valid email address");
+    }
+    
+    if (!password) errors.push("Password is required");
+    else if (password.length < 6) errors.push("Password must be at least 6 characters");
+    
+    if (errors.length > 0) {
+      return NextResponse.json({ 
+        success: false, 
+        message: errors.join(", ") 
+      }, { status: 400 });
     }
 
     // Connect to the database
     await connectToDatabase()
 
-    // Check if user already exists
+    // Check if user already exists with more detailed error message
     const existingUser = await User.findOne({
       $or: [{ email }, { username }],
     })
 
     if (existingUser) {
-      return NextResponse.json({ success: false, message: "User already exists" }, { status: 400 })
+      if (existingUser.email === email && existingUser.username === username) {
+        return NextResponse.json({ 
+          success: false, 
+          message: "Both email and username are already in use" 
+        }, { status: 400 });
+      } else if (existingUser.email === email) {
+        return NextResponse.json({ 
+          success: false, 
+          message: "Email is already in use" 
+        }, { status: 400 });
+      } else {
+        return NextResponse.json({ 
+          success: false, 
+          message: "Username is already in use" 
+        }, { status: 400 });
+      }
     }
 
     // Hash password
@@ -48,6 +80,9 @@ export async function POST(request) {
     return NextResponse.json({ success: true, data: userWithoutPassword }, { status: 201 })
   } catch (error) {
     console.error("Registration error:", error)
-    return NextResponse.json({ success: false, message: error.message || "Server error" }, { status: 500 })
+    return NextResponse.json({ 
+      success: false, 
+      message: error.message || "Server error during registration" 
+    }, { status: 500 })
   }
 }

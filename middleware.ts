@@ -14,7 +14,10 @@ export function middleware(request: NextRequest) {
 
   // If no token and trying to access protected route, redirect to login
   if (!token && !isPublicPath) {
-    return NextResponse.redirect(new URL("/login", request.url))
+    // Add current path to search params for potential redirect back after login
+    const url = new URL("/login", request.url)
+    url.searchParams.set("from", pathname)
+    return NextResponse.redirect(url)
   }
 
   // If token exists and trying to access login/register page, redirect to dashboard

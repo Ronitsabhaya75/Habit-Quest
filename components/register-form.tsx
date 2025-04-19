@@ -232,13 +232,13 @@ export default function RegisterForm({ step, onStepChange, onSuccess, onAssistan
       setLoading(true)
 
       // Register with backend API
-      const success = await register(username, email, password)
+      const result = await register(username, email, password)
 
-      if (success) {
+      if (result.success) {
         onSuccess()
       } else {
-        setError("Registration failed. Please try again.")
-        onAssistantMessage("Launch sequence aborted! Check your systems and try again.")
+        setError(result.message || "Registration failed. Please try again.")
+        onAssistantMessage(result.message || "Launch sequence aborted! Check your systems and try again.")
       }
     } catch (error) {
       setError("Registration failed. Please try again.")

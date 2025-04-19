@@ -30,7 +30,7 @@ export async function GET(request, { params }) {
     return NextResponse.json({ success: true, data: task }, { status: 200 })
   } catch (error) {
     console.error("Get task error:", error)
-    return NextResponse.json({ success: false, message: "Server error" }, { status: 500 })
+    return NextResponse.json({ success: false, message: error.message || "Server error" }, { status: 500 })
   }
 }
 
@@ -47,43 +47,39 @@ export async function PUT(request, { params }) {
     // Connect to the database
     await connectToDatabase()
 
-    // Get task data
-    const taskData = await request.json()
+    // Get update data
+    const updateData = await request.json()
 
-    // Find the task
-    const task = await Task.findOne({
-      _id: params.id,
-      user: user._id,
-    })
+    // Find and update task
+    const task = await Task.findOneAndUpdate(
+      {
+        _id: params.id,
+        user: user._id,
+      },
+      updateData,
+      { new: true, runValidators: true }
+    )
 
     if (!task) {
       return NextResponse.json({ success: false, message: "Task not found" }, { status: 404 })
     }
 
-    // Check if task is being marked as completed
-    const isCompletingTask = !task.completed && taskData.completed
+    // If task is marked as completed, award XP to the user
+    if (updateData.completed === true && !task.completedAt) {
+      // Set completedAt date if not already set
+      task.completedAt = new Date()
+      await task.save()
 
-    // Update task
-    const updatedTask = await Task.findByIdAndUpdate(
-      params.id,
-      {
-        ...taskData,
-        completedAt: taskData.completed ? new Date() : null,
-      },
-      { new: true },
-    )
-
-    // If task is being completed, award XP
-    if (isCompletingTask) {
+      // Award XP to user
       const userObj = await User.findById(user._id)
-      userObj.addXP(task.xpReward)
+      userObj.addXP(task.xpReward || 20)
       await userObj.save()
     }
 
-    return NextResponse.json({ success: true, data: updatedTask }, { status: 200 })
+    return NextResponse.json({ success: true, data: task }, { status: 200 })
   } catch (error) {
     console.error("Update task error:", error)
-    return NextResponse.json({ success: false, message: "Server error" }, { status: 500 })
+    return NextResponse.json({ success: false, message: error.message || "Server error" }, { status: 500 })
   }
 }
 
@@ -100,7 +96,7 @@ export async function DELETE(request, { params }) {
     // Connect to the database
     await connectToDatabase()
 
-    // Delete task
+    // Find and delete task
     const task = await Task.findOneAndDelete({
       _id: params.id,
       user: user._id,
@@ -113,6 +109,6 @@ export async function DELETE(request, { params }) {
     return NextResponse.json({ success: true, data: {} }, { status: 200 })
   } catch (error) {
     console.error("Delete task error:", error)
-    return NextResponse.json({ success: false, message: "Server error" }, { status: 500 })
+    return NextResponse.json({ success: false, message: error.message || "Server error" }, { status: 500 })
   }
 }

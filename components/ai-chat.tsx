@@ -1,278 +1,280 @@
 "use client"
 
-import type React from "react"
-
-import { useState, useRef, useEffect } from "react"
+import { useState, useEffect, useRef } from 'react'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-
-interface Task {
-  id: number | string
-  title: string
-  completed: boolean
-  isHabit?: boolean
-  estimatedTime?: number
-  isEditing?: boolean
-}
+import { useAuth } from "@/context/auth-context"
+import { X, MessageCircle, Send } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
 
 interface Message {
-  id: string
-  text: string
-  sender: "user" | "ai" | "system"
-  isTaskSuggestion?: boolean
-  suggestedTask?: string
-  hasDate?: boolean
+  id: string;
+  text: string;
+  sender: 'user' | 'ai';
+  timestamp: Date;
+}
+
+interface AIMessage {
+  message: string;
+  action?: {
+    type: 'addTask' | 'completeTask' | 'showProgress';
+    payload?: any;
+  };
 }
 
 interface AIChatProps {
-  user?: any
-  tasks?: Task[]
-  onTaskUpdate?: (taskId: string | number, completed: boolean, type?: string) => void
-  onAddTaskWithDate?: (date: Date, task: Task) => void
+  onTaskUpdate?: (taskId: string | number, completed: boolean) => void;
+  onAddTask?: (date: Date, task: { title: string, completed: boolean }) => void;
+  activeTasks?: Array<{ id: string | number, title: string, completed: boolean }>;
 }
 
-export function AIChat({ user, tasks = [], onTaskUpdate, onAddTaskWithDate }: AIChatProps) {
+export default function AIChat({ onTaskUpdate, onAddTask, activeTasks = [] }: AIChatProps) {
   const [isOpen, setIsOpen] = useState(false)
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: "welcome",
-      text: `Hi${user?.username ? ` ${user.username}` : ""}! I'm your Habit Coach. I'm here to help you build positive habits and achieve your goals. Would you like me to help you set up a task for today?`,
-      sender: "ai",
-    },
-  ])
-  const [inputValue, setInputValue] = useState("")
+  const [input, setInput] = useState('')
+  const [messages, setMessages] = useState<Message[]>([])
   const [isLoading, setIsLoading] = useState(false)
-  const [activeTasks, setActiveTasks] = useState<Task[]>(tasks)
-  const [editingTaskId, setEditingTaskId] = useState<string | number | null>(null)
-  const [editValue, setEditValue] = useState("")
-  const [apiError, setApiError] = useState<string | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const { user } = useAuth()
+  const inputRef = useRef<HTMLInputElement>(null)
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
-  }
-
+  // Add welcome message when chat is first opened
   useEffect(() => {
-    scrollToBottom()
-  }, [messages, activeTasks])
-
-  useEffect(() => {
-    setActiveTasks(tasks)
-  }, [tasks])
-
-  const handleTaskToggle = (taskId: string | number) => {
-    const taskToToggle = activeTasks.find((task) => task.id === taskId)
-    if (!taskToToggle) return
-
-    const updatedTasks = activeTasks.map((task) =>
-      task.id === taskId ? { ...task, completed: !task.completed } : task,
-    )
-    setActiveTasks(updatedTasks)
-
-    if (onTaskUpdate) {
-      onTaskUpdate(taskId, !taskToToggle.completed)
-    }
-
-    setMessages((prev) => [
-      ...prev,
-      {
+    if (isOpen && messages.length === 0) {
+      const welcomeMessage = {
         id: Date.now().toString(),
-        text: `Marked task "${taskToToggle.title}" as ${!taskToToggle.completed ? "completed" : "not completed"}`,
-        sender: "system",
-      },
-    ])
-  }
-
-  const startEditTask = (taskId: string | number) => {
-    const task = activeTasks.find((t) => t.id === taskId)
-    if (task) {
-      setEditingTaskId(taskId)
-      setEditValue(task.title)
-    }
-  }
-
-  const saveEditTask = () => {
-    if (editingTaskId && editValue.trim()) {
-      const updatedTasks = activeTasks.map((task) =>
-        task.id === editingTaskId ? { ...task, title: editValue.trim() } : task,
-      )
-
-      setActiveTasks(updatedTasks)
-
-      if (onTaskUpdate) {
-        const updatedTask = updatedTasks.find((t) => t.id === editingTaskId)
-        if (updatedTask) {
-          onTaskUpdate(editingTaskId, updatedTask.completed, "edit")
-        }
+        text: user?.name 
+          ? `Hello ${user.name}! I'm your Golden Warrior assistant. How can I help you today?` 
+          : "Hello! I'm your Golden Warrior assistant. How can I help you today?",
+        sender: 'ai' as const,
+        timestamp: new Date()
       }
+      setMessages([welcomeMessage])
+    }
+  }, [isOpen, user, messages.length])
 
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: Date.now().toString(),
-          text: `Updated task: "${editValue.trim()}"`,
-          sender: "system",
-        },
-      ])
+  // Scroll to bottom when new messages are added
+  useEffect(() => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' })
+    }
+  }, [messages])
 
-      setEditingTaskId(null)
-      setEditValue("")
+  // Focus input when chat is opened
+  useEffect(() => {
+    if (isOpen && inputRef.current) {
+      setTimeout(() => {
+        inputRef.current?.focus()
+      }, 300)
+    }
+  }, [isOpen])
+
+  const toggleChat = () => {
+    setIsOpen(prev => !prev)
+  }
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setInput(e.target.value)
+  }
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && input.trim()) {
+      sendMessage()
     }
   }
 
-  const cancelEditTask = () => {
-    setEditingTaskId(null)
-    setEditValue("")
-  }
+  const sendMessage = async () => {
+    if (!input.trim()) return
 
-  const handleKeyPressForEdit = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") {
-      saveEditTask()
-    } else if (e.key === "Escape") {
-      cancelEditTask()
-    }
-  }
-
-  const removeTask = (taskId: string | number) => {
-    const taskToRemove = activeTasks.find((t) => t.id === taskId)
-    if (!taskToRemove) return
-
-    const updatedTasks = activeTasks.filter((task) => task.id !== taskId)
-    setActiveTasks(updatedTasks)
-
-    if (onTaskUpdate) {
-      onTaskUpdate(taskId, false, "remove")
-    }
-
-    setMessages((prev) => [
-      ...prev,
-      {
-        id: Date.now().toString(),
-        text: `Removed task: "${taskToRemove.title}"`,
-        sender: "system",
-      },
-    ])
-  }
-
-  const extractDateFromText = (text: string): Date | null => {
-    const today = new Date()
-    const lowerText = text.toLowerCase()
-
-    if (lowerText.includes("today")) {
-      return today
-    } else if (lowerText.includes("tomorrow")) {
-      const tomorrow = new Date(today)
-      tomorrow.setDate(tomorrow.getDate() + 1)
-      return tomorrow
-    }
-
-    return null
-  }
-
-  const handleSendMessage = async () => {
-    if (!inputValue.trim()) return
-
-    const newMessage: Message = {
+    // Add user message
+    const userMessage: Message = {
       id: Date.now().toString(),
-      text: inputValue,
-      sender: "user",
+      text: input.trim(),
+      sender: 'user',
+      timestamp: new Date()
     }
-
-    setMessages((prev) => [...prev, newMessage])
-    setInputValue("")
+    
+    setMessages(prev => [...prev, userMessage])
+    setInput('')
     setIsLoading(true)
-    setApiError(null)
 
     try {
-      const response = await fetch("/api/ai-chat", {
-        method: "POST",
+      // Send message to API
+      const response = await fetch('/api/ai-chat', {
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          userInput: inputValue,
+          userInput: input.trim(),
           activeTasks: activeTasks,
-          messages: messages,
+          messages: messages.map(m => ({ text: m.text, sender: m.sender }))
         }),
       })
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
+        throw new Error('Failed to get AI response')
       }
 
-      const data = await response.json()
+      const data: AIMessage = await response.json()
+      
+      // Add AI message
+      const aiMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        text: data.message,
+        sender: 'ai',
+        timestamp: new Date()
+      }
+      
+      setMessages(prev => [...prev, aiMessage])
 
-      if (data.response) {
-        const aiMessage: Message = {
-          id: Date.now().toString(),
-          text: data.response,
-          sender: "ai",
-        }
-
-        setMessages((prev) => [...prev, aiMessage])
-      } else {
-        setApiError("Failed to get a response from the AI.")
+      // Handle any actions from the AI
+      if (data.action) {
+        handleAIAction(data.action)
       }
     } catch (error) {
-      console.error("AI API Error:", error)
-      setApiError("Failed to connect to the AI service.")
+      console.error('Error sending message:', error)
+      
+      // Add error message
+      const errorMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        text: "Sorry, I'm having trouble connecting right now. Please try again later.",
+        sender: 'ai',
+        timestamp: new Date()
+      }
+      
+      setMessages(prev => [...prev, errorMessage])
     } finally {
       setIsLoading(false)
-      scrollToBottom()
+    }
+  }
+
+  const handleAIAction = (action: AIMessage['action']) => {
+    if (!action) return
+
+    switch (action.type) {
+      case 'addTask':
+        if (onAddTask && action.payload?.title) {
+          const date = action.payload.date ? new Date(action.payload.date) : new Date()
+          onAddTask(date, {
+            title: action.payload.title,
+            completed: false
+          })
+        }
+        break
+      case 'completeTask':
+        if (onTaskUpdate && action.payload?.taskId !== undefined) {
+          onTaskUpdate(action.payload.taskId, true)
+        }
+        break
+      default:
+        break
     }
   }
 
   return (
-    <div className="flex flex-col h-[400px] bg-[#2a3343] rounded-lg border border-[#3a4353] overflow-hidden">
-      <div className="flex-1 p-4 space-y-2 overflow-y-auto">
-        {messages.map((message) => (
-          <div key={message.id} className={`flex ${message.sender === "user" ? "justify-end" : "justify-start"}`}>
-            <div
-              className={`flex items-start space-x-2 max-w-[80%] ${
-                message.sender === "user" ? "flex-row-reverse space-x-reverse" : ""
-              }`}
-            >
-              <Avatar className="h-8 w-8">
-                <AvatarFallback className={message.sender === "user" ? "bg-[#4cc9f0]" : "bg-purple-500"}>
-                  {message.sender === "user" ? "U" : "AI"}
-                </AvatarFallback>
-              </Avatar>
-              <div
-                className={`rounded-lg p-3 ${
-                  message.sender === "user" ? "bg-[#4cc9f0] text-black" : "bg-[#1a2332] text-white"
-                }`}
-              >
-                {message.text}
-              </div>
-            </div>
-          </div>
-        ))}
-        <div ref={messagesEndRef} />
-      </div>
+    <>
+      {/* Chat Toggle Button */}
+      <Button
+        onClick={toggleChat}
+        className="fixed bottom-6 right-6 w-14 h-14 rounded-full shadow-lg flex items-center justify-center bg-gradient-to-r from-purple-600 to-indigo-700 hover:from-purple-700 hover:to-indigo-800 transition-all duration-300 z-50"
+        size="icon"
+      >
+        {isOpen ? (
+          <X className="h-6 w-6 text-white" />
+        ) : (
+          <MessageCircle className="h-6 w-6 text-white" />
+        )}
+      </Button>
 
-      <div className="p-3 border-t border-[#3a4353] flex space-x-2">
-        <Input
-          placeholder="Ask me anything..."
-          className="bg-[#1a2332] border-[#3a4353] text-white"
-          value={inputValue}
-          onChange={(e) => setInputValue(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              handleSendMessage()
-            }
-          }}
-        />
-        <Button
-          className="bg-[#4cc9f0] hover:bg-[#4cc9f0]/80 text-black"
-          onClick={handleSendMessage}
-          disabled={isLoading}
-        >
-          Send
-        </Button>
-      </div>
-    </div>
+      {/* Chat Panel */}
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: 20, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 20, scale: 0.95 }}
+            transition={{ duration: 0.2 }}
+            className="fixed bottom-24 right-6 w-80 sm:w-96 h-[70vh] max-h-[500px] rounded-lg shadow-xl overflow-hidden flex flex-col bg-white/10 backdrop-blur-lg border border-gray-200 dark:border-gray-800 z-40"
+          >
+            {/* Chat Header */}
+            <div className="p-3 bg-gradient-to-r from-purple-600 to-indigo-700 text-white font-medium flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <MessageCircle className="h-5 w-5" />
+                <span>Golden Warrior Assistant</span>
+              </div>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={toggleChat}
+                className="h-8 w-8 text-white hover:bg-white/20"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+
+            {/* Chat Messages */}
+            <div className="flex-grow overflow-y-auto p-4 space-y-4">
+              {messages.map((message) => (
+                <motion.div
+                  key={message.id}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}
+                >
+                  <div
+                    className={`max-w-[80%] p-3 rounded-lg ${
+                      message.sender === 'user'
+                        ? 'bg-indigo-600 text-white rounded-tr-none'
+                        : 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-tl-none'
+                    }`}
+                  >
+                    {message.text}
+                  </div>
+                </motion.div>
+              ))}
+              {isLoading && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="flex justify-start"
+                >
+                  <div className="bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100 p-3 rounded-lg rounded-tl-none max-w-[80%]">
+                    <div className="flex space-x-2">
+                      <div className="w-2 h-2 rounded-full bg-indigo-500 animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                      <div className="w-2 h-2 rounded-full bg-indigo-500 animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                      <div className="w-2 h-2 rounded-full bg-indigo-500 animate-bounce" style={{ animationDelay: '600ms' }}></div>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+              <div ref={messagesEndRef} />
+            </div>
+
+            {/* Chat Input */}
+            <div className="p-3 border-t border-gray-200 dark:border-gray-800 flex gap-2">
+              <Input
+                ref={inputRef}
+                type="text"
+                placeholder="Ask me anything..."
+                value={input}
+                onChange={handleInputChange}
+                onKeyDown={handleKeyDown}
+                className="flex-grow focus-visible:ring-indigo-500"
+                disabled={isLoading}
+              />
+              <Button
+                onClick={sendMessage}
+                disabled={!input.trim() || isLoading}
+                className="bg-indigo-600 hover:bg-indigo-700"
+                size="icon"
+              >
+                <Send className="h-4 w-4" />
+              </Button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </>
   )
 }
-
-export default AIChat

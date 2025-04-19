@@ -1,0 +1,22 @@
+Sprint 2 Reflection
+
+Skills Gained
+1. React Context API for global state management
+2. About SVG and CSS animation for interactive UI.
+3. Local storage for persistent user data.
+4. Styled Components for Gamification techniques to improve user motivation
+
+Looking Ahead
+In upcoming Sprints I plan to add few more game components to further gamify the habit-building expierence.
+Change the HabitProgressTracker to HabitChallengeTracker as there is already a breakthroughgame which looks similar to the habitprogresstracker.
+
+Sprint Summary
+In this Sprint I completed the habitprogresstracker and Spin Wheel in our habittracking application.
+These features were developed with strong focus on interactivity and gamification which looks interesting for user to use the application.
+I implemented a strong and comprehensive progress tracking system using react context API for centralized state management and local storage persistance
+The tracker monitors user activity accross multiple habit categories, and award badges based on predefined tiers.
+To enhance user engagement, I developed an interactive SpinWheel feture that offers randomized rewards.
+This components uses SVG and CSS transforms for smooth rotation animations, with precise segment calculations to ensure fair reward distribution.
+Managing complex state across components while maintaining synchronisation with local storage.
+Fine-tuning SVE calculations for accurate wheel rotation and segment positioning.
+These were addressed by refining context logic and iteratng through animation and math adjustments!

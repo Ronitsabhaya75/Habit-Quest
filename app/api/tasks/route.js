@@ -40,7 +40,7 @@ export async function GET(request) {
     return NextResponse.json({ success: true, data: tasks }, { status: 200 })
   } catch (error) {
     console.error("Get tasks error:", error)
-    return NextResponse.json({ success: false, message: "Server error" }, { status: 500 })
+    return NextResponse.json({ success: false, message: error.message || "Server error" }, { status: 500 })
   }
 }
 
@@ -60,6 +60,18 @@ export async function POST(request) {
     // Get task data
     const taskData = await request.json()
 
+    // Basic validation
+    if (!taskData.title) {
+      return NextResponse.json({ success: false, message: "Task title is required" }, { status: 400 })
+    }
+
+    // Set default dueDate to today if not provided
+    if (!taskData.dueDate) {
+      const today = new Date()
+      today.setHours(23, 59, 59, 999)
+      taskData.dueDate = today
+    }
+
     // Create task
     const task = await Task.create({
       ...taskData,
@@ -69,6 +81,6 @@ export async function POST(request) {
     return NextResponse.json({ success: true, data: task }, { status: 201 })
   } catch (error) {
     console.error("Create task error:", error)
-    return NextResponse.json({ success: false, message: "Server error" }, { status: 500 })
+    return NextResponse.json({ success: false, message: error.message || "Server error" }, { status: 500 })
   }
 }

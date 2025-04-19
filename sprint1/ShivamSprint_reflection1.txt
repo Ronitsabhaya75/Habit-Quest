@@ -1,0 +1,34 @@
+Sprint Reflection 
+What did I accomplish?
+The development phase of our project received major contributions from me through backend work during this sprint period. My key accomplishments include:
+
+The implementation of the authentication system consisted of JWT-based login and registration.
+I developed both database models and optimized schema designs for handling user information.
+The creation of fundamental habit tracking API endpoints along with their testing phase.
+The server received debugging services together with performance optimization aimed at delivering seamless interaction with the frontend components.
+
+What challenges did I encounter?
+Long-lasting hurdles appeared during various points of the sprint's duration.
+
+The frontend failed in data retrieval from backend servers through cross-origin restrictions. The solution involved setting up CORS in the Express backend system.
+The database required changes to initial structures because they proved inefficient thus leading to data migration activities.
+I solved authentication errors by strengthening token processing methods and improving the way the application assessed middleware function.
+
+What did I learn?
+The sprint allowed me to acquire numerous useful lessons and technical abilities:
+
+Deeper understanding of authentication (JWT, bcrypt, middleware security).
+The API system achieved better performance by both eliminating unnecessary queries in operation and speeding up responses.
+Efficient debugging techniques for Express.js and MongoDB.
+A more advanced approach to version control consists of handling merge conflicts and implementing effective PR reviewing practices.
+My understanding grew to value how team members must collaborate and communicate to overcome blockers with greater speed.
+
+What could have been improved?
+Although the sprint produced valuable results we should focus on making these enhancements:
+Debugging challenges required additional time that extended the duration of some tasks. Better management of time would have been useful. The performance of our team would improve when we divide work responsibilities into manageable sections.
+Better API debugging would occur earlier because additional unit testing of endpoints was necessary.
+The addition of better documentation for APIs would enable the frontend team to achieve faster integration.
+I will advance team performance in the upcoming sprint by establishing clear priorities together with strengthening test coverage and improving documentation standards.
+
+Final Thoughts
+The sprint proved to be an excellent educational journey. During this period I successfully delivered important work while simultaneously enhancing both my technical capabilities and my ability to solve problems
