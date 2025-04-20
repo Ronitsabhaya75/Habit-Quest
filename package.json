@@ -2,11 +2,17 @@
   "name": "my-v0-project",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": ">=18",
+    "npm": ">=8"
+  },
+  "packageManager": "npm@10",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "postinstall": "echo 'Using npm for package management'"
   },
   "dependencies": {
     "@emotion/is-prop-valid": "latest",
