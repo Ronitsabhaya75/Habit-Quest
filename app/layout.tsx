@@ -6,6 +6,12 @@ import { HabitProvider } from "../context/HabitContext"
 import { EventProvider } from "../context/EventContext"
 import "./globals.css"
 
+export const metadata = {
+  generator: 'v0.dev',
+  title: 'Golden Warriors',
+  description: 'Gamified productivity app'
+};
+
 export default function RootLayout({
   children,
 }: {
@@ -13,6 +19,12 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
+      <head>
+        <link 
+          href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700&family=Poppins:wght@300;400;500;600&display=swap" 
+          rel="stylesheet" 
+        />
+      </head>
       <body className="bg-[#0d1520] min-h-screen">
         <ThemeProvider attribute="class" defaultTheme="dark">
           <AuthProvider>
@@ -27,7 +39,3 @@ export default function RootLayout({
     </html>
   )
 }
-
-export const metadata = {
-  generator: 'v0.dev'
-};
