@@ -27,9 +27,9 @@ export function MainLayout({ children }: MainLayoutProps) {
                 <Link href="/calendar" className="text-gray-300 hover:text-white">
                   Calendar
                 </Link>
-                {/* <Link href="/recurring-tasks" className="text-gray-300 hover:text-white">
+                <Link href="/recurring-tasks" className="text-gray-300 hover:text-white">
                   Tasks
-                </Link> */}
+                </Link>
                 <Link href="/breakthrough-game" className="text-gray-300 hover:text-white">
                   Games
                 </Link>
