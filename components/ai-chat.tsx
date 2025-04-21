@@ -1,9 +1,9 @@
 "use client"
 
 import { useState, useEffect, useRef } from 'react'
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { useAuth } from "@/context/auth-context"
+import { Button } from "./ui/button"
+import { Input } from "./ui/input"
+import { useAuth } from "../context/auth-context"
 import { X, MessageCircle, Send } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 

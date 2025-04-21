@@ -1,8 +1,8 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Button } from "@/components/ui/button"
-import { Progress } from "@/components/ui/progress"
+import { Button } from "./ui/button"
+import { Progress } from "./ui/progress"
 
 interface Achievement {
   id: number

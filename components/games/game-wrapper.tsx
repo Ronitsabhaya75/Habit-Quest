@@ -1,8 +1,11 @@
 "use client"
 
-import type React from "react"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
+import { ReactNode } from "react"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card"
+import { useAuth } from "../../context/auth-context"
+import { Coins } from "lucide-react"
+import { Button } from "../ui/button"
+import { Badge } from "../ui/badge"
 
 interface GameWrapperProps {
   title: string

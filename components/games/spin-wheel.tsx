@@ -1,9 +1,11 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
-import { Button } from "@/components/ui/button"
+import { motion } from "framer-motion"
+import { Button } from "../ui/button"
 import { GameWrapper } from "./game-wrapper"
-import { toast } from "@/components/ui/use-toast"
+import { toast } from "../ui/use-toast"
+import { Star } from "lucide-react"
 
 const wheelItems = [
   { label: "5 XP", color: "#4cc9f0", value: 5 },

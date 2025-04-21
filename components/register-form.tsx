@@ -4,7 +4,7 @@ import type React from "react"
 
 import { useState } from "react"
 import Link from "next/link"
-import { useAuth } from "@/context/auth-context"
+import { useAuth } from "../context/auth-context"
 
 interface RegisterFormProps {
   step: number

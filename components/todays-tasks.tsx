@@ -1,14 +1,14 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Button } from "@/components/ui/button"
-import { Checkbox } from "@/components/ui/checkbox"
-import { Plus } from 'lucide-react'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { useAuth } from "@/context/auth-context"
-import { toast } from "@/components/ui/use-toast"
+import { Button } from "./ui/button"
+import { Checkbox } from "./ui/checkbox"
+import { Cross2Icon, PlusIcon, Pencil1Icon, TrashIcon } from "@radix-ui/react-icons"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "./ui/dialog"
+import { Input } from "./ui/input"
+import { Label } from "./ui/label"
+import { useAuth } from "../context/auth-context"
+import { toast } from "./ui/use-toast"
 import { format } from "date-fns"
 
 interface Task {
@@ -199,7 +199,7 @@ export function TodaysTasks({ date = new Date() }: TodaysTasksProps) {
           // If task was completed, update user XP
           if (completed) {
             // Import the XP_VALUES from lib/xp-system
-            const { XP_VALUES } = await import("@/lib/xp-system")
+            const { XP_VALUES } = await import("../lib/xp-system")
             
             // In a real app, you would update the user's XP in the database
             // For now, we'll just show a toast notification
@@ -272,7 +272,7 @@ export function TodaysTasks({ date = new Date() }: TodaysTasksProps) {
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogTrigger asChild>
           <Button className="w-full bg-[#4cc9f0] hover:bg-[#4cc9f0]/80 text-black">
-            <Plus className="mr-2 h-4 w-4" /> Add Task
+            <PlusIcon className="mr-2 h-4 w-4" /> Add Task
           </Button>
         </DialogTrigger>
         <DialogContent className="bg-[#1a2332] border-[#2a3343] text-white">

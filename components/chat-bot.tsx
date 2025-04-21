@@ -1,7 +1,7 @@
 "use client"
 
-import { useState } from "react"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import React, { useState, useEffect } from "react"
+import { Avatar, AvatarFallback } from "./ui/avatar"
 
 const chatHistory = [
   {

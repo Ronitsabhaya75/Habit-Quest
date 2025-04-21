@@ -9,10 +9,10 @@ import {
   DialogTitle,
   DialogFooter,
   DialogClose
-} from "@/components/ui/dialog"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
+} from "./ui/dialog"
+import { Button } from "./ui/button"
+import { Input } from "./ui/input"
+import { Textarea } from "./ui/textarea"
 import { 
   Form, 
   FormControl, 
@@ -20,11 +20,11 @@ import {
   FormItem, 
   FormLabel, 
   FormMessage 
-} from "@/components/ui/form"
-import { Calendar } from "@/components/ui/calendar"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+} from "./ui/form"
+import { Calendar } from "./ui/calendar"
+import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover"
 import { Calendar as CalendarIcon } from "lucide-react"
-import { cn } from "@/lib/utils"
+import { cn } from "../lib/utils"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
@@ -34,9 +34,9 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue
-} from "@/components/ui/select"
-import { Checkbox } from "@/components/ui/checkbox"
-import { Switch } from "@/components/ui/switch"
+} from "./ui/select"
+import { Checkbox } from "./ui/checkbox"
+import { Switch } from "./ui/switch"
 
 const taskFormSchema = z.object({
   title: z.string().min(1, "Title is required"),

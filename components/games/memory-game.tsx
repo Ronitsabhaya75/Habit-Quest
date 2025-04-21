@@ -1,10 +1,11 @@
 "use client" // Directive to use client-side rendering in Next.js app
 
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
+import { useState, useEffect, useCallback } from "react"
+import { Button } from "../ui/button"
+import { Badge } from "../ui/badge"
 import { GameWrapper } from "./game-wrapper"
-import { toast } from "@/components/ui/use-toast"
+import { Shuffle } from "lucide-react"
+import { toast } from "../ui/use-toast"
 
 export function MemoryGame() {
   // Game state management
@@ -14,7 +15,7 @@ export function MemoryGame() {
   const [flippedCards, setFlippedCards] = useState<number[]>([]) // Tracks the currently flipped cards
   const [matchedPairs, setMatchedPairs] = useState(0) // Counts matched pairs
   const [moves, setMoves] = useState(0) // Tracks total number of moves made
-  const [score, setScore] = useState(0) // Player’s score
+  const [score, setScore] = useState(0) // Player's score
 
   // Game initializer function
   const initializeGame = () => {
