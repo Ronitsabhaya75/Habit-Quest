@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useMemo } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { motion } from "framer-motion"
-import { Card, CardContent } from "@/components/ui/card"
+import { Card, CardContent } from "../components/ui/card"
 import { Sun, Moon, Rocket, Trophy, BarChart2, Users } from "lucide-react"
 
 export default function HomePage() {

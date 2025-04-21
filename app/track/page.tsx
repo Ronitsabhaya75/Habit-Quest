@@ -1,17 +1,17 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Calendar } from "@/components/ui/calendar"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { MainLayout } from "@/components/main-layout"
-import AIChat from "@/components/ai-chat"
-import { TaskList } from "@/components/task-list"
+import { Calendar } from "../../components/ui/calendar"
+import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card"
+import { Button } from "../../components/ui/button"
+import { Input } from "../../components/ui/input"
+import { MainLayout } from "../../components/main-layout"
+import AIChat from "../../components/ai-chat"
+import { TaskList } from "../../components/task-list"
 import { Plus, Send } from "lucide-react"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { useToast } from "@/components/ui/use-toast"
-import { TaskProvider } from "@/components/task-context"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "../../components/ui/dialog"
+import { useToast } from "../../components/ui/use-toast"
+import { TaskProvider } from "../../components/task-context"
 
 export default function TrackPage() {
   const [date, setDate] = useState<Date | undefined>(new Date())

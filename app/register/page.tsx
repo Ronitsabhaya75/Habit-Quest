@@ -4,11 +4,11 @@ import { useState, useEffect, useRef, useMemo } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { motion } from "framer-motion"
-import { useAuth } from "@/context/auth-context"
-import RegisterForm from "@/components/register-form"
-import JourneyPanel from "@/components/journey-panel"
-import SpaceBackground from "@/components/space-background"
-import AstroAssistant from "@/components/astro-assistant"
+import { useAuth } from "../../context/auth-context"
+import RegisterForm from "../../components/register-form"
+import JourneyPanel from "../../components/journey-panel"
+import SpaceBackground from "../../components/space-background"
+import AstroAssistant from "../../components/astro-assistant"
 
 export default function RegisterPage() {
   const router = useRouter()

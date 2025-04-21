@@ -2,14 +2,14 @@
 
 import { useState, useEffect, useRef, useCallback } from "react"
 import { useRouter } from "next/navigation"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
+import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card"
+import { Button } from "../../components/ui/button"
+import { Input } from "../../components/ui/input"
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts"
-import { useAuth } from "@/context/auth-context"
+import { useAuth } from "../../context/auth-context"
 import { LogOut, Search, RefreshCw } from "lucide-react"
-import AIChat from "@/components/ai-chat"
-import { TodaysTasks } from "@/components/todays-tasks"
+import AIChat from "../../components/ai-chat"
+import { TodaysTasks } from "../../components/todays-tasks"
 
 // Define types for tasks and notifications
 type Task = {

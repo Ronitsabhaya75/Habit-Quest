@@ -1,20 +1,21 @@
 "use client"
 
 import { useState } from "react"
-import SharedLayout from "@/components/shared-layout"
-import { ThemedCard } from "@/components/themed-card"
-import { ThemedButton } from "@/components/themed-button"
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Badge } from "@/components/ui/badge"
+import SharedLayout from "../../components/shared-layout"
+import { ThemedCard } from "../../components/themed-card"
+import { ThemedButton } from "../../components/themed-button"
+import { Tabs, TabsList, TabsTrigger } from "../../components/ui/tabs"
+import { Badge } from "../../components/ui/badge"
+import { Filter, Search, ShoppingBag, Sparkles, Star, Zap } from "lucide-react"
 import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog"
-import { ShoppingCart } from "lucide-react"
+} from "../../components/ui/dialog"
 
 export default function Shop() {
   const [activeTab, setActiveTab] = useState("all")
@@ -95,7 +96,7 @@ export default function Shop() {
                   <Dialog>
                     <DialogTrigger asChild>
                       <ThemedButton glowEffect>
-                        <ShoppingCart className="mr-2 h-4 w-4" /> Purchase
+                        <ShoppingBag className="mr-2 h-4 w-4" /> Purchase
                       </ThemedButton>
                     </DialogTrigger>
                     <DialogContent className="bg-[rgba(11,26,44,0.95)] backdrop-blur-md border-[rgba(0,255,198,0.3)] text-[#B8FFF9]">

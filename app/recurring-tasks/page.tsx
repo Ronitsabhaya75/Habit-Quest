@@ -1,5 +1,7 @@
-import RecurringTaskManager from "@/components/RecurringTaskManager"
-import { TaskProvider } from "@/components/task-context"
+"use client"
+
+import RecurringTaskManager from "../../components/RecurringTaskManager"
+import { TaskProvider } from "../../components/task-context"
 
 export default function RecurringTasksPage() {
   return (

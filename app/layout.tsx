@@ -1,9 +1,9 @@
 import type React from "react"
-import { ThemeProvider } from "@/components/theme-provider"
-import { AuthProvider } from "@/context/auth-context"
-import { TaskProvider } from "@/components/task-context"
-import { HabitProvider } from "@/context/HabitContext"
-import { EventProvider } from "@/context/EventContext"
+import { ThemeProvider } from "../components/theme-provider"
+import { AuthProvider } from "../context/auth-context"
+import { TaskProvider } from "../components/task-context"
+import { HabitProvider } from "../context/HabitContext"
+import { EventProvider } from "../context/EventContext"
 import "./globals.css"
 
 export default function RootLayout({

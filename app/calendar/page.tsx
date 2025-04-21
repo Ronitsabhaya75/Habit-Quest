@@ -1,15 +1,15 @@
 "use client"
 
 import { useState } from "react"
-import { Calendar } from "@/components/ui/calendar"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { MainLayout } from "@/components/main-layout"
-import { ChatBot } from "@/components/chat-bot"
-import { TaskList } from "@/components/task-list"
+import { Calendar } from "../../components/ui/calendar"
+import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card"
+import { Button } from "../../components/ui/button"
+import { Input } from "../../components/ui/input"
+import { MainLayout } from "../../components/main-layout"
+import { ChatBot } from "../../components/chat-bot"
+import { TaskList } from "../../components/task-list"
 import { Plus, Send } from "lucide-react"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "../../components/ui/dialog"
 
 export default function CalendarPage() {
   const [date, setDate] = useState<Date | undefined>(new Date())
