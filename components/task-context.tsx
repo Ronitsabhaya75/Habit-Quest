@@ -99,7 +99,13 @@ export const TaskProvider = ({ children }: { children: React.ReactNode }) => {
 
   const addTask = async (taskData: AddTaskInput) => {
     try {
-      setLoading(true)
+      setLoading(true);
+      
+      // Ensure taskData has required fields
+      if (!taskData.dueDate) {
+        taskData.dueDate = new Date();
+      }
+      
       const response = await fetch("/api/tasks", {
         method: "POST",
         headers: {
@@ -107,47 +113,67 @@ export const TaskProvider = ({ children }: { children: React.ReactNode }) => {
         },
         body: JSON.stringify({
           ...taskData,
+          // Ensure dueDate is properly formatted as ISO string
+          dueDate: taskData.dueDate instanceof Date ? taskData.dueDate.toISOString() : taskData.dueDate,
           xpReward: taskData.xpReward || 10,
           isHabit: taskData.isHabit || false,
           isRecurring: taskData.isRecurring || false,
           frequency: taskData.frequency || "daily",
-          recurringEndDate: taskData.isRecurring ? taskData.recurringEndDate : null
+          recurringEndDate: taskData.isRecurring && taskData.recurringEndDate ? 
+            (taskData.recurringEndDate instanceof Date ? 
+              taskData.recurringEndDate.toISOString() : taskData.recurringEndDate) : null
         }),
-      })
+      });
       
       if (!response.ok) {
-        throw new Error(`HTTP error! Status: ${response.status}`)
+        const errorText = await response.text();
+        console.error(`API error (${response.status}):`, errorText);
+        throw new Error(`HTTP error! Status: ${response.status}`);
       }
       
-      const data = await response.json()
-      const newTask = data.task
+      const data = await response.json();
+      const newTask = data.task;
       
-      setTasks((prevTasks) => [...prevTasks, newTask])
-      toast.success("Task added successfully!")
-      return newTask
+      setTasks((prevTasks) => [...prevTasks, newTask]);
+      toast.success("Task added successfully!");
+      return newTask;
     } catch (err) {
-      console.error("Error adding task:", err)
-      setError("Failed to add task")
-      toast.error("Failed to add task")
-      return null
+      console.error("Error adding task:", err);
+      setError("Failed to add task");
+      toast.error("Failed to add task");
+      return null;
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
   }
 
   const updateTask = async (taskData: UpdateTaskInput) => {
     try {
       setLoading(true)
+      
+      // Format dates properly to avoid API validation errors
+      const formattedData = {
+        ...taskData,
+        dueDate: taskData.dueDate instanceof Date ? taskData.dueDate.toISOString() : taskData.dueDate,
+        recurringEndDate: taskData.recurringEndDate instanceof Date ? 
+          taskData.recurringEndDate.toISOString() : taskData.recurringEndDate
+      };
+      
+      console.log("Updating task with data:", JSON.stringify(formattedData));
+      
       const response = await fetch("/api/tasks", {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(taskData),
+        body: JSON.stringify(formattedData),
       })
       
+      // Better error handling
       if (!response.ok) {
-        throw new Error(`HTTP error! Status: ${response.status}`)
+        const errorData = await response.json().catch(() => null);
+        console.error("API error response:", errorData || response.statusText);
+        throw new Error(`Failed to update task: ${errorData?.error || response.statusText}`);
       }
       
       const data = await response.json()
@@ -183,7 +209,7 @@ export const TaskProvider = ({ children }: { children: React.ReactNode }) => {
     } catch (err) {
       console.error("Error updating task:", err)
       setError("Failed to update task")
-      toast.error("Failed to update task")
+      toast.error(err instanceof Error ? err.message : "Failed to update task")
       return null
     } finally {
       setLoading(false)

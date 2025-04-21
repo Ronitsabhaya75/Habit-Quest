@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useAuth } from "@/context/auth-context"
 import { toast } from "@/components/ui/use-toast"
+import { format } from "date-fns"
 
 interface Task {
   _id: string
@@ -17,39 +18,36 @@ interface Task {
   xpReward: number
 }
 
-export function TodaysTasks() {
+interface TodaysTasksProps {
+  date?: Date
+}
+
+export function TodaysTasks({ date = new Date() }: TodaysTasksProps) {
   const { user, updateUser } = useAuth()
   const [tasks, setTasks] = useState<Task[]>([])
   const [newTaskTitle, setNewTaskTitle] = useState("")
   const [loading, setLoading] = useState(true)
   const [dialogOpen, setDialogOpen] = useState(false)
 
-  // Fetch tasks for today
+  // Fetch tasks for the specified date
   useEffect(() => {
     async function fetchTasks() {
       try {
         setLoading(true)
-        const today = new Date().toISOString().split("T")[0]
-        const res = await fetch(`/api/tasks?date=${today}`)
+        const dateStr = date.toISOString().split("T")[0]
+        const res = await fetch(`/api/tasks?date=${dateStr}`)
 
         if (!res.ok) {
           console.error("Failed to fetch tasks with status:", res.status)
           // Use placeholder data
-          setTasks([
-            { _id: "1", title: "Morning meditation", completed: false, xpReward: 20 },
-            { _id: "2", title: "Read for 30 minutes", completed: true, xpReward: 20 },
-          ])
+          setTasks([])
           return
         }
 
         const contentType = res.headers.get("content-type")
         if (!contentType || !contentType.includes("application/json")) {
           console.error("API returned non-JSON response:", contentType)
-          // Use placeholder data
-          setTasks([
-            { _id: "1", title: "Morning meditation", completed: false, xpReward: 20 },
-            { _id: "2", title: "Read for 30 minutes", completed: true, xpReward: 20 },
-          ])
+          setTasks([])
           return
         }
 
@@ -57,32 +55,22 @@ export function TodaysTasks() {
         if (data.success) {
           setTasks(data.data)
         } else {
-          // Use placeholder data
-          setTasks([
-            { _id: "1", title: "Morning meditation", completed: false, xpReward: 20 },
-            { _id: "2", title: "Read for 30 minutes", completed: true, xpReward: 20 },
-          ])
+          setTasks([])
         }
       } catch (error) {
         console.error("Failed to fetch tasks:", error)
-        // Use placeholder data
-        setTasks([
-          { _id: "1", title: "Morning meditation", completed: false, xpReward: 20 },
-          { _id: "2", title: "Read for 30 minutes", completed: true, xpReward: 20 },
-        ])
+        setTasks([])
       } finally {
         setLoading(false)
       }
     }
 
     fetchTasks()
-  }, [])
+  }, [date])
 
   const addTask = async () => {
     if (newTaskTitle.trim()) {
       try {
-        const today = new Date()
-
         const res = await fetch("/api/tasks", {
           method: "POST",
           headers: {
@@ -90,7 +78,7 @@ export function TodaysTasks() {
           },
           body: JSON.stringify({
             title: newTaskTitle,
-            dueDate: today,
+            dueDate: date.toISOString(), // Use the selected date
             xpReward: 20,
           }),
         })
@@ -244,9 +232,14 @@ export function TodaysTasks() {
   if (loading) {
     return <div className="text-center py-8 text-gray-400">Loading tasks...</div>
   }
+  
+  // Format the date for display
+  const isToday = new Date().toDateString() === date.toDateString();
+  const formattedDate = isToday ? "Today" : format(date, "EEEE, MMMM d, yyyy");
 
   return (
     <div className="space-y-4">
+      <h3 className="text-xl font-medium text-white mb-4">{formattedDate}'s Tasks</h3>
       {tasks.length > 0 ? (
         <div className="space-y-2">
           {tasks.map((task) => (
@@ -271,7 +264,9 @@ export function TodaysTasks() {
           ))}
         </div>
       ) : (
-        <div className="text-center py-8 text-gray-400">No tasks for today. Add one below!</div>
+        <div className="text-center py-8 text-gray-400">
+          No tasks for {isToday ? "today" : format(date, "MMMM d")}. Add one below!
+        </div>
       )}
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
@@ -282,7 +277,7 @@ export function TodaysTasks() {
         </DialogTrigger>
         <DialogContent className="bg-[#1a2332] border-[#2a3343] text-white">
           <DialogHeader>
-            <DialogTitle>Add New Task</DialogTitle>
+            <DialogTitle>Add New Task for {format(date, "MMM d")}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">

@@ -9,6 +9,7 @@ import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContai
 import { useAuth } from "@/context/auth-context"
 import { LogOut, Search, RefreshCw } from "lucide-react"
 import AIChat from "@/components/ai-chat"
+import { TodaysTasks } from "@/components/todays-tasks"
 
 // Define types for tasks and notifications
 type Task = {
@@ -46,6 +47,7 @@ export default function Dashboard() {
   const [searchTerm, setSearchTerm] = useState("")
   const [showAllAchievements, setShowAllAchievements] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
+  const [selectedDate, setSelectedDate] = useState(new Date())
 
   // Calculate derived values from totalXP
   const currentLevel = Math.floor(totalXP / 100) + 1
@@ -399,9 +401,10 @@ export default function Dashboard() {
       const response = await fetch("/api/tasks", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           title: title.trim(),
           isHabit: false,
+          dueDate: new Date().toISOString(), // Add today's date as the due date
         })
       })
       
@@ -748,7 +751,7 @@ export default function Dashboard() {
               { path: "dashboard", label: "Dashboard", icon: "👾" },
               { path: "breakthrough-game", label: "Mini Games", icon: "🎮" },
               { path: "track", label: "Calendar", icon: "📅" },
-              { path: "recurring-tasks", label: "Recurring", icon: "🔄" },
+              // { path: "recurring-tasks", label: "Recurring", icon: "🔄" },
               { path: "new-habit", label: "Habit Creation", icon: "✨" },
               { path: "fitnessAssessment", label: "Fitness", icon: "🏋️" },
               { path: "shop", label: "Shop", icon: "🛒" },
@@ -1024,91 +1027,49 @@ export default function Dashboard() {
             style={{ animationDelay: "0.4s" }}
           >
             <CardHeader>
-              <CardTitle className="text-[#E0F7FA] text-xl border-b border-[#E0F7FA]/10 pb-2 text-shadow-sm">
-                Today's Tasks
+              <CardTitle className="text-[#E0F7FA] text-xl border-b border-[#E0F7FA]/10 pb-2 text-shadow-sm flex justify-between items-center">
+                <span>Tasks</span>
+                <div className="flex items-center gap-2">
+                  <button 
+                    onClick={() => {
+                      const prevDate = new Date(selectedDate);
+                      prevDate.setDate(prevDate.getDate() - 1);
+                      setSelectedDate(prevDate);
+                    }}
+                    className="bg-[#40E0D0]/10 hover:bg-[#40E0D0]/20 text-[#E0F7FA] p-1 rounded-md"
+                  >
+                    ◀
+                  </button>
+                  <input 
+                    type="date" 
+                    value={selectedDate.toISOString().split('T')[0]} 
+                    onChange={(e) => setSelectedDate(new Date(e.target.value))}
+                    className="bg-[#2A3343]/70 border border-[#40E0D0]/30 text-[#E0F7FA] rounded-md p-1 text-sm"
+                  />
+                  <button 
+                    onClick={() => {
+                      const nextDate = new Date(selectedDate);
+                      nextDate.setDate(nextDate.getDate() + 1);
+                      setSelectedDate(nextDate);
+                    }}
+                    className="bg-[#40E0D0]/10 hover:bg-[#40E0D0]/20 text-[#E0F7FA] p-1 rounded-md"
+                  >
+                    ▶
+                  </button>
+                  <button
+                    onClick={() => setSelectedDate(new Date())}
+                    className="bg-[#40E0D0]/20 hover:bg-[#40E0D0]/30 text-[#E0F7FA] px-2 py-1 rounded-md text-xs"
+                  >
+                    Today
+                  </button>
+                </div>
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {tasks.length === 0 ? (
-                renderEmptyTasksMessage()
-              ) : (
-                <ul className="space-y-1 mt-2">
-                  {tasks.map((task, index) => (
-                    <li
-                      key={task.id}
-                      className="flex items-center gap-4 py-3 px-2 border-b border-[#40E0D0]/10 last:border-b-0 hover:bg-[#40E0D0]/5 hover:rounded-lg hover:translate-x-1 transition-all animate-slideIn"
-                      style={{ animationDelay: `${index * 0.05}s` }}
-                    >
-                      <div
-                        className={`w-6 h-6 rounded-full border-2 ${
-                          task.completed
-                            ? "border-[#40E0D0] bg-gradient-to-r from-[#40E0D0] to-[#64B4FF] flex items-center justify-center"
-                            : "border-[#E0F7FA]/30 bg-transparent hover:border-[#40E0D0] hover:scale-110 hover:shadow-[0_0_10px_rgba(64,224,208,0.3)]"
-                        } cursor-pointer transition-all`}
-                        onClick={() => handleTaskCompletion(task.id, !task.completed)}
-                      >
-                        {task.completed && <span className="text-white text-xs font-bold">✓</span>}
-                      </div>
-
-                      {task.isEditing ? (
-                        <Input
-                          value={task.title}
-                          onChange={(e) => updateTaskTitle(task.id, e.target.value)}
-                          onBlur={() => toggleEdit(task.id)}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") updateTaskTitle(task.id, task.title)
-                          }}
-                          className="flex-1 py-2 px-3 bg-[#2A3343]/70 border border-[#40E0D0]/30 text-[#E0F7FA] rounded-lg focus:shadow-[0_0_10px_rgba(64,224,208,0.1)]"
-                          autoFocus
-                        />
-                      ) : (
-                        <span
-                          className={`flex-1 py-2 cursor-pointer ${
-                            task.completed ? "text-[#E0F7FA]/50 line-through" : "text-[#E0F7FA] font-medium"
-                          } transition-all`}
-                          onDoubleClick={() => toggleEdit(task.id)}
-                        >
-                          {task.title}
-                          {task.isHabit && <span className="text-sm opacity-80 ml-2">(daily)</span>}
-                          {task.estimatedTime && (
-                            <span className="text-sm opacity-80 ml-2 text-[#64B4FF]">({task.estimatedTime} min)</span>
-                          )}
-                        </span>
-                      )}
-
-                      <button
-                        className="w-9 h-9 flex items-center justify-center bg-red-500/20 text-white rounded-lg hover:bg-red-500/50 hover:-translate-y-1 transition-all"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          deleteTask(task.id)
-                        }}
-                      >
-                        ×
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              )}
-
-              {showInput ? (
-                <Input
-                  ref={inputRef}
-                  type="text"
-                  placeholder="Add a new task..."
-                  value={newTask}
-                  onChange={(e) => setNewTask(e.target.value)}
-                  onKeyPress={handleKeyPress}
-                  onBlur={() => setShowInput(false)}
-                  className="w-full mt-5 p-4 bg-[#2A3343]/70 border border-[#40E0D0]/30 text-[#E0F7FA] rounded-lg focus:border-[#40E0D0]/60 focus:shadow-[0_0_15px_rgba(64,224,208,0.1)] focus:-translate-y-1 transition-all"
-                />
-              ) : (
-                <Button
-                  onClick={() => setShowInput(true)}
-                  className="w-full mt-5 bg-gradient-to-r from-[#40E0D0] to-[#64B4FF] text-white font-semibold py-3 rounded-lg hover:-translate-y-1 hover:shadow-lg transition-all flex items-center justify-center gap-2"
-                >
-                  <span className="text-xl">+</span> Add New Task
-                </Button>
-              )}
+              {/* Use the enhanced TodaysTasks component with the selected date */}
+              <div className="mt-2">
+                <TodaysTasks date={selectedDate} />
+              </div>
             </CardContent>
           </Card>
         </div>

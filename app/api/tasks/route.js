@@ -54,41 +54,70 @@ export async function POST(request) {
     console.log("Database connected")
     
     const user = await getUserFromToken(request)
-    console.log("User authentication:", user ? "successful" : "failed")
+    console.log("User authentication:", user ? `successful for ${user._id}` : "failed")
     
     if (!user) {
+      console.log("Authentication failed: No user found from token")
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
     }
     
-    const body = await request.json()
-    console.log("Request body:", JSON.stringify(body))
+    let body
+    try {
+      body = await request.json()
+      console.log("Request body parsed:", JSON.stringify(body))
+    } catch (error) {
+      console.error("Error parsing request body:", error)
+      return NextResponse.json({ error: 'Invalid JSON in request body' }, { status: 400 })
+    }
     
     const { title, description, dueDate, xpReward, isHabit, isRecurring, frequency, recurringEndDate } = body
     
-    // Validate required fields
+    // Detailed validation logging
     if (!title) {
+      console.log("Validation failed: Missing title")
       return NextResponse.json({ error: 'Title is required' }, { status: 400 })
     }
     
     if (!dueDate) {
+      console.log("Validation failed: Missing dueDate")
       return NextResponse.json({ error: 'Due date is required' }, { status: 400 })
     }
     
-    // Create task with proper date handling
-    const task = await Task.create({
-      user: user._id,
-      title,
-      description,
-      dueDate: new Date(dueDate),
-      xpReward: xpReward || 10,
-      isHabit: isHabit || false,
-      isRecurring: isRecurring || false,
-      frequency: frequency || 'daily',
-      recurringEndDate: recurringEndDate ? new Date(recurringEndDate) : null
-    })
+    try {
+      const parsedDate = new Date(dueDate)
+      if (isNaN(parsedDate.getTime())) {
+        console.log("Validation failed: Invalid date format for dueDate:", dueDate)
+        return NextResponse.json({ error: 'Invalid due date format' }, { status: 400 })
+      }
+      console.log("Date parsed successfully:", parsedDate)
+    } catch (error) {
+      console.error("Error parsing date:", error)
+      return NextResponse.json({ error: 'Invalid due date format' }, { status: 400 })
+    }
     
-    console.log("Task created successfully:", task._id)
-    return NextResponse.json({ task }, { status: 200 })
+    // Create task with proper date handling
+    try {
+      const task = await Task.create({
+        user: user._id,
+        title,
+        description,
+        dueDate: new Date(dueDate),
+        xpReward: xpReward || 10,
+        isHabit: isHabit || false,
+        isRecurring: isRecurring || false,
+        frequency: frequency || 'daily',
+        recurringEndDate: recurringEndDate ? new Date(recurringEndDate) : null
+      })
+      
+      console.log("Task created successfully:", task._id)
+      return NextResponse.json({ task }, { status: 200 })
+    } catch (dbError) {
+      console.error("Database error creating task:", dbError)
+      return NextResponse.json({ 
+        error: 'Failed to create task in database', 
+        details: dbError.message 
+      }, { status: 500 })
+    }
   } catch (error) {
     console.error('Error creating task:', error)
     // Detailed error information

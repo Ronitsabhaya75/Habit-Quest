@@ -60,7 +60,7 @@ export function TaskList({ date = new Date() }: TaskListProps) {
       addTask({
         title: newTaskTitle,
         completed: false,
-        date: date,
+        dueDate: date, // Changed from date to dueDate
         isRecurring: isRecurring,
         frequency: frequency,
       })

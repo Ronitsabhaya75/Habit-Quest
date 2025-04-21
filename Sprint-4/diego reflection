@@ -1,0 +1,11 @@
+During sprint four I worked on database server connecting and deployment of our habit tracker app. 
+
+During this time I successfully connected to mongoDB atlas server to host our database. Alongside working on debugging connection and integration issues. Collobariting with front end to find solutions to what best suits our project. Though ultimately we progressed our code to suit a better ease of use. 
+
+I encountered issues with deploying on vercel with our current code at the time. Deploying on vercel with the frameworks and tools we were using proved to cause many issues, which would cause long timeframes of debugging to figure out exactly what was going on. Ultimately leading to applying nextjs to make deployment easier. 
+
+During this time I learned about databases and deployment, before I had not known of vercel and the ins and outs of conneceting databases to servers outside of local hosting. This gave me a very important skill when it comes to creating webapps making me a more well rounded programmer.
+
+Things that could be improved on my end is my understanding of deployment, with that when errors arive being able to understand how those errors correlate to what specific part of the project to be able to more efficiently debugg the issue. 
+
+
