@@ -1,20 +1,20 @@
 "use client"
 
 import { useState } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { MainLayout } from "@/components/main-layout"
-import { Textarea } from "@/components/ui/textarea"
-import { Calendar } from "@/components/ui/calendar"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card"
+import { Button } from "../../components/ui/button"
+import { Input } from "../../components/ui/input"
+import { Label } from "../../components/ui/label"
+import { RadioGroup, RadioGroupItem } from "../../components/ui/radio-group"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../components/ui/select"
+import { MainLayout } from "../../components/main-layout"
+import { Textarea } from "../../components/ui/textarea"
+import { Calendar } from "../../components/ui/calendar"
+import { Popover, PopoverContent, PopoverTrigger } from "../../components/ui/popover"
 import { format } from "date-fns"
 import { CalendarIcon } from 'lucide-react'
-import { cn } from "@/lib/utils"
-import { useToast } from "@/components/ui/use-toast"
+import { cn } from "../../lib/utils"
+import { useToast } from "../../components/ui/use-toast"
 
 export default function HabitCreation() {
   const [startDate, setStartDate] = useState<Date>()
@@ -26,7 +26,7 @@ export default function HabitCreation() {
 
     try {
       // Import the XP_VALUES from lib/xp-system
-      const { XP_VALUES } = await import("@/lib/xp-system")
+      const { XP_VALUES } = await import("../../lib/xp-system")
 
       // Show success message with XP
       toast({

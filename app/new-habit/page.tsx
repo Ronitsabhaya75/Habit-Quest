@@ -35,7 +35,7 @@ export default function NewHabit() {
       const frequency = (form.querySelector('[name="frequency"]') as HTMLInputElement)?.value || "daily"
 
       // Import the XP_VALUES from lib/xp-system
-      const { XP_VALUES } = await import("@/lib/xp-system")
+      const { XP_VALUES } = await import("../../lib/xp-system")
 
       // Create the habit locally
       const newHabit = {
