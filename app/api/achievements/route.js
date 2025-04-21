@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server"
-import connectToDatabase from "@/lib/mongodb"
-import Achievement from "@/models/Achievement"
-import User from "@/models/User"
-import { getUserFromToken } from "@/lib/auth"
+import connectToDatabase from "../../../lib/mongodb"
+import Achievement from "../../../models/Achievement"
+import User from "../../../models/User"
+import { getUserFromToken } from "../../../lib/auth"
 
 // Get all achievements with user progress
 export async function GET(request) {

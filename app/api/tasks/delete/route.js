@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
-import connectToDatabase from "@/lib/mongodb"
-import Task from "@/models/Task"
-import { getUserFromToken } from "@/lib/auth"
+import connectToDatabase from "../../../../lib/mongodb"
+import Task from "../../../../models/Task"
+import { getUserFromToken } from "../../../../lib/auth"
 
 // Delete task
 export async function DELETE(request) {

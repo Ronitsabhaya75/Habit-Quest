@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server"
-import connectToDatabase from "@/lib/mongodb"
-import User from "@/models/User"
-import Task from "@/models/Task"
-import { getUserFromToken } from "@/lib/auth"
+import connectToDatabase from "../../../../lib/mongodb"
+import User from "../../../../models/User"
+import Task from "../../../../models/Task"
+import { getUserFromToken } from "../../../../lib/auth"
 
 // Update user XP
 export async function POST(request) {

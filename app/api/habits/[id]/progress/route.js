@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server"
-import connectToDatabase from "@/lib/mongodb"
-import Habit from "@/models/Habit"
-import User from "@/models/User"
-import { getUserFromToken } from "@/lib/auth"
+import connectToDatabase from "../../../../../lib/mongodb"
+import Habit from "../../../../../models/Habit"
+import User from "../../../../../models/User"
+import { getUserFromToken } from "../../../../../lib/auth"
 
 // Update habit progress for a specific date
 export async function POST(request, { params }) {

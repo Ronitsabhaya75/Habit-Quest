@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
-import connectToDatabase from "@/lib/mongodb"
-import User from "@/models/User"
-import { getUserFromToken } from "@/lib/auth"
+import connectToDatabase from "../../../../lib/mongodb"
+import User from "../../../../models/User"
+import { getUserFromToken } from "../../../../lib/auth"
 
 // Get current user
 export async function GET(request) {

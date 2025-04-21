@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server"
-import connectToDatabase from "@/lib/mongodb"
-import Task from "@/models/Task"
-import User from "@/models/User"
-import { getUserFromToken } from "@/lib/auth"
+import connectToDatabase from "../../../../lib/mongodb"
+import Task from "../../../../models/Task"
+import User from "../../../../models/User"
+import { getUserFromToken } from "../../../../lib/auth"
 
 // Get a single task
 export async function GET(request, { params }) {

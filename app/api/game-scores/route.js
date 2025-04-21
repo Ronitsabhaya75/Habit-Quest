@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server"
-import connectToDatabase from "@/lib/mongodb"
-import GameScore from "@/models/GameScore"
-import User from "@/models/User"
-import { getUserFromToken } from "@/lib/auth"
+import connectToDatabase from "../../../lib/mongodb"
+import GameScore from "../../../models/GameScore"
+import User from "../../../models/User"
+import { getUserFromToken } from "../../../lib/auth"
 
 // Get all game scores for the current user
 export async function GET(request) {

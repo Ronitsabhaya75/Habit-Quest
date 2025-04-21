@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server"
-import connectToDatabase from "@/lib/mongodb"
-import Task from "@/models/Task"
-import { getUserFromToken } from "@/lib/auth"
-import User from "@/models/User"
-import { getNextOccurrenceDate, shouldCreateNextInstance } from '@/utils/dateUtils'
+import connectToDatabase from "../../../lib/mongodb"
+import Task from "../../../models/Task"
+import { getUserFromToken } from "../../../lib/auth"
+import User from "../../../models/User"
+import { getNextOccurrenceDate, shouldCreateNextInstance } from '../../../utils/dateUtils'
 
 // Get all tasks for the current user
 export async function GET(request) {

@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server"
-import connectToDatabase from "@/lib/mongodb"
-import Badge from "@/models/Badge"
-import User from "@/models/User"
-import { getUserFromToken } from "@/lib/auth"
+import connectToDatabase from "../../../../lib/mongodb"
+import Badge from "../../../../models/Badge"
+import User from "../../../../models/User"
+import { getUserFromToken } from "../../../../lib/auth"
 
 // Purchase a badge
 export async function POST(request) {

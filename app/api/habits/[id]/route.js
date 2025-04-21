@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
-import connectToDatabase from "@/lib/mongodb"
-import Habit from "@/models/Habit"
-import { getUserFromToken } from "@/lib/auth"
+import connectToDatabase from "../../../../lib/mongodb"
+import Habit from "../../../../models/Habit"
+import { getUserFromToken } from "../../../../lib/auth"
 
 // Get a single habit
 export async function GET(request, { params }) {
