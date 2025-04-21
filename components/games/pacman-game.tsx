@@ -3,9 +3,9 @@
 import type React from "react"
 
 import { useState, useEffect, useRef } from "react"
-import { Button } from "@/components/ui/button"
+import { Button } from "../ui/button"
 import { GameWrapper } from "./game-wrapper"
-import { toast } from "@/components/ui/use-toast"
+import { toast } from "../ui/use-toast"
 
 export function PacmanGame() {
   const [gameStarted, setGameStarted] = useState(false)

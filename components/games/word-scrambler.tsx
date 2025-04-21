@@ -3,12 +3,13 @@
 import type React from "react"
 
 import { useState, useEffect } from "react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Card, CardContent } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
+import { Button } from "../ui/button"
+import { Input } from "../ui/input"
+import { Card, CardContent } from "../ui/card"
+import { Badge } from "../ui/badge"
 import { GameWrapper } from "./game-wrapper"
-import { toast } from "@/components/ui/use-toast"
+import { toast } from "../ui/use-toast"
+import { Shuffle } from "lucide-react"
 
 const wordList = [
   "HABIT",

@@ -1,13 +1,13 @@
 "use client"
 
 import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { Label } from "@/components/ui/label"
-import { Badge } from "@/components/ui/badge"
+import { Button } from "../ui/button"
+import { Card, CardContent } from "../ui/card"
+import { RadioGroup, RadioGroupItem } from "../ui/radio-group"
+import { Label } from "../ui/label"
+import { Badge } from "../ui/badge"
 import { GameWrapper } from "./game-wrapper"
-import { toast } from "@/components/ui/use-toast"
+import { toast } from "../ui/use-toast"
 
 const quizQuestions = [
   {

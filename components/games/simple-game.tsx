@@ -1,9 +1,9 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { toast } from "@/components/ui/use-toast"
+import { Button } from "../ui/button"
+import { Badge } from "../ui/badge"
+import { toast } from "../ui/use-toast"
 
 export function SimpleGame() {
   const [gameStarted, setGameStarted] = useState(false)

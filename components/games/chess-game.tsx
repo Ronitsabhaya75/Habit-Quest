@@ -1,7 +1,8 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import { Button } from "@/components/ui/button"
+import { GameWrapper } from "./game-wrapper"
+import { Button } from "../ui/button"
 
 type PieceType = 'pawn' | 'rook' | 'knight' | 'bishop' | 'queen' | 'king'
 type PieceColor = 'white' | 'black'

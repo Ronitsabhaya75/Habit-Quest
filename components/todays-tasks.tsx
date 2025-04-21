@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { Button } from "./ui/button"
 import { Checkbox } from "./ui/checkbox"
-import { Cross2Icon, PlusIcon, Pencil1Icon, TrashIcon } from "@radix-ui/react-icons"
+import { X, Plus, Pencil, Trash } from "lucide-react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "./ui/dialog"
 import { Input } from "./ui/input"
 import { Label } from "./ui/label"
@@ -272,7 +272,7 @@ export function TodaysTasks({ date = new Date() }: TodaysTasksProps) {
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogTrigger asChild>
           <Button className="w-full bg-[#4cc9f0] hover:bg-[#4cc9f0]/80 text-black">
-            <PlusIcon className="mr-2 h-4 w-4" /> Add Task
+            <Plus className="mr-2 h-4 w-4" /> Add Task
           </Button>
         </DialogTrigger>
         <DialogContent className="bg-[#1a2332] border-[#2a3343] text-white">

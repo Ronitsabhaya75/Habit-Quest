@@ -1,10 +1,11 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
+import { Button } from "../ui/button"
+import { Badge } from "../ui/badge"
+import { Coins } from "lucide-react"
 import type { GameProps, GameScore, GameState } from "./game-interfaces"
-import { toast } from "@/components/ui/use-toast"
+import { toast } from "../ui/use-toast"
 
 export default function BaseGame({ onGameEnd, initialLevel = 1, maxTime, difficulty = "medium" }: GameProps) {
   const [gameState, setGameState] = useState<GameState>({
