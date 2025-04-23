@@ -18,8 +18,11 @@ interface PerformanceChartProps {
 
 export function PerformanceChart({ type, userData }: PerformanceChartProps) {
   const [chartData, setChartData] = useState<ChartData[]>([])
+  const [dailyData, setDailyData] = useState<ChartData[]>([]) // Store daily gain data
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
+  const [currentStreak, setCurrentStreak] = useState(0)
+  const [maxStreak, setMaxStreak] = useState(12) // Default max streak
 
   useEffect(() => {
     const fetchPerformanceData = async () => {
@@ -37,12 +40,47 @@ export function PerformanceChart({ type, userData }: PerformanceChartProps) {
         const data = await response.json()
 
         if (data.success) {
+          // Store cumulative data
+          console.log("API Response:", data);
+          
+          // Force first day to be exactly 0 XP
+          const fixedData = [...data.data];
+          if (fixedData.length > 0) {
+            fixedData[0].xp = 0;
+          }
+          
           setChartData(
-            data.data.map((item: any) => ({
+            fixedData.map((item: any) => ({
               day: item.day,
               xp: item.xp,
             })),
           )
+          
+          // Store daily data for streak calculation
+          if (data.dailyData) {
+            setDailyData(
+              data.dailyData.map((item: any) => ({
+                day: item.day,
+                xp: item.xp,
+              })),
+            )
+            
+            // Calculate current streak
+            let streak = 0;
+            // Start from today (last item) and go backwards
+            for (let i = data.dailyData.length - 1; i >= 0; i--) {
+              // Use a meaningful threshold (at least 5 XP) to count as an active day
+              if (data.dailyData[i].xp >= 5) {
+                streak++;
+              } else {
+                break; // Break when we find a day with insufficient XP
+              }
+            }
+            
+            // Ensure streak matches visible activity in graph
+            console.log("Daily XP data:", data.dailyData);
+            setCurrentStreak(streak);
+          }
         } else {
           throw new Error(data.message || "Failed to fetch performance data")
         }
@@ -64,22 +102,45 @@ export function PerformanceChart({ type, userData }: PerformanceChartProps) {
           })
         }
 
-        // Generate fallback data
+        // Generate fallback data - make sure to include all 7 days
         const fallbackData = days.map((day, index) => {
-          // For new users, start from 0 and show gradual small progress
-          // Base value starts very low and increases slightly each day
-          const baseValue = index * 3
-
-          // Add minimal variation to keep the trend upward but realistic for beginners
-          const variation = Math.floor(Math.random() * 3)
+          // For new users with a 2-day streak, only show activity for the last 2 days
+          let xpValue = 0;
+          
+          if (index >= days.length - 2) {
+            // Last two days show gradual increase
+            xpValue = (index === days.length - 1) ? 30 : 15; 
+          }
 
           return {
             day: day.day,
-            xp: Math.max(0, baseValue + variation),
+            xp: xpValue,
+          }
+        });
+
+        // Calculate cumulative values
+        let cumulativeXP = 0;
+        const cumulativeFallbackData = fallbackData.map(day => {
+          cumulativeXP += day.xp;
+          return {
+            day: day.day,
+            xp: cumulativeXP
+          };
+        });
+
+        setChartData(cumulativeFallbackData);
+        
+        // Set fallback daily data
+        const fallbackDailyData = days.map((day, index) => {
+          // Only show XP gain for the last day to match the graph
+          return {
+            day: day.day,
+            xp: index === days.length - 1 ? 30 : 0,
           }
         })
 
-        setChartData(fallbackData)
+        setDailyData(fallbackDailyData)
+        setCurrentStreak(1) // Set fallback streak to 1 day to match the graph
       } finally {
         setLoading(false)
       }
@@ -106,6 +167,7 @@ export function PerformanceChart({ type, userData }: PerformanceChartProps) {
   }
 
   return (
+    <div className="space-y-4">
     <div className="h-[300px] w-full">
       <ResponsiveContainer width="100%" height="100%">
         {type === "line" ? (
@@ -120,7 +182,8 @@ export function PerformanceChart({ type, userData }: PerformanceChartProps) {
             <Tooltip
               contentStyle={{ backgroundColor: "#1a2332", borderColor: "#2a3343", color: "#fff" }}
               labelStyle={{ color: "#fff" }}
-              formatter={(value) => [`${value} XP`, "XP"]}
+                formatter={(value) => [`${value} XP`, "progress"]}
+                labelFormatter={(label) => `${label}`}
             />
             <Line
               type="monotone"
@@ -149,6 +212,28 @@ export function PerformanceChart({ type, userData }: PerformanceChartProps) {
           </BarChart>
         )}
       </ResponsiveContainer>
+      </div>
+      
+      {/* Current streak display */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center">
+          <span className="text-xl mr-2">🔥</span>
+          <span className="text-white">Current Streak: {currentStreak} days</span>
+        </div>
+        
+        {/* Progress bar to max streak */}
+        <div className="flex-1 max-w-xs ml-4">
+          <div className="h-2 bg-gray-700 rounded-full overflow-hidden">
+            <div 
+              className="h-full bg-gradient-to-r from-teal-400 to-blue-400"
+              style={{ width: `${Math.min(100, (currentStreak / maxStreak) * 100)}%` }}
+            />
+          </div>
+          <div className="text-right text-xs text-gray-400 mt-1">
+            {maxStreak - currentStreak} days to max streak
+          </div>
+        </div>
+      </div>
     </div>
   )
 }

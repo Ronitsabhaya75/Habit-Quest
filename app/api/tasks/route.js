@@ -58,7 +58,7 @@ export async function POST(request) {
     
     if (!user) {
       console.log("Authentication failed: No user found from token")
-      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
+      return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 401 })
     }
     
     let body
@@ -67,7 +67,7 @@ export async function POST(request) {
       console.log("Request body parsed:", JSON.stringify(body))
     } catch (error) {
       console.error("Error parsing request body:", error)
-      return NextResponse.json({ error: 'Invalid JSON in request body' }, { status: 400 })
+      return NextResponse.json({ success: false, message: "Invalid JSON in request body" }, { status: 400 })
     }
     
     const { title, description, dueDate, xpReward, isHabit, isRecurring, frequency, recurringEndDate } = body
@@ -75,24 +75,24 @@ export async function POST(request) {
     // Detailed validation logging
     if (!title) {
       console.log("Validation failed: Missing title")
-      return NextResponse.json({ error: 'Title is required' }, { status: 400 })
+      return NextResponse.json({ success: false, message: "Title is required" }, { status: 400 })
     }
     
     if (!dueDate) {
       console.log("Validation failed: Missing dueDate")
-      return NextResponse.json({ error: 'Due date is required' }, { status: 400 })
+      return NextResponse.json({ success: false, message: "Due date is required" }, { status: 400 })
     }
     
     try {
       const parsedDate = new Date(dueDate)
       if (isNaN(parsedDate.getTime())) {
         console.log("Validation failed: Invalid date format for dueDate:", dueDate)
-        return NextResponse.json({ error: 'Invalid due date format' }, { status: 400 })
+        return NextResponse.json({ success: false, message: "Invalid due date format" }, { status: 400 })
       }
       console.log("Date parsed successfully:", parsedDate)
     } catch (error) {
       console.error("Error parsing date:", error)
-      return NextResponse.json({ error: 'Invalid due date format' }, { status: 400 })
+      return NextResponse.json({ success: false, message: "Invalid due date format" }, { status: 400 })
     }
     
     // Create task with proper date handling
@@ -110,11 +110,12 @@ export async function POST(request) {
       })
       
       console.log("Task created successfully:", task._id)
-      return NextResponse.json({ task }, { status: 200 })
+      return NextResponse.json({ success: true, data: task }, { status: 200 })
     } catch (dbError) {
       console.error("Database error creating task:", dbError)
       return NextResponse.json({ 
-        error: 'Failed to create task in database', 
+        success: false, 
+        message: "Failed to create task in database", 
         details: dbError.message 
       }, { status: 500 })
     }
@@ -122,10 +123,9 @@ export async function POST(request) {
     console.error('Error creating task:', error)
     // Detailed error information
     return NextResponse.json({ 
-      error: error.message,
-      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
-      name: error.name,
-      code: error.code
+      success: false,
+      message: error.message,
+      details: process.env.NODE_ENV === 'development' ? error.stack : undefined
     }, { status: 500 })
   }
 }

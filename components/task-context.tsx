@@ -26,10 +26,10 @@ interface TaskContextType {
   loading: boolean
   error: string | null
   fetchTasks: () => Promise<void>
-  addTask: (task: Omit<Task, "_id" | "completed" | "createdAt" | "updatedAt">) => Promise<void>
-  updateTask: (id: string, task: Partial<Task>, updateAllInstances?: boolean) => Promise<void>
+  addTask: (taskData: AddTaskInput) => Promise<any>
+  updateTask: (taskData: UpdateTaskInput) => Promise<any>
   removeTask: (id: string, deleteRecurring?: boolean) => Promise<void>
-  completeTask: (id: string) => Promise<void>
+  completeTask: (id: string) => Promise<any>
   getTasksForDate: (date: Date) => Task[]
 }
 
@@ -64,6 +64,171 @@ export const TaskProvider = ({ children }: { children: React.ReactNode }) => {
   const [tasks, setTasks] = useState<Task[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [completedTaskCount, setCompletedTaskCount] = useState(0);
+
+  // Check and unlock achievements when tasks are completed
+  const checkAndUnlockAchievements = async (completedTaskCount: number) => {
+    try {
+      // Check if achievements exist in local storage when offline
+      if (!navigator.onLine) {
+        const localAchievements = JSON.parse(localStorage.getItem('userAchievements') || '[]');
+        const pendingAchievements = [];
+        
+        // Define achievement thresholds
+        const achievementThresholds = [
+          { threshold: 1, name: "First Steps", description: "Complete your first task", xpReward: 10 },
+          { threshold: 5, name: "Getting Things Done", description: "Complete 5 tasks", xpReward: 20 },
+          { threshold: 10, name: "Productivity Master", description: "Complete 10 tasks", xpReward: 30 },
+          { threshold: 25, name: "Task Champion", description: "Complete 25 tasks", xpReward: 50 },
+          { threshold: 50, name: "Achievement Hunter", description: "Complete 50 tasks", xpReward: 100 },
+          { threshold: 100, name: "Legendary Completionist", description: "Complete 100 tasks", xpReward: 200 }
+        ];
+        
+        // Check for new unlocked achievements
+        achievementThresholds.forEach(achievement => {
+          if (completedTaskCount >= achievement.threshold && 
+              !localAchievements.some((a: any) => a.name === achievement.name)) {
+            pendingAchievements.push(achievement);
+            localAchievements.push({
+              ...achievement,
+              unlocked: true,
+              unlockedAt: new Date().toISOString()
+            });
+          }
+        });
+        
+        // Save updated achievements locally
+        localStorage.setItem('userAchievements', JSON.stringify(localAchievements));
+        
+        // Show notifications for newly unlocked achievements
+        pendingAchievements.forEach(achievement => {
+          toast.success(`🏆 Achievement Unlocked: ${achievement.name} (+${achievement.xpReward} XP)`, {
+            duration: 5000,
+            icon: '🏆'
+          });
+        });
+        
+        return;
+      }
+      
+      // If online, fetch from server
+      const response = await fetch('/api/achievements/check', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ tasksCompleted: completedTaskCount }),
+      });
+      
+      if (!response.ok) return;
+      
+      const data = await response.json();
+      
+      // Show notifications for newly unlocked achievements
+      if (data.newAchievements && data.newAchievements.length > 0) {
+        data.newAchievements.forEach((achievement: any) => {
+          toast.success(`🏆 Achievement Unlocked: ${achievement.name} (+${achievement.xpReward} XP)`, {
+            duration: 5000,
+            icon: '🏆'
+          });
+        });
+        
+        // Trigger a dashboard refresh if available
+        if (typeof window !== 'undefined' && window.dispatchEvent) {
+          window.dispatchEvent(new CustomEvent('achievement-unlocked', { 
+            detail: { achievements: data.newAchievements }
+          }));
+        }
+      }
+    } catch (error) {
+      console.error("Error checking achievements:", error);
+    }
+  };
+
+  // Setup offline task notifications
+  const setupOfflineTaskNotifications = () => {
+    // Register for online/offline events
+    window.addEventListener('online', syncOfflineTasks);
+    window.addEventListener('offline', () => {
+      // When going offline, schedule notifications for incomplete tasks
+      scheduleIncompleteTaskNotifications();
+    });
+    
+    return () => {
+      window.removeEventListener('online', syncOfflineTasks);
+      window.removeEventListener('offline', scheduleIncompleteTaskNotifications);
+    };
+  };
+
+  // Function to schedule notifications for incomplete tasks
+  const scheduleIncompleteTaskNotifications = () => {
+    // Check if notifications are supported and permission is granted
+    if (!("Notification" in window)) return;
+    
+    // Request permission if needed
+    if (Notification.permission !== "granted" && Notification.permission !== "denied") {
+      Notification.requestPermission();
+    }
+    
+    if (Notification.permission !== "granted") return;
+    
+    // Get incomplete tasks from local storage
+    const incompleteTasks = JSON.parse(localStorage.getItem('incompleteTasks') || '[]');
+    
+    // Schedule notifications for tasks due soon
+    incompleteTasks.forEach((task: any) => {
+      const dueDate = new Date(task.dueDate);
+      const now = new Date();
+      
+      // If task is due today or in the next 24 hours
+      if (dueDate > now && dueDate.getTime() - now.getTime() < 24 * 60 * 60 * 1000) {
+        // Create notification
+        const notification = new Notification("Task Reminder", {
+          body: `Don't forget to complete your task: ${task.title}`,
+          icon: "/favicon.ico"
+        });
+        
+        // Close notification after 5 seconds
+        setTimeout(() => {
+          notification.close();
+        }, 5000);
+      }
+    });
+  };
+
+  // Function to sync offline tasks with server
+  const syncOfflineTasks = async () => {
+    try {
+      // Sync completed tasks that were done offline
+      const offlineCompletedTasks = JSON.parse(localStorage.getItem('offlineCompletedTasks') || '[]');
+      
+      if (offlineCompletedTasks.length > 0) {
+        // Attempt to sync with server
+        for (const taskId of offlineCompletedTasks) {
+          await fetch("/api/tasks", {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ 
+              id: taskId, 
+              completed: true 
+            }),
+          });
+        }
+        
+        // Clear offline completed tasks
+        localStorage.setItem('offlineCompletedTasks', '[]');
+        
+        // Refresh tasks
+        fetchTasks();
+        
+        toast.success("Your completed tasks have been synced!");
+      }
+    } catch (error) {
+      console.error("Error syncing offline tasks:", error);
+    }
+  };
 
   const fetchTasks = async () => {
     try {
@@ -218,36 +383,73 @@ export const TaskProvider = ({ children }: { children: React.ReactNode }) => {
 
   const removeTask = async (id: string, deleteRecurring = false) => {
     try {
-      setLoading(true)
-      const url = `/api/tasks?id=${id}${deleteRecurring ? '&deleteRecurring=true' : ''}`
+      // Validate id parameter
+      if (!id) {
+        console.error("Cannot remove task: Invalid task ID (undefined or empty)");
+        setError("Cannot remove task: Missing task ID");
+        toast.error("Cannot remove task: Task ID is missing");
+        return;
+      }
+
+      setLoading(true);
+      const url = `/api/tasks?id=${id}${deleteRecurring ? '&deleteRecurring=true' : ''}`;
+      
+      console.log(`Attempting to delete task with ID: ${id}`);
       const response = await fetch(url, {
         method: "DELETE",
-      })
+      });
       
       if (!response.ok) {
-        throw new Error(`HTTP error! Status: ${response.status}`)
+        throw new Error(`HTTP error! Status: ${response.status}`);
       }
       
       if (deleteRecurring) {
         // If we're deleting a recurring task and all its instances, we need to refresh the task list
-        await fetchTasks()
+        await fetchTasks();
       } else {
         // Otherwise just remove the single task from state
-        setTasks((prevTasks) => prevTasks.filter((task) => task._id !== id))
+        setTasks((prevTasks) => prevTasks.filter((task) => task._id !== id));
       }
-      toast.success("Task removed successfully!")
+      toast.success("Task removed successfully!");
     } catch (err) {
-      console.error("Error removing task:", err)
-      setError("Failed to remove task")
-      toast.error("Failed to remove task")
+      console.error("Error removing task:", err);
+      setError("Failed to remove task");
+      toast.error("Failed to remove task");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
   }
 
   const completeTask = async (id: string) => {
     try {
-      setLoading(true)
+      setLoading(true);
+      
+      // Track offline task completion if not connected
+      if (!navigator.onLine) {
+        // Store the task ID to sync later
+        const offlineCompletedTasks = JSON.parse(localStorage.getItem('offlineCompletedTasks') || '[]');
+        offlineCompletedTasks.push(id);
+        localStorage.setItem('offlineCompletedTasks', JSON.stringify(offlineCompletedTasks));
+        
+        // Update local task state
+        setTasks((prevTasks) =>
+          prevTasks.map((t) => (t._id === id ? {...t, completed: true, completedAt: new Date()} : t))
+        );
+        
+        // Increment completed task count
+        const newCount = completedTaskCount + 1;
+        setCompletedTaskCount(newCount);
+        
+        // Check for achievements
+        checkAndUnlockAchievements(newCount);
+        
+        // Update local leaderboard score
+        updateLocalLeaderboardScore(20); // Assuming 20 XP per task
+        
+        toast.success("Task completed! (offline mode)");
+        return null;
+      }
+      
       const response = await fetch("/api/tasks", {
         method: "PUT",
         headers: {
@@ -257,56 +459,122 @@ export const TaskProvider = ({ children }: { children: React.ReactNode }) => {
           id, 
           completed: true 
         }),
-      })
+      });
       
       if (!response.ok) {
-        throw new Error(`HTTP error! Status: ${response.status}`)
+        throw new Error(`HTTP error! Status: ${response.status}`);
       }
       
-      const data = await response.json()
-      const updatedTask = data.data
+      const data = await response.json();
+      const updatedTask = data.data;
       
       // Update the completed task in state
       setTasks((prevTasks) =>
         prevTasks.map((t) => (t._id === id ? updatedTask : t))
-      )
+      );
+      
+      // Increment completed task count and check achievements
+      const newCount = completedTaskCount + 1;
+      setCompletedTaskCount(newCount);
+      checkAndUnlockAchievements(newCount);
+      
+      // Update leaderboard with task XP
+      updateLeaderboard(updatedTask.xpReward || 20);
       
       // If this was a recurring task, fetch tasks to get the newly created recurring instance
       if (updatedTask.isRecurring) {
-        await fetchTasks()
+        await fetchTasks();
       }
       
-      toast.success("Task completed!")
-      return updatedTask
+      toast.success("Task completed!");
+      return updatedTask;
     } catch (err) {
-      console.error("Error completing task:", err)
-      setError("Failed to complete task")
-      toast.error("Failed to complete task")
-      return null
+      console.error("Error completing task:", err);
+      setError("Failed to complete task");
+      toast.error("Failed to complete task");
+      return null;
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
+
+  // Add function to update leaderboard when tasks are completed
+  const updateLeaderboard = async (xpAmount: number) => {
+    try {
+      await fetch("/api/users/leaderboard/update", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ 
+          xpGained: xpAmount,
+          source: "task_completion"
+        }),
+      });
+    } catch (error) {
+      console.error("Error updating leaderboard:", error);
+    }
+  };
+
+  // Function to update local leaderboard score when offline
+  const updateLocalLeaderboardScore = (xpAmount: number) => {
+    const currentScore = parseInt(localStorage.getItem('offlineXpScore') || '0');
+    const newScore = currentScore + xpAmount;
+    localStorage.setItem('offlineXpScore', newScore.toString());
+  };
 
   // Function to get tasks for a specific date
   const getTasksForDate = (date: Date) => {
-    const startOfDay = new Date(date)
-    startOfDay.setHours(0, 0, 0, 0)
+    try {
+      const startOfDay = new Date(date);
+      startOfDay.setHours(0, 0, 0, 0);
     
-    const endOfDay = new Date(date)
-    endOfDay.setHours(23, 59, 59, 999)
+      const endOfDay = new Date(date);
+      endOfDay.setHours(23, 59, 59, 999);
     
     // Make sure tasks is actually an array before filtering
     if (!Array.isArray(tasks)) {
-      return []
+        console.log("Tasks is not an array in getTasksForDate");
+        return [];
     }
     
     return tasks.filter(task => {
-      if (!task.dueDate) return false
-      const taskDate = new Date(task.dueDate)
-      return taskDate >= startOfDay && taskDate <= endOfDay
-    })
-  }
+        if (!task.dueDate) return false;
+        const taskDate = new Date(task.dueDate);
+        return taskDate >= startOfDay && taskDate <= endOfDay;
+      });
+    } catch (error) {
+      console.error("Error in getTasksForDate:", error);
+      return [];
+    }
+  };
+  
+  // Initialize completed task count on load
+  useEffect(() => {
+    // Count completed tasks
+    if (Array.isArray(tasks)) {
+      const count = tasks.filter(task => task.completed).length;
+      setCompletedTaskCount(count);
+    }
+  }, [tasks]);
+  
+  // Setup offline task notifications
+  useEffect(() => {
+    const cleanup = setupOfflineTaskNotifications();
+    
+    // Sync with server when coming back online
+    if (navigator.onLine) {
+      syncOfflineTasks();
+    }
+    
+    // Store incomplete tasks for offline notifications
+    if (Array.isArray(tasks)) {
+      const incompleteTasks = tasks.filter(task => !task.completed);
+      localStorage.setItem('incompleteTasks', JSON.stringify(incompleteTasks));
+    }
+    
+    return cleanup;
+  }, [tasks]);
 
   useEffect(() => {
     fetchTasks()

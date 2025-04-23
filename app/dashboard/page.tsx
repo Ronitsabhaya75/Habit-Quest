@@ -479,8 +479,10 @@ export default function Dashboard() {
 
   // Add task with date from AI chatbot
   const handleAddTaskWithDate = (date: Date, taskInput: { title: string, completed: boolean }) => {
+    // Add to local state temporarily with placeholder ID
+    const tempId = Date.now()
     const newTask: Task = { 
-      id: Date.now(),
+      id: tempId,
       title: taskInput.title,
       completed: taskInput.completed,
       isHabit: false 
@@ -488,12 +490,43 @@ export default function Dashboard() {
     
     setTasks(prevTasks => [...prevTasks, newTask])
     
-    // Add notification about the new task
+    // Format date string for display
     const dateStr = date.toDateString() === new Date().toDateString() 
       ? "today" 
       : date.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })
     
-    addNotification(`🆕 New task "${taskInput.title}" added for ${dateStr}!`)
+    // Send task to server with the date
+    fetch("/api/tasks", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        title: taskInput.title,
+        isHabit: false,
+        completed: taskInput.completed,
+        dueDate: date.toISOString()  // Include the date in ISO format
+      })
+    })
+    .then(response => {
+      if (response.ok) {
+        return response.json();
+      }
+      throw new Error("Failed to create task");
+    })
+    .then(data => {
+      if (data.success) {
+        // Replace temporary task with real one from server
+        setTasks(prevTasks => prevTasks.map(task => 
+          task.id === tempId ? { ...task, id: data.data._id } : task
+        ));
+        addNotification(`🆕 New task "${taskInput.title}" added for ${dateStr}!`);
+      }
+    })
+    .catch(err => {
+      console.error("Error creating task with date:", err);
+      // Remove temporary task if server creation failed
+      setTasks(prevTasks => prevTasks.filter(task => task.id !== tempId));
+      addNotification("Failed to create task. Please try again.");
+    });
   }
 
   const openTimeAllocationModal = (task: Task) => setSelectedTask(task)

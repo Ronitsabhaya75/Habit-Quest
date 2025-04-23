@@ -96,7 +96,7 @@ const AIChat = ({ user, tasks, onTaskUpdate, onAddTaskWithDate }) => {
   const [chatHistory, setChatHistory] = useState([
     { 
       id: 'welcome', 
-      text: `Hi${user?.name ? ` ${user.name}` : ''}! I'm your Habit Coach. I can help you stay on track with your habits and goals. How can I assist you today?`, 
+      text: `Hi${user?.name ? ` ${user.name}` : ''}! I'm Astra your Habit Coach. I can help you stay on track with your habits and goals. How can I assist you today?`, 
       sender: 'ai' 
     }
   ]);

@@ -17,7 +17,7 @@ interface TaskListProps {
 export function TaskList({ date = new Date() }: TaskListProps) {
   const { tasks, addTask, updateTask, removeTask, getTasksForDate } = useTask()
   const [filteredTasks, setFilteredTasks] = useState<Task[]>([])
-  const [editingTask, setEditingTask] = useState<{ id: number | string; title: string } | null>(null)
+  const [editingTask, setEditingTask] = useState<{ id: string; title: string } | null>(null)
   const [newTaskTitle, setNewTaskTitle] = useState("")
   const [dialogOpen, setDialogOpen] = useState(false)
   const { toast } = useToast()
@@ -30,6 +30,7 @@ export function TaskList({ date = new Date() }: TaskListProps) {
       if (date) {
         // Make sure getTasksForDate doesn't throw errors
         const tasksForDate = getTasksForDate(date);
+        console.log("Tasks for date:", tasksForDate?.length || 0);
         setFilteredTasks(tasksForDate || []);
       } else {
         setFilteredTasks([]);
@@ -40,10 +41,13 @@ export function TaskList({ date = new Date() }: TaskListProps) {
     }
   }, [date, tasks, getTasksForDate]);
 
-  const toggleTask = (id: number | string) => {
-    const task = tasks.find((t) => t.id === id)
+  const toggleTask = (id: string) => {
+    const task = tasks.find((t) => t._id === id)
     if (task) {
-      updateTask(id, { completed: !task.completed })
+      updateTask({
+        id,
+        completed: !task.completed
+      })
 
       // Provide feedback on completed task
       if (!task.completed) {
@@ -59,8 +63,7 @@ export function TaskList({ date = new Date() }: TaskListProps) {
     if (newTaskTitle.trim()) {
       addTask({
         title: newTaskTitle,
-        completed: false,
-        dueDate: date, // Changed from date to dueDate
+        dueDate: date,
         isRecurring: isRecurring,
         frequency: frequency,
       })
@@ -75,8 +78,8 @@ export function TaskList({ date = new Date() }: TaskListProps) {
     }
   }
 
-  const deleteTask = (id: number | string) => {
-    const task = tasks.find((t) => t.id === id)
+  const deleteTask = (id: string) => {
+    const task = tasks.find((t) => t._id === id)
     if (task) {
       removeTask(id)
 
@@ -87,9 +90,12 @@ export function TaskList({ date = new Date() }: TaskListProps) {
     }
   }
 
-  const updateTaskTitle = (id: number | string, newTitle: string) => {
+  const updateTaskTitle = (id: string, newTitle: string) => {
     if (newTitle.trim()) {
-      updateTask(id, { title: newTitle })
+      updateTask({
+        id,
+        title: newTitle
+      })
       setEditingTask(null)
 
       toast({
@@ -105,17 +111,17 @@ export function TaskList({ date = new Date() }: TaskListProps) {
         <div className="space-y-2">
           {filteredTasks.map((task) => (
             <div
-              key={task.id}
+              key={task._id}
               className="flex items-center space-x-2 p-2 rounded-md hover:bg-[#2a3343] transition-colors"
             >
               <Checkbox
-                id={`task-${task.id}`}
+                id={`task-${task._id}`}
                 checked={task.completed}
-                onCheckedChange={() => toggleTask(task.id)}
+                onCheckedChange={() => toggleTask(task._id)}
                 className="text-[#4cc9f0] border-[#4cc9f0]"
               />
 
-              {editingTask && editingTask.id === task.id ? (
+              {editingTask && editingTask.id === task._id ? (
                 <div className="flex-1 flex items-center space-x-2">
                   <Input
                     value={editingTask.title}
@@ -126,7 +132,7 @@ export function TaskList({ date = new Date() }: TaskListProps) {
                   <Button
                     size="sm"
                     variant="ghost"
-                    onClick={() => updateTaskTitle(task.id, editingTask.title)}
+                    onClick={() => updateTaskTitle(task._id, editingTask.title)}
                     className="h-8 w-8 p-0 text-green-500"
                   >
                     ✓
@@ -143,7 +149,7 @@ export function TaskList({ date = new Date() }: TaskListProps) {
               ) : (
                 <>
                   <label
-                    htmlFor={`task-${task.id}`}
+                    htmlFor={`task-${task._id}`}
                     className={`text-white flex-1 cursor-pointer ${task.completed ? "line-through text-gray-400" : ""}`}
                   >
                     {task.title}
@@ -160,7 +166,7 @@ export function TaskList({ date = new Date() }: TaskListProps) {
                       variant="ghost"
                       size="icon"
                       className="h-8 w-8 text-gray-400 hover:text-white"
-                      onClick={() => setEditingTask({ id: task.id, title: task.title })}
+                      onClick={() => setEditingTask({ id: task._id, title: task.title })}
                     >
                       <Pencil className="h-4 w-4" />
                     </Button>
@@ -169,7 +175,7 @@ export function TaskList({ date = new Date() }: TaskListProps) {
                       variant="ghost"
                       size="icon"
                       className="h-8 w-8 text-gray-400 hover:text-red-500"
-                      onClick={() => deleteTask(task.id)}
+                      onClick={() => deleteTask(task._id)}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>

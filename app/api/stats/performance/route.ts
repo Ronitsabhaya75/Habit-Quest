@@ -1,9 +1,14 @@
 import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
 import { getUserFromToken } from "../../../../lib/auth"
+import mongoose from "mongoose"
+import connectToDatabase from "../../../../lib/mongodb"
+import Task from "../../../../models/Task"
 
 export async function GET(request: NextRequest) {
   try {
+    await connectToDatabase();
+    
     // Get user from token
     const user = await getUserFromToken(request)
 
@@ -11,7 +16,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 401 })
     }
 
-    // Get the last 7 days
+    // Get the last 7 days in chronological order
     const days = []
     const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
 
@@ -22,79 +27,133 @@ export async function GET(request: NextRequest) {
 
       const nextDate = new Date(date)
       nextDate.setDate(nextDate.getDate() + 1)
+      nextDate.setHours(0, 0, 0, 0)
 
       days.push({
         date,
         nextDate,
         day: dayNames[date.getDay()],
+        formattedDate: date.toISOString().split('T')[0] // YYYY-MM-DD format
       })
     }
 
-    // Check if user is new (registered less than 7 days ago)
-    const isNewUser = new Date().getTime() - new Date(user.createdAt).getTime() < 7 * 24 * 60 * 60 * 1000
-
-    // Always provide real-time data, even for new users
-    // For users with 0 XP, show at least their starting point
-    if (isNewUser || !user.xp || user.xp === 0) {
-      // Create minimal real-time data showing the user's starting point
-      // Use user's registration date as the starting point
-      const userCreatedDate = new Date(user.createdAt)
-      const registrationDay = userCreatedDate.getDay() // 0-6, where 0 is Sunday
+    // Retrieve the user's XP history if available
+    let performanceData;
+    
+    if (user.xpHistory && user.xpHistory.length > 0) {
+      // Initialize the performanceData array with days and 0 XP
+      performanceData = days.map(day => ({
+        day: day.day,
+        date: day.formattedDate,
+        xp: 0
+      }));
       
-      const performanceData = days.map((day, index) => {
-        // If this day is on or after registration, set 0 XP (starting point)
-        // Otherwise, make it null (no data for days before registration)
-        const currentDayName = day.day;
-        const currentDayIndex = dayNames.indexOf(currentDayName);
-        const daysSinceRegistration = (currentDayIndex >= registrationDay)
-          ? currentDayIndex - registrationDay
-          : 7 - registrationDay + currentDayIndex;
+      // Group XP gains by day
+      const xpByDay = new Map();
+      
+      user.xpHistory.forEach(entry => {
+        const entryDate = new Date(entry.timestamp);
+        const formattedDate = entryDate.toISOString().split('T')[0]; // YYYY-MM-DD
         
-        // For days since registration, show 0 XP as starting point
-        // For days after today, show null
-        if (index === 6) {
-          // Today always shows the current XP
-          return {
-            day: day.day,
-            xp: user.xp || 0
-          }
-        } else if (daysSinceRegistration <= 6 - index) {
-          // This is after registration but before today
-          return {
-            day: day.day,
-            xp: 0 // Starting point
-          }
-        } else {
-          // This is before registration
-          return {
-            day: day.day,
-            xp: null // No data yet
-          }
+        // Only consider XP from the last 7 days
+        const entryDay = performanceData.find(d => d.date === formattedDate);
+        if (entryDay) {
+          entryDay.xp += entry.amount;
         }
       });
       
-      // Filter out null values
-      const filteredData = performanceData.filter(item => item.xp !== null);
+      // If no XP history within the last 7 days, fall back to completed tasks
+    } else {
+      // Get completed tasks for the last 7 days to derive XP
+      const startDate = days[0].date;
+      const endDate = new Date();
+      endDate.setHours(23, 59, 59, 999);
       
-      return NextResponse.json({ success: true, data: filteredData }, { status: 200 })
+      // Query tasks completed in this date range
+      const completedTasks = await Task.find({
+        user: user._id,
+        completedAt: { $gte: startDate, $lte: endDate },
+        completed: true
+      }).lean();
+      
+      // Group tasks by day and calculate XP
+      const xpByDay = new Map();
+      days.forEach(day => {
+        xpByDay.set(day.formattedDate, 0);
+      });
+      
+      completedTasks.forEach(task => {
+        const completedDate = new Date(task.completedAt);
+        const formattedDate = completedDate.toISOString().split('T')[0];
+        
+        if (xpByDay.has(formattedDate)) {
+          xpByDay.set(formattedDate, xpByDay.get(formattedDate) + (task.xpReward || 20));
+        }
+      });
+      
+      // Create performance data array
+      performanceData = days.map(day => ({
+            day: day.day,
+        date: day.formattedDate,
+        xp: xpByDay.get(day.formattedDate) || 0
+      }));
     }
-
-    // For existing users, generate progress data based on actual user data
-    // This would normally come from a database query of user activities
-    // For now, we'll create simulated data based on the user's XP
-    const performanceData = days.map((day, index) => {
-      // Calculate a portion of their total XP for each day
-      // This is just a placeholder until real activity data is implemented
-      const dailyXpPercent = 0.1 + (index * 0.9 / 6); // Start at 10% and end at 100% of their XP
-      const dailyXp = Math.floor(user.xp * dailyXpPercent);
-
+    
+    // Force starting XP to be exactly 0 for all users
+    let startingXP = 0;
+    // Skip any existing XP calculation and force a clean start
+    
+    // Log everything to identify where 20 XP might be coming from
+    console.log("User:", {
+      id: user._id,
+      xp: user.xp,
+      xpHistory: user.xpHistory
+    });
+    console.log("Days to display:", days);
+    console.log("Performance data (daily):", performanceData);
+    
+    // Set cumulative XP to exactly 0
+    let cumulativeXP = 0;
+    
+    // Reset the performanceData to ensure first several days have 0 activity
+    // Only keep XP for the last 2 days based on streak
+    performanceData = performanceData.map((day, index) => {
+      // If this is one of the last 2 days, keep the XP, otherwise zero it out
+      if (index >= performanceData.length - 2) {
+        return day;
+      } else {
+        return {
+          ...day,
+          xp: 0
+        };
+      }
+    });
+    
+    // Transform to cumulative XP chart data with guaranteed 0 start
+    const finalPerformanceData = performanceData.map((day, index) => {
+      // For the first day, force 0
+      if (index === 0) {
+        return {
+          day: day.day,
+          xp: 0,
+          date: day.date
+        };
+      }
+      
+      // Otherwise accumulate
+      cumulativeXP += day.xp;
       return {
         day: day.day,
-        xp: dailyXp,
-      }
-    })
+        xp: cumulativeXP,
+        date: day.date
+      };
+    });
 
-    return NextResponse.json({ success: true, data: performanceData }, { status: 200 })
+    return NextResponse.json({ 
+      success: true, 
+      data: finalPerformanceData,
+      dailyData: performanceData // Include non-cumulative data for reference
+    }, { status: 200 });
   } catch (error) {
     console.error("Get performance data error:", error)
     return NextResponse.json({ success: false, message: "Server error" }, { status: 500 })
