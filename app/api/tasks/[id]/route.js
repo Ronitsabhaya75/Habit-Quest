@@ -3,112 +3,157 @@ import connectToDatabase from "../../../../lib/mongodb"
 import Task from "../../../../models/Task"
 import User from "../../../../models/User"
 import { getUserFromToken } from "../../../../lib/auth"
+import { getNextOccurrenceDate, shouldCreateNextInstance } from '../../../../utils/dateUtils'
 
-// Get a single task
+// Get a specific task by ID
 export async function GET(request, { params }) {
   try {
-    // Get user from token
+    const { id } = params
+    await connectToDatabase()
+    
     const user = await getUserFromToken(request)
-
     if (!user) {
       return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 401 })
     }
-
-    // Connect to the database
-    await connectToDatabase()
-
-    // Get task
-    const task = await Task.findOne({
-      _id: params.id,
-      user: user._id,
-    })
-
+    
+    const task = await Task.findOne({ _id: id, user: user._id })
     if (!task) {
       return NextResponse.json({ success: false, message: "Task not found" }, { status: 404 })
     }
-
+    
     return NextResponse.json({ success: true, data: task }, { status: 200 })
   } catch (error) {
-    console.error("Get task error:", error)
+    console.error("Get task by ID error:", error)
     return NextResponse.json({ success: false, message: error.message || "Server error" }, { status: 500 })
   }
 }
 
-// Update a task
+// Update a specific task by ID
 export async function PUT(request, { params }) {
   try {
-    // Get user from token
+    const { id } = params
+    await connectToDatabase()
+    
     const user = await getUserFromToken(request)
-
     if (!user) {
       return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 401 })
     }
-
-    // Connect to the database
-    await connectToDatabase()
-
-    // Get update data
-    const updateData = await request.json()
-
-    // Find and update task
-    const task = await Task.findOneAndUpdate(
-      {
-        _id: params.id,
-        user: user._id,
-      },
-      updateData,
-      { new: true, runValidators: true }
-    )
-
+    
+    // Find the task to update
+    const task = await Task.findOne({ _id: id, user: user._id })
     if (!task) {
       return NextResponse.json({ success: false, message: "Task not found" }, { status: 404 })
     }
-
-    // If task is marked as completed, award XP to the user
-    if (updateData.completed === true && !task.completedAt) {
-      // Set completedAt date if not already set
+    
+    const updateData = await request.json()
+    
+    // Check if this is a task completion update
+    const completingTask = updateData.completed && !task.completed
+    let nextInstanceTask = null
+    
+    // Apply the updates to the task
+    Object.assign(task, updateData)
+    
+    // If completing a task, set the completedAt timestamp
+    if (completingTask) {
       task.completedAt = new Date()
-      await task.save()
-
-      // Award XP to user
-      const userObj = await User.findById(user._id)
-      userObj.addXP(task.xpReward || 20)
-      await userObj.save()
+      
+      // If this is a recurring task, create the next instance
+      if (task.isRecurring && shouldCreateNextInstance(task)) {
+        const nextDueDate = getNextOccurrenceDate(
+          task.dueDate,
+          task.frequency || 'daily',
+          task.recurringEndDate
+        )
+        
+        if (nextDueDate) {
+          const parentId = task.parentTaskId || task._id
+          
+          // Create the next instance
+          nextInstanceTask = new Task({
+            title: task.title,
+            description: task.description,
+            dueDate: nextDueDate,
+            completed: false,
+            completedAt: null,
+            xpReward: task.xpReward,
+            isRecurring: true,
+            frequency: task.frequency,
+            recurringEndDate: task.recurringEndDate,
+            parentTaskId: parentId,
+            user: user._id
+          })
+          
+          await nextInstanceTask.save()
+        }
+      }
     }
-
-    return NextResponse.json({ success: true, data: task }, { status: 200 })
+    
+    // Save the updated task
+    await task.save()
+    
+    // Return the updated task and the newly created instance if applicable
+    return NextResponse.json({ 
+      success: true, 
+      data: task,
+      nextInstance: nextInstanceTask
+    }, { status: 200 })
   } catch (error) {
-    console.error("Update task error:", error)
+    console.error("Update task by ID error:", error)
     return NextResponse.json({ success: false, message: error.message || "Server error" }, { status: 500 })
   }
 }
 
-// Delete a task
+// Delete a specific task by ID
 export async function DELETE(request, { params }) {
   try {
-    // Get user from token
+    const { id } = params
+    await connectToDatabase()
+    
     const user = await getUserFromToken(request)
-
     if (!user) {
       return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 401 })
     }
-
-    // Connect to the database
-    await connectToDatabase()
-
-    // Find and delete task
-    const task = await Task.findOneAndDelete({
-      _id: params.id,
-      user: user._id,
-    })
-
+    
+    // Find the task to delete
+    const task = await Task.findOne({ _id: id, user: user._id })
     if (!task) {
       return NextResponse.json({ success: false, message: "Task not found" }, { status: 404 })
     }
-
-    return NextResponse.json({ success: true, data: {} }, { status: 200 })
+    
+    // Check for delete recurring flag in search params
+    const { searchParams } = new URL(request.url)
+    const deleteRecurring = searchParams.get("deleteRecurring") === "true"
+    
+    // If this is a recurring task and deleteRecurring is true, delete all future instances
+    if (task.isRecurring && deleteRecurring) {
+      // Delete all tasks with this parent (including this one if it has a parent)
+      if (task.parentTaskId) {
+        await Task.deleteMany({
+          $or: [
+            { _id: id },
+            { parentTaskId: task.parentTaskId }
+          ],
+          user: user._id
+        })
+      } else {
+        // This is the parent task, delete it and all its children
+        await Task.deleteMany({
+          $or: [
+            { _id: id },
+            { parentTaskId: id }
+          ],
+          user: user._id
+        })
+      }
+    } else {
+      // Just delete this specific task
+      await Task.findByIdAndDelete(id)
+    }
+    
+    return NextResponse.json({ success: true, message: "Task deleted successfully" }, { status: 200 })
   } catch (error) {
-    console.error("Delete task error:", error)
+    console.error("Delete task by ID error:", error)
     return NextResponse.json({ success: false, message: error.message || "Server error" }, { status: 500 })
   }
 }

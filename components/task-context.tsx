@@ -326,7 +326,8 @@ export const TaskProvider = ({ children }: { children: React.ReactNode }) => {
       
       console.log("Updating task with data:", JSON.stringify(formattedData));
       
-      const response = await fetch("/api/tasks", {
+      // Use the proper API endpoint for task updates - with the taskId in the URL
+      const response = await fetch(`/api/tasks/${taskData.id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -450,15 +451,13 @@ export const TaskProvider = ({ children }: { children: React.ReactNode }) => {
         return null;
       }
       
-      const response = await fetch("/api/tasks", {
+      // Use the specific task ID endpoint that matches our API structure
+      const response = await fetch(`/api/tasks/${id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ 
-          id, 
-          completed: true 
-        }),
+        body: JSON.stringify({ completed: true }),
       });
       
       if (!response.ok) {
