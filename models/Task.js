@@ -22,6 +22,11 @@ const TaskSchema = new mongoose.Schema(
       type: Date,
       required: [true, "Due date is required"],
     },
+    dueDateString: {
+      type: String,
+      // This will be in YYYY-MM-DD format
+      // Used for easier date filtering
+    },
     completed: {
       type: Boolean,
       default: false,
@@ -38,6 +43,11 @@ const TaskSchema = new mongoose.Schema(
     isHabit: {
       type: Boolean,
       default: false,
+    },
+    // New field to link to the habit if this task was created from a habit
+    habitId: {
+      type: String,
+      default: null,
     },
     isRecurring: {
       type: Boolean,
@@ -86,6 +96,66 @@ TaskSchema.statics.getNextDueDate = function(currentDate, frequency) {
   }
   
   return date
+}
+
+// Pre-save middleware to ensure dueDateString is set
+TaskSchema.pre('save', function(next) {
+  if (this.dueDate) {
+    const date = new Date(this.dueDate)
+    // Ensure date is normalized
+    date.setHours(0, 0, 0, 0)
+    // Update the dueDate to be normalized
+    this.dueDate = date
+    this.dueDateString = date.toISOString().split('T')[0] // YYYY-MM-DD format
+    
+    console.log(`Pre-save: Setting dueDateString to ${this.dueDateString} for task ${this.title}`)
+  }
+  next()
+})
+
+// Create a static method to create or update habit tasks
+TaskSchema.statics.createHabitTask = async function(habitData, userId) {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  
+  // Ensure we format the date string consistently as YYYY-MM-DD
+  const todayStr = today.toISOString().split('T')[0]
+  
+  console.log("Creating habit task for date:", todayStr)
+  
+  // Check if a task for this habit already exists today
+  const existingTask = await this.findOne({
+    user: userId,
+    isHabit: true,
+    habitId: habitData.id,
+    dueDateString: todayStr
+  })
+  
+  if (existingTask) {
+    console.log("Habit task already exists for today:", existingTask._id)
+    return existingTask // Task already exists
+  }
+  
+  // Create a new task for today's habit
+  const newTask = new this({
+    title: `${habitData.name || 'Daily Habit'} 💪`,
+    description: habitData.description || 'Complete your daily habit',
+    dueDate: today,
+    dueDateString: todayStr,
+    user: userId,
+    completed: false,
+    completedAt: null,
+    xpReward: habitData.xpReward || 30,
+    isHabit: true,
+    habitId: habitData.id,
+    isRecurring: true,
+    frequency: habitData.frequency || 'daily',
+    recurringEndDate: habitData.endDate
+  })
+  
+  await newTask.save()
+  console.log("Created new habit task with ID:", newTask._id)
+  return newTask
 }
 
 export default mongoose.models.Task || mongoose.model("Task", TaskSchema)

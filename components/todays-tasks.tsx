@@ -9,13 +9,15 @@ import { Input } from "./ui/input"
 import { Label } from "./ui/label"
 import { useAuth } from "../context/auth-context"
 import { toast } from "./ui/use-toast"
-import { format } from "date-fns"
+import { format, startOfDay, endOfDay, parseISO } from "date-fns"
 
 interface Task {
   _id: string
   title: string
   completed: boolean
   xpReward: number
+  dueDate?: string | Date
+  isHabit?: boolean
 }
 
 interface TodaysTasksProps {
@@ -34,7 +36,13 @@ export function TodaysTasks({ date = new Date() }: TodaysTasksProps) {
     async function fetchTasks() {
       try {
         setLoading(true)
-        const dateStr = date.toISOString().split("T")[0]
+        // Format date correctly - use start of day to ensure consistent date handling
+        const targetDate = startOfDay(date)
+        const dateStr = format(targetDate, "yyyy-MM-dd") // More reliable ISO date string format
+        
+        // Log the date we're querying for debugging
+        console.log("Fetching tasks for date:", dateStr)
+        
         const res = await fetch(`/api/tasks?date=${dateStr}`)
 
         if (!res.ok) {
@@ -52,8 +60,16 @@ export function TodaysTasks({ date = new Date() }: TodaysTasksProps) {
         }
 
         const data = await res.json()
+        console.log("API response for tasks:", data)
+        
         if (data.success) {
-          setTasks(data.data)
+          // Ensure each task has a properly formatted date for display
+          const formattedTasks = data.data.map((task: any) => ({
+            ...task,
+            dueDate: task.dueDate ? new Date(task.dueDate) : null
+          }));
+          console.log("Formatted tasks:", formattedTasks)
+          setTasks(formattedTasks)
         } else {
           setTasks([])
         }
@@ -71,6 +87,12 @@ export function TodaysTasks({ date = new Date() }: TodaysTasksProps) {
   const addTask = async () => {
     if (newTaskTitle.trim()) {
       try {
+        // Ensure we're using start of day for consistent date handling
+        const targetDate = startOfDay(date)
+        // Use the format method for creating a reliable date string
+        const dateStr = format(targetDate, "yyyy-MM-dd")
+        console.log("Adding task for date:", dateStr)
+        
         const res = await fetch("/api/tasks", {
           method: "POST",
           headers: {
@@ -78,27 +100,26 @@ export function TodaysTasks({ date = new Date() }: TodaysTasksProps) {
           },
           body: JSON.stringify({
             title: newTaskTitle,
-            dueDate: date.toISOString(), // Use the selected date
+            dueDate: targetDate.toISOString(), // Use the selected date ISO string
+            dueDateString: dateStr, // Also include the formatted date string
             xpReward: 20,
           }),
         })
 
-        if (res.ok) {
-          const data = await res.json()
-          if (data.success) {
-            setTasks([...tasks, data.data])
-            setNewTaskTitle("")
-            setDialogOpen(false)
+        const data = await res.json()
+        console.log("Task creation response:", data)
+        
+        if (res.ok && data.success) {
+          setTasks([...tasks, data.data])
+          setNewTaskTitle("")
+          setDialogOpen(false)
 
-            toast({
-              title: "Success",
-              description: "Task added successfully",
-            })
-          } else {
-            throw new Error(data.message || "Failed to add task")
-          }
+          toast({
+            title: "Success",
+            description: "Task added successfully",
+          })
         } else {
-          throw new Error("Failed to add task")
+          throw new Error(data.message || "Failed to add task")
         }
       } catch (error) {
         console.error("Add task error:", error)
@@ -108,6 +129,7 @@ export function TodaysTasks({ date = new Date() }: TodaysTasksProps) {
           title: newTaskTitle,
           completed: false,
           xpReward: 20,
+          dueDate: date
         }
         setTasks([...tasks, newTask])
         setNewTaskTitle("")
@@ -190,29 +212,24 @@ export function TodaysTasks({ date = new Date() }: TodaysTasksProps) {
         body: JSON.stringify({ completed }),
       })
 
-      if (res.ok) {
-        const data = await res.json()
-        if (data.success) {
-          // Update tasks list
-          setTasks(tasks.map((task) => (task._id === id ? { ...task, completed } : task)))
+      const data = await res.json()
+      
+      if (res.ok && data.success) {
+        // Update tasks list
+        setTasks(tasks.map((task) => (task._id === id ? { ...task, completed } : task)))
 
-          // If task was completed, update user XP
-          if (completed) {
-            // Import the XP_VALUES from lib/xp-system
-            const { XP_VALUES } = await import("../lib/xp-system")
-            
-            // In a real app, you would update the user's XP in the database
-            // For now, we'll just show a toast notification
-            toast({
-              title: "Task Completed!",
-              description: `You earned ${XP_VALUES.TASK_COMPLETION} XP`,
-            })
-          }
-        } else {
-          throw new Error(data.message || "Failed to update task")
+        // If task was completed, update user XP
+        if (completed) {
+          // Import the XP_VALUES from lib/xp-system
+          const { XP_VALUES } = await import("../lib/xp-system")
+          
+          toast({
+            title: "Task Completed!",
+            description: `You earned ${XP_VALUES.TASK_COMPLETION} XP`,
+          })
         }
       } else {
-        throw new Error("Failed to update task")
+        throw new Error(data.message || "Failed to update task")
       }
     } catch (error) {
       console.error("Toggle task error:", error)
@@ -220,7 +237,7 @@ export function TodaysTasks({ date = new Date() }: TodaysTasksProps) {
       setTasks(tasks.map((task) => (task._id === id ? { ...task, completed: !task.completed } : task)))
 
       const task = tasks.find((task) => task._id === id)
-      if (task && task.completed) {
+      if (task && !task.completed) {
         toast({
           title: "Task Completed!",
           description: `You earned 20 XP (offline mode)`,

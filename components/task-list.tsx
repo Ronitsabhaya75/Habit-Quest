@@ -31,7 +31,19 @@ export function TaskList({ date = new Date() }: TaskListProps) {
         // Make sure getTasksForDate doesn't throw errors
         const tasksForDate = getTasksForDate(date);
         console.log("Tasks for date:", tasksForDate?.length || 0);
-        setFilteredTasks(tasksForDate || []);
+        
+        // Extra validation to ensure we're dealing with valid tasks
+        if (Array.isArray(tasksForDate)) {
+          const validTasks = tasksForDate.filter(task => 
+            task && // Filter out null/undefined tasks
+            typeof task === 'object' && // Make sure it's an object
+            task._id // Make sure it has an ID
+          );
+          setFilteredTasks(validTasks);
+        } else {
+          console.warn("getTasksForDate didn't return an array");
+          setFilteredTasks([]);
+        }
       } else {
         setFilteredTasks([]);
       }
@@ -42,20 +54,29 @@ export function TaskList({ date = new Date() }: TaskListProps) {
   }, [date, tasks, getTasksForDate]);
 
   const toggleTask = (id: string) => {
-    const task = tasks.find((t) => t._id === id)
-    if (task) {
-      updateTask({
-        id,
-        completed: !task.completed
-      })
-
-      // Provide feedback on completed task
-      if (!task.completed) {
-        toast({
-          title: "Task Completed!",
-          description: "Great job on completing your task!",
+    try {
+      const task = tasks.find((t) => t && t._id === id);
+      if (task) {
+        updateTask({
+          id,
+          completed: !task.completed
         })
+
+        // Provide feedback on completed task
+        if (!task.completed) {
+          toast({
+            title: "Task Completed!",
+            description: "Great job on completing your task!",
+          })
+        }
       }
+    } catch (error) {
+      console.error("Error toggling task:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update task status",
+        variant: "destructive"
+      });
     }
   }
 

@@ -5,6 +5,7 @@ export { WordScrambler } from "./word-scrambler"
 export { SpinWheel } from "./spin-wheel"
 export { MemoryGame } from "./memory-game"
 export { ChessGame } from "./chess-game"
+export { HabitChallengeCenter } from "./habit-challenge-center"
 
 // Export interfaces
 export { default as BaseGame } from "./base-game"

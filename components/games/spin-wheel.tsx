@@ -1,30 +1,35 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
-import { motion } from "framer-motion"
 import { Button } from "../ui/button"
 import { GameWrapper } from "./game-wrapper"
 import { toast } from "../ui/use-toast"
-import { Star } from "lucide-react"
 
-const wheelItems = [
-  { label: "5 XP", color: "#4cc9f0", value: 5 },
-  { label: "2 XP", color: "#3a4353", value: 2 },
-  { label: "7 XP", color: "#4cc9f0", value: 7 },
-  { label: "1 XP", color: "#3a4353", value: 1 },
-  { label: "10 XP", color: "#4cc9f0", value: 10 },
-  { label: "3 XP", color: "#3a4353", value: 3 },
-  { label: "8 XP", color: "#4cc9f0", value: 8 },
-  { label: "0 XP", color: "#3a4353", value: 0 },
+interface Segment {
+  label: string
+  color: string
+  value: number
+}
+
+interface SpinWheelProps {
+  onXPReward?: (value: number) => void
+}
+
+const segments: Segment[] = [
+  { label: "1 XP", color: "#FFDDC1", value: 1 },
+  { label: "2 XP", color: "#C1FFD7", value: 2 },
+  { label: "3 XP", color: "#C1E1FF", value: 3 },
+  { label: "4 XP", color: "#FFC1E1", value: 4 },
+  { label: "5 XP", color: "#FFC1C1", value: 5 },
+  { label: "6 XP", color: "#E1C1FF", value: 6 },
 ]
 
-export function SpinWheel() {
+export function SpinWheel({ onXPReward }: SpinWheelProps) {
   const [gameStarted, setGameStarted] = useState(false)
   const [spinning, setSpinning] = useState(false)
   const [result, setResult] = useState<number | null>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [rotation, setRotation] = useState(0)
-  const [spinSpeed, setSpinSpeed] = useState(0)
   const [score, setScore] = useState(0)
   const [gameOver, setGameOver] = useState(false)
 
@@ -32,99 +37,119 @@ export function SpinWheel() {
     if (gameStarted && canvasRef.current) {
       const canvas = canvasRef.current
       const ctx = canvas.getContext("2d")
-
-      if (ctx) {
-        drawWheel(ctx, canvas.width, canvas.height, rotation)
-      }
+      if (ctx) drawWheel(ctx, canvas.width, canvas.height)
     }
   }, [gameStarted, rotation])
 
-  useEffect(() => {
-    if (spinning) {
-      const spinInterval = setInterval(() => {
-        setRotation((prev) => (prev + spinSpeed) % 360)
-        setSpinSpeed((prev) => {
-          if (prev > 0.1) {
-            return prev * 0.99
-          } else {
-            clearInterval(spinInterval)
-            setSpinning(false)
+  const createSegmentPath = (index: number, total: number, ctx: CanvasRenderingContext2D, centerX: number, centerY: number, radius: number) => {
+    const segmentSize = (2 * Math.PI) / total
+    const startAngle = index * segmentSize + rotation * (Math.PI / 180)
+    const endAngle = (index + 1) * segmentSize + rotation * (Math.PI / 180)
 
-            // Calculate result based on final rotation
-            const segmentSize = 360 / wheelItems.length
-            const normalizedRotation = (360 - rotation) % 360
-            const segmentIndex = Math.floor(normalizedRotation / segmentSize)
-            const spinResult = wheelItems[segmentIndex].value
-            setResult(spinResult)
-            setScore(score + spinResult)
+    ctx.beginPath()
+    ctx.moveTo(centerX, centerY)
+    ctx.arc(centerX, centerY, radius, startAngle, endAngle)
+    ctx.closePath()
 
-            return 0
-          }
-        })
-      }, 20)
+    ctx.fillStyle = segments[index].color
+    ctx.fill()
+    ctx.strokeStyle = "#333"
+    ctx.lineWidth = 1
+    ctx.stroke()
 
-      return () => clearInterval(spinInterval)
-    }
-  }, [spinning, spinSpeed, rotation, score])
-
-  const handleSpin = () => {
-    if (!spinning) {
-      setSpinning(true)
-      setSpinSpeed(10 + Math.random() * 10)
-      setResult(null)
-    }
+    ctx.save()
+    ctx.translate(centerX, centerY)
+    const midAngle = startAngle + (endAngle - startAngle) / 2
+    const textX = Math.cos(midAngle) * (radius * 0.7)
+    const textY = Math.sin(midAngle) * (radius * 0.7)
+    
+    ctx.translate(textX, textY)
+    ctx.fillStyle = "#000000"
+    ctx.font = "bold 16px Arial"
+    ctx.textAlign = "center"
+    ctx.textBaseline = "middle"
+    
+    ctx.shadowColor = "rgba(255, 255, 255, 0.8)"
+    ctx.shadowBlur = 3
+    ctx.shadowOffsetX = 1
+    ctx.shadowOffsetY = 1
+    ctx.fillText(segments[index].label, 0, 0)
+    ctx.restore()
   }
 
-  const drawWheel = (ctx: CanvasRenderingContext2D, width: number, height: number, rotation: number) => {
+  const drawWheel = (ctx: CanvasRenderingContext2D, width: number, height: number) => {
     const centerX = width / 2
     const centerY = height / 2
     const radius = Math.min(centerX, centerY) - 10
 
     ctx.clearRect(0, 0, width, height)
 
-    // Draw wheel segments
-    const segmentSize = (2 * Math.PI) / wheelItems.length
-
-    for (let i = 0; i < wheelItems.length; i++) {
-      const startAngle = i * segmentSize + rotation * (Math.PI / 180)
-      const endAngle = (i + 1) * segmentSize + rotation * (Math.PI / 180)
-
-      ctx.beginPath()
-      ctx.moveTo(centerX, centerY)
-      ctx.arc(centerX, centerY, radius, startAngle, endAngle)
-      ctx.closePath()
-
-      ctx.fillStyle = wheelItems[i].color
-      ctx.fill()
-
-      // Draw text
-      ctx.save()
-      ctx.translate(centerX, centerY)
-      ctx.rotate(startAngle + segmentSize / 2)
-      ctx.textAlign = "right"
-      ctx.fillStyle = "#ffffff"
-      ctx.font = "bold 14px Arial"
-      ctx.fillText(wheelItems[i].label, radius - 10, 5)
-      ctx.restore()
+    for (let i = 0; i < segments.length; i++) {
+      createSegmentPath(i, segments.length, ctx, centerX, centerY, radius)
     }
 
-    // Draw center circle
     ctx.beginPath()
-    ctx.arc(centerX, centerY, 15, 0, 2 * Math.PI)
-    ctx.fillStyle = "#1a2332"
+    ctx.arc(centerX, centerY, 20, 0, 2 * Math.PI)
+    ctx.fillStyle = "#333"
     ctx.fill()
-    ctx.strokeStyle = "#4cc9f0"
-    ctx.lineWidth = 2
+    ctx.strokeStyle = "#ffffff"
+    ctx.lineWidth = 3
     ctx.stroke()
 
-    // Draw pointer
     ctx.beginPath()
-    ctx.moveTo(centerX, centerY - radius - 10)
-    ctx.lineTo(centerX - 10, centerY - radius + 10)
-    ctx.lineTo(centerX + 10, centerY - radius + 10)
+    ctx.moveTo(centerX, centerY - radius + 15)
+    ctx.lineTo(centerX - 15, centerY - radius - 15)
+    ctx.lineTo(centerX + 15, centerY - radius - 15)
     ctx.closePath()
-    ctx.fillStyle = "#4cc9f0"
+    ctx.fillStyle = "#FF5722"
     ctx.fill()
+    ctx.strokeStyle = "#333"
+    ctx.lineWidth = 2
+    ctx.stroke()
+  }
+
+  const handleSpin = () => {
+    if (spinning) return
+
+    setSpinning(true)
+    setResult(null)
+
+    const segmentSize = 360 / segments.length
+    const extraSpins = 5 * 360
+    const randomExtraAngle = Math.floor(Math.random() * 360)
+    const finalAngle = extraSpins + randomExtraAngle
+
+    const adjustedAngle = (360 - (finalAngle % 360) + 270) % 360
+    const landedIndex = Math.floor(adjustedAngle / segmentSize)
+    const selectedResult = segments[landedIndex].value
+
+    let currentRotation = rotation
+    let speed = 15
+    const spinInterval = setInterval(() => {
+      currentRotation += speed
+      
+      if (currentRotation >= finalAngle) {
+        clearInterval(spinInterval)
+        setSpinning(false)
+        setResult(selectedResult)
+        setScore(prev => prev + selectedResult)
+        
+        if (onXPReward) {
+          onXPReward(selectedResult)
+        }
+
+        toast({
+          title: "Congratulations!",
+          description: `You won ${selectedResult} XP!`,
+        })
+      }
+
+      if (currentRotation > finalAngle - 360) {
+        speed = Math.max(speed * 0.99, 0.5)
+      }
+
+      setRotation(currentRotation % 360)
+    }, 20)
   }
 
   const handleStartGame = () => {
@@ -132,24 +157,27 @@ export function SpinWheel() {
     setGameOver(false)
     setScore(0)
     setResult(null)
+    setRotation(0)
   }
 
   const handleEndGame = () => {
     setGameOver(true)
     setGameStarted(false)
 
-    // Award XP
-    const earnedXP = Math.min(score, 10)
     toast({
       title: "Game Complete!",
-      description: `You earned ${earnedXP} XP!`,
+      description: `You earned ${score} XP!`,
     })
   }
 
   const customControls = (
     <div className="mt-4 flex justify-between">
-      <Button className="bg-[#4cc9f0] hover:bg-[#4cc9f0]/80 text-black" onClick={handleSpin} disabled={spinning}>
-        {spinning ? "Spinning..." : "Spin"}
+      <Button 
+        className="bg-[#4CAF50] hover:bg-[#45a049] text-white" 
+        onClick={handleSpin} 
+        disabled={spinning}
+      >
+        {spinning ? "Spinning..." : "Spin the Wheel"}
       </Button>
 
       <Button
@@ -165,7 +193,7 @@ export function SpinWheel() {
   return (
     <GameWrapper
       title="Spin Wheel"
-      description="Spin the wheel and try your luck!"
+      description="Spin the wheel to earn XP rewards!"
       gameStarted={gameStarted}
       gameOver={gameOver}
       score={score}
@@ -174,12 +202,13 @@ export function SpinWheel() {
       customControls={customControls}
     >
       <div className="relative">
-        <canvas ref={canvasRef} width={300} height={300} className="border border-[#2a3343] rounded-full" />
+        <canvas ref={canvasRef} width={300} height={300} className="border border-[#2a3343] rounded-full mx-auto" />
+        
         {result !== null && (
           <div className="absolute inset-0 flex items-center justify-center">
-            <div className="bg-[#1a2332]/90 p-4 rounded-lg text-center">
-              <div className="text-2xl font-bold text-[#4cc9f0]">{result} XP</div>
-              <p className="text-white">You won!</p>
+            <div className="bg-[#1a2332]/90 p-6 rounded-lg text-center">
+              <div className="text-3xl font-bold text-[#4cc9f0] mb-2">{result} XP</div>
+              <p className="text-white text-xl">You won!</p>
             </div>
           </div>
         )}

@@ -1,3 +1,23 @@
+/* 
+  Habit Building Quiz Game Component
+
+  1. This is a React component that runs a multi-round habit knowledge quiz.
+  2. It uses three rounds: Beginner, Intermediate, and Advanced.
+  3. Questions are randomly shuffled and divided across the rounds.
+  4. Users select answers from multiple-choice options and receive immediate feedback.
+  5. Explanations are shown after each answer is checked.
+  6. Scores are tracked both per round and overall.
+  7. After each round, a summary card with performance feedback is shown.
+  8. After the final round, a complete score summary and XP reward toast appears.
+  9. Styled components like `Card`, `Badge`, and `Button` provide consistent UI.
+ 10. The `GameWrapper` component wraps the game and handles start/end layout.
+ 11. User interactions update the state using React's `useState` hook.
+ 12. The quiz discourages guessing by disabling answer changes after submission.
+ 13. Visual and color cues highlight right/wrong answers.
+ 14. Round logic is modular, enabling easy scalability of questions or levels.
+ 15. The UI is fully responsive with a sci-fi space-themed styling.
+*/
+
 "use client"
 
 import { useState } from "react"
@@ -319,6 +339,7 @@ const quizQuestions = [
 ]
 
 export function QuizGame() {
+  // State variables for controlling game logic
   const [gameStarted, setGameStarted] = useState(false)
   const [currentQuestion, setCurrentQuestion] = useState(0)
   const [selectedAnswer, setSelectedAnswer] = useState("")
@@ -332,7 +353,7 @@ export function QuizGame() {
   const [roundScores, setRoundScores] = useState<number[]>([0, 0, 0])
   const [showRoundComplete, setShowRoundComplete] = useState(false)
 
-  // Define rounds
+  // Define the structure of the quiz in rounds
   const rounds = [
     { name: "Beginner", questionsCount: 5 },
     { name: "Intermediate", questionsCount: 6 },
@@ -344,7 +365,7 @@ export function QuizGame() {
   const totalQuestions = totalQuestionsPerRound.reduce((sum, count) => sum + count, 0)
 
   const handleStartGame = () => {
-    // Select and shuffle questions for the first round
+    // Starts the game and initializes state
     const shuffledQuestions = [...quizQuestions].sort(() => 0.5 - Math.random())
     const firstRoundQuestions = shuffledQuestions.slice(0, rounds[0].questionsCount)
     
@@ -361,12 +382,14 @@ export function QuizGame() {
     setShowRoundComplete(false)
   }
 
+  // Handles option selection
   const handleAnswerSelect = (answer: string) => {
     if (!isAnswerChecked) {
       setSelectedAnswer(answer)
     }
   }
 
+  // Checks the selected answer and updates score
   const handleCheckAnswer = () => {
     const correct = selectedAnswer === roundQuestions[currentQuestion].correctAnswer
     setIsCorrect(correct)
@@ -382,6 +405,7 @@ export function QuizGame() {
     }
   }
 
+  // Move to the next question or end the round
   const handleNextQuestion = () => {
     const nextQuestion = currentQuestion + 1
     if (nextQuestion < roundQuestions.length) {
@@ -396,6 +420,7 @@ export function QuizGame() {
     }
   }
 
+  // Advance to the next round or end game
   const handleNextRound = () => {
     const nextRound = currentRound + 1
     
@@ -430,6 +455,7 @@ export function QuizGame() {
     }
   }
 
+  // Render feedback and option to continue after each round
   const renderRoundComplete = () => {
     const roundScore = roundScores[currentRound]
     const roundTotal = rounds[currentRound].questionsCount
@@ -472,6 +498,7 @@ export function QuizGame() {
     )
   }
 
+  // Controls that appear below the question
   const customControls = (
     <div className="mt-4 flex flex-col gap-2">
       <div className="flex justify-between items-center">
@@ -509,6 +536,7 @@ export function QuizGame() {
     </div>
   )
 
+  // Summary shown at the end of the game
   const renderRoundSummary = () => {
     return (
       <div className="space-y-4">
@@ -537,6 +565,7 @@ export function QuizGame() {
     )
   }
 
+  // Main UI structure
   return (
     <GameWrapper
       title="Habit Building Quiz"

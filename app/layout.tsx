@@ -4,6 +4,8 @@ import { AuthProvider } from "../context/auth-context"
 import { TaskProvider } from "../components/task-context"
 import { HabitProvider } from "../context/HabitContext"
 import { EventProvider } from "../context/EventContext"
+// import Navbar from "../components/Navbar"
+import AudioPlayer from "../components/AudioPlayer"
 import "./globals.css"
 
 export const metadata = {
@@ -30,7 +32,13 @@ export default function RootLayout({
           <AuthProvider>
             <HabitProvider>
               <EventProvider>
-                <TaskProvider>{children}</TaskProvider>
+                <TaskProvider>
+                  {/* <Navbar /> */}
+                  <div className="pt-16">
+                    {children}
+                  </div>
+                  <AudioPlayer />
+                </TaskProvider>
               </EventProvider>
             </HabitProvider>
           </AuthProvider>

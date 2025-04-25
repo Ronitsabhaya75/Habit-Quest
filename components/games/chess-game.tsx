@@ -1,3 +1,35 @@
+/*
+  This component implements a full chess game in React using TypeScript.
+  It supports both Player vs Player and Player vs Computer gameplay modes.
+  The board is represented as an 8x8 grid containing chess pieces or null.
+  Game state is managed using React hooks including turn logic, selections, and moves.
+  Chess pieces are defined with type, color, and optional hasMoved property.
+  The board is initialized using standard chess rules via `initializeBoard()`.
+  Players can choose to face the computer and select difficulty: easy, medium, or hard.
+  Clicking a piece highlights valid moves based on its type and position.
+  The game enforces legal movement rules for pawns, rooks, knights, bishops, queens, and kings.
+  Moves that leave the king in check are filtered out unless ignored for threat analysis.
+  After each move, turns alternate and the board updates using `setBoard`.
+  Captures are tracked separately for white and black and displayed visually.
+  Pawn promotion is handled automatically when reaching the last rank.
+  AI logic scores moves using piece value, positioning, and simple heuristics.
+  Based on difficulty, AI selects the best, top-third, or random strong moves.
+  Game status is evaluated after every turn to detect check, checkmate, or stalemate.
+  The game can end if a player has no valid moves or their king is captured.
+  The UI includes dynamic highlighting for selected pieces and valid move squares.
+  Each chess piece is rendered using Unicode characters styled by color.
+  A flexible control panel allows players to start the game, pick a mode, or reset.
+  Visual elements use Tailwind CSS for a clean and responsive interface.
+  Players are informed whose turn it is, and alerts are shown when in check or game over.
+  Clicking on a square allows for piece selection or move execution.
+  The component also visually separates captured pieces for both players.
+  Functions like `getValidMoves`, `handleMove`, and `checkGameStatus` modularize logic.
+  AI delay is implemented with a timeout to simulate thinking time.
+  Advanced features like castling, en passant, and repetition detection are not included.
+  The code balances clarity, gameplay mechanics, and a visually engaging UI.
+  This component is a foundation for expanding into a full-featured chess platform.
+*/
+
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
@@ -292,21 +324,20 @@ export function ChessGame() {
           moves.push([row + direction, col])
           
           // Double move from starting position
-          if (row === startRow && !board[row + 2 * direction][col] && !piece.hasMoved) {
+          if (row === startRow && row + 2 * direction >= 0 && row + 2 * direction < 8 && 
+              !board[row + 2 * direction][col] && !piece.hasMoved) {
             moves.push([row + 2 * direction, col])
           }
         }
         
         // Captures
         for (const captureCol of [col - 1, col + 1]) {
-          if (captureCol >= 0 && captureCol < 8) {
+          if (captureCol >= 0 && captureCol < 8 && row + direction >= 0 && row + direction < 8) {
             // Normal capture
             const targetPiece = board[row + direction][captureCol]
             if (targetPiece && targetPiece.color !== color) {
               moves.push([row + direction, captureCol])
             }
-            
-            // En passant would go here
           }
         }
         break
@@ -395,8 +426,6 @@ export function ChessGame() {
             }
           }
         }
-        
-        // Castling would go here
         break
     }
 

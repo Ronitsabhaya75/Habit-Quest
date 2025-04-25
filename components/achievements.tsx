@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { Button } from "./ui/button"
 import { Progress } from "./ui/progress"
 
+// Define the structure for an achievement
 interface Achievement {
   id: number
   name: string
@@ -14,10 +15,12 @@ interface Achievement {
 }
 
 export function Achievements() {
+  // Local state to store achievement data, loading state, and error state
   const [achievements, setAchievements] = useState<Achievement[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
 
+  // Fetch achievements when the component mounts
   useEffect(() => {
     async function fetchAchievements() {
       try {
@@ -26,10 +29,10 @@ export function Achievements() {
 
         const res = await fetch("/api/achievements")
 
+        // If API call fails, show placeholder data
         if (!res.ok) {
           console.error("Achievements fetch failed with status:", res.status)
           setError(true)
-          // Use placeholder data instead of showing an error
           setAchievements(generatePlaceholderData())
           return
         }
@@ -38,7 +41,6 @@ export function Achievements() {
         if (!contentType || !contentType.includes("application/json")) {
           console.error("Achievements API returned non-JSON response:", contentType)
           setError(true)
-          // Use placeholder data instead of showing an error
           setAchievements(generatePlaceholderData())
           return
         }
@@ -48,13 +50,11 @@ export function Achievements() {
           setAchievements(data.data)
         } else {
           setError(true)
-          // Use placeholder data instead of showing an error
           setAchievements(generatePlaceholderData())
         }
       } catch (error) {
         console.error("Achievements error:", error)
         setError(true)
-        // Use placeholder data instead of showing an error
         setAchievements(generatePlaceholderData())
       } finally {
         setLoading(false)
@@ -64,7 +64,7 @@ export function Achievements() {
     fetchAchievements()
   }, [])
 
-  // Generate placeholder data if the API fails
+  // Generate placeholder data to use when the API fails or returns nothing
   const generatePlaceholderData = (): Achievement[] => {
     return [
       {
@@ -102,6 +102,7 @@ export function Achievements() {
     ]
   }
 
+  // Show loading animation while data is being fetched
   if (loading) {
     return (
       <div className="space-y-4">
@@ -124,17 +125,19 @@ export function Achievements() {
     )
   }
 
-  // If no achievements yet, show sample data
+  // Fallback to placeholder data if achievements array is empty
   const achievementsData = achievements.length > 0 ? achievements : generatePlaceholderData()
 
   return (
     <div className="space-y-4">
+      {/* Show warning if sample data is being used due to an error */}
       {error && (
         <div className="text-amber-400 text-xs mb-2 italic">
           * Using sample data. Achievements will update when connection is restored.
         </div>
       )}
 
+      {/* Render each achievement */}
       {achievementsData.map((achievement) => (
         <div key={achievement.id} className="space-y-2">
           <div className="flex justify-between items-start">
@@ -160,6 +163,7 @@ export function Achievements() {
         </div>
       ))}
 
+      {/* Button to navigate to full achievements view */}
       <Button className="w-full mt-4 bg-[#2a3343] hover:bg-[#3a4353] text-white">View All Achievements</Button>
     </div>
   )

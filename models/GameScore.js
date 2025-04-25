@@ -9,7 +9,7 @@ const GameScoreSchema = new mongoose.Schema({
   game: {
     type: String,
     required: [true, "Please provide a game name"],
-    enum: ["chess", "pacman", "quiz", "spinwheel", "wordscrambler", "memory"],
+    enum: ["chess", "pacman", "quiz", "spinwheel", "habit-challenge", "wordscrambler", "memory"],
   },
   score: {
     type: Number,

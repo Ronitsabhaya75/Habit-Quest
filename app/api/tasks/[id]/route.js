@@ -58,6 +58,48 @@ export async function PUT(request, { params }) {
     if (completingTask) {
       task.completedAt = new Date()
       
+      // Update user XP and streak
+      try {
+        const user = await User.findById(task.user)
+        if (user) {
+          // Award XP for completing the task
+          const xpGain = task.xpReward || 10
+          user.xp = (user.xp || 0) + xpGain
+          
+          // Update streak if needed
+          const today = new Date()
+          today.setHours(0, 0, 0, 0)
+          
+          const lastActive = user.lastActive ? new Date(user.lastActive) : null
+          if (lastActive) {
+            lastActive.setHours(0, 0, 0, 0)
+            
+            const yesterday = new Date(today)
+            yesterday.setDate(yesterday.getDate() - 1)
+            
+            if (lastActive.getTime() === yesterday.getTime()) {
+              // If last active was yesterday, increment streak
+              user.streak = (user.streak || 0) + 1
+            } else if (lastActive.getTime() < yesterday.getTime()) {
+              // If last active was before yesterday, reset streak
+              user.streak = 1
+            }
+            // If last active is today, keep streak as is
+          } else {
+            // First activity, start streak at 1
+            user.streak = 1
+          }
+          
+          // Update lastActive to today
+          user.lastActive = today
+          
+          await user.save()
+        }
+      } catch (error) {
+        console.error("Error updating user XP/streak:", error)
+        // Continue with task update even if XP update fails
+      }
+      
       // If this is a recurring task, create the next instance
       if (task.isRecurring && shouldCreateNextInstance(task)) {
         const nextDueDate = getNextOccurrenceDate(

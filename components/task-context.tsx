@@ -531,15 +531,28 @@ export const TaskProvider = ({ children }: { children: React.ReactNode }) => {
       const endOfDay = new Date(date);
       endOfDay.setHours(23, 59, 59, 999);
     
-    // Make sure tasks is actually an array before filtering
-    if (!Array.isArray(tasks)) {
+      // Make sure tasks is actually an array before filtering
+      if (!Array.isArray(tasks)) {
         console.log("Tasks is not an array in getTasksForDate");
         return [];
-    }
+      }
     
-    return tasks.filter(task => {
+      return tasks.filter(task => {
+        // Skip null or undefined tasks
+        if (!task) return false;
+        
+        // Make sure the task has a dueDate
         if (!task.dueDate) return false;
-        const taskDate = new Date(task.dueDate);
+        
+        // Parse the date safely (could be string or Date object)
+        let taskDate: Date;
+        try {
+          taskDate = new Date(task.dueDate);
+        } catch (e) {
+          console.error('Invalid date format:', task.dueDate);
+          return false;
+        }
+        
         return taskDate >= startOfDay && taskDate <= endOfDay;
       });
     } catch (error) {
@@ -552,7 +565,11 @@ export const TaskProvider = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     // Count completed tasks
     if (Array.isArray(tasks)) {
-      const count = tasks.filter(task => task.completed).length;
+      const count = tasks.filter(task => {
+        // Skip null or undefined tasks
+        if (!task) return false;
+        return task.completed === true;
+      }).length;
       setCompletedTaskCount(count);
     }
   }, [tasks]);
@@ -568,7 +585,11 @@ export const TaskProvider = ({ children }: { children: React.ReactNode }) => {
     
     // Store incomplete tasks for offline notifications
     if (Array.isArray(tasks)) {
-      const incompleteTasks = tasks.filter(task => !task.completed);
+      const incompleteTasks = tasks.filter(task => {
+        // Skip null or undefined tasks
+        if (!task) return false;
+        return task.completed !== true;
+      });
       localStorage.setItem('incompleteTasks', JSON.stringify(incompleteTasks));
     }
     

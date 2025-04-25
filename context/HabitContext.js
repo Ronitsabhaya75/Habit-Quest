@@ -52,8 +52,8 @@ export const HabitProvider = ({ children }) => {
     setProgress(updatedProgress);
   };
 
-  // Add a new habit
-  const addHabit = (habit) => {
+  // Add a new habit and create corresponding task
+  const addHabit = async (habit) => {
     const newHabit = {
       ...habit,
       id: Date.now(),
@@ -63,7 +63,49 @@ export const HabitProvider = ({ children }) => {
     
     const updatedHabits = [...habits, newHabit];
     saveHabits(updatedHabits);
+    
+    // Create a corresponding task entry in the tasks system
+    try {
+      // Create today's task for this habit
+      await createTaskForHabit(newHabit);
+      
+      console.log('Habit task created successfully');
+    } catch (error) {
+      console.error('Failed to create task for habit:', error);
+    }
+    
     return newHabit;
+  };
+  
+  // Helper function to create a task for a habit
+  const createTaskForHabit = async (habit) => {
+    try {
+      const response = await fetch('/api/tasks', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          title: `${habit.name || 'Daily Habit'} 💪`,
+          description: habit.description || 'Complete your daily habit',
+          dueDate: new Date().toISOString(), // Today
+          xpReward: habit.xpReward || 30,
+          isHabit: true,
+          isRecurring: true,
+          frequency: habit.frequency || 'daily',
+          recurringEndDate: habit.endDate || null,
+        }),
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to create task: ${response.status}`);
+      }
+      
+      return await response.json();
+    } catch (error) {
+      console.error('Error creating task for habit:', error);
+      throw error;
+    }
   };
 
   // Complete a habit for today
@@ -88,7 +130,56 @@ export const HabitProvider = ({ children }) => {
     // Check and update streak
     updateStreak();
     
+    // Find the corresponding task for this habit and mark it as completed
+    try {
+      const habitToComplete = updatedHabits.find(h => h.id === habitId);
+      if (habitToComplete) {
+        await completeHabitTask(habitToComplete);
+      }
+    } catch (error) {
+      console.error('Failed to complete habit task:', error);
+    }
+    
     return updatedHabits.find(h => h.id === habitId);
+  };
+  
+  // Helper function to complete the corresponding task for a habit
+  const completeHabitTask = async (habit) => {
+    try {
+      // Get today's tasks
+      const today = new Date().toISOString().split('T')[0];
+      const response = await fetch(`/api/tasks?date=${today}`);
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch tasks: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      if (!data.success || !data.data) {
+        throw new Error('Invalid response from tasks API');
+      }
+      
+      // Find the task that corresponds to this habit
+      const habitTask = data.data.find(task => 
+        task.isHabit && 
+        task.title.includes(habit.name || 'Daily Habit')
+      );
+      
+      if (habitTask) {
+        // Complete the task
+        await fetch(`/api/tasks/${habitTask._id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            completed: true,
+          }),
+        });
+      }
+    } catch (error) {
+      console.error('Error completing habit task:', error);
+    }
   };
 
   // Update streak

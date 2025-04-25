@@ -1,0 +1,131 @@
+'use client';
+
+import { useEffect, useRef, useState, useCallback } from 'react';
+
+const canvasSize = 400;
+const gridSize = 20;
+
+const directions = {
+  ArrowUp: { x: 0, y: -1 },
+  ArrowDown: { x: 0, y: 1 },
+  ArrowLeft: { x: -1, y: 0 },
+  ArrowRight: { x: 1, y: 0 },
+};
+
+type Position = { x: number; y: number };
+
+export default function SnakeGame() {
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const [snake, setSnake] = useState<Position[]>([{ x: 10, y: 10 }]);
+  const [apple, setApple] = useState<Position>({ x: 15, y: 15 });
+  const [dir, setDir] = useState(directions.ArrowRight);
+  const [running, setRunning] = useState(true);
+  const [score, setScore] = useState(0);
+
+  const lastDir = useRef(dir);
+
+  const getRandomPosition = (): Position => ({
+    x: Math.floor(Math.random() * (canvasSize / gridSize)),
+    y: Math.floor(Math.random() * (canvasSize / gridSize)),
+  });
+
+  const resetGame = () => {
+    setSnake([{ x: 10, y: 10 }]);
+    setApple(getRandomPosition());
+    setDir(directions.ArrowRight);
+    lastDir.current = directions.ArrowRight;
+    setScore(0);
+    setRunning(true);
+  };
+
+  const moveSnake = useCallback(() => {
+    setSnake(prev => {
+      const newHead = {
+        x: prev[0].x + dir.x,
+        y: prev[0].y + dir.y,
+      };
+
+      if (
+        newHead.x < 0 || newHead.x >= canvasSize / gridSize ||
+        newHead.y < 0 || newHead.y >= canvasSize / gridSize ||
+        prev.some(segment => segment.x === newHead.x && segment.y === newHead.y)
+      ) {
+        setRunning(false);
+        return prev;
+      }
+
+      const newSnake = [newHead, ...prev];
+      if (newHead.x === apple.x && newHead.y === apple.y) {
+        setApple(getRandomPosition());
+        setScore(s => s + 1);
+      } else {
+        newSnake.pop();
+      }
+
+      return newSnake;
+    });
+    lastDir.current = dir;
+  }, [dir, apple]);
+
+  const draw = useCallback(() => {
+    const ctx = canvasRef.current?.getContext('2d');
+    if (!ctx) return;
+
+    ctx.clearRect(0, 0, canvasSize, canvasSize);
+
+    // Snake
+    ctx.fillStyle = 'lime';
+    snake.forEach(part =>
+      ctx.fillRect(part.x * gridSize, part.y * gridSize, gridSize, gridSize)
+    );
+
+    // Apple
+    ctx.fillStyle = 'red';
+    ctx.fillRect(apple.x * gridSize, apple.y * gridSize, gridSize, gridSize);
+  }, [snake, apple]);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (running) moveSnake();
+    }, 150);
+    return () => clearInterval(interval);
+  }, [moveSnake, running]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const newDir = directions[e.key as keyof typeof directions];
+      if (!newDir) return;
+
+      // Prevent reversing
+      const isOpposite =
+        newDir.x === -lastDir.current.x && newDir.y === -lastDir.current.y;
+      if (!isOpposite) setDir(newDir);
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  useEffect(() => {
+    draw();
+  }, [draw]);
+
+  return (
+    <div style={{ textAlign: 'center', marginTop: '20px' }}>
+      <h2>Snake Game</h2>
+      <p>Score: {score}</p>
+      <canvas
+        ref={canvasRef}
+        width={canvasSize}
+        height={canvasSize}
+        style={{ border: '2px solid white', background: '#000' }}
+      />
+      {!running && (
+        <div>
+          <p>Game Over</p>
+          <button onClick={resetGame}>Restart</button>
+        </div>
+      )}
+    </div>
+  );
+}
