@@ -32,20 +32,36 @@ export async function GET(request, { params }) {
 export async function PUT(request, { params }) {
   try {
     const { id } = params
+    
+    // Connect to the database
     await connectToDatabase()
     
     const user = await getUserFromToken(request)
     if (!user) {
+      console.log("Task update unauthorized: No user found");
       return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 401 })
+    }
+    
+    // Check if the request body can be parsed as JSON
+    let updateData;
+    try {
+      updateData = await request.json();
+    } catch (parseError) {
+      console.error("Invalid JSON in request body:", parseError);
+      return NextResponse.json({ 
+        success: false, 
+        message: "Invalid request format: Could not parse JSON" 
+      }, { status: 400 });
     }
     
     // Find the task to update
     const task = await Task.findOne({ _id: id, user: user._id })
     if (!task) {
+      console.log(`Task with ID ${id} not found for user ${user._id}`);
       return NextResponse.json({ success: false, message: "Task not found" }, { status: 404 })
     }
     
-    const updateData = await request.json()
+    console.log(`Updating task ${id} with data:`, updateData);
     
     // Check if this is a task completion update
     const completingTask = updateData.completed && !task.completed
@@ -94,6 +110,7 @@ export async function PUT(request, { params }) {
           user.lastActive = today
           
           await user.save()
+          console.log(`Updated user XP to ${user.xp} and streak to ${user.streak}`);
         }
       } catch (error) {
         console.error("Error updating user XP/streak:", error)
@@ -116,6 +133,7 @@ export async function PUT(request, { params }) {
             title: task.title,
             description: task.description,
             dueDate: nextDueDate,
+            dueDateString: nextDueDate.toISOString().split('T')[0], // Ensure dueDateString is set
             completed: false,
             completedAt: null,
             xpReward: task.xpReward,
@@ -127,12 +145,14 @@ export async function PUT(request, { params }) {
           })
           
           await nextInstanceTask.save()
+          console.log(`Created next instance task ${nextInstanceTask._id} for ${nextDueDate.toISOString()}`);
         }
       }
     }
     
     // Save the updated task
     await task.save()
+    console.log(`Successfully updated task ${id}`);
     
     // Return the updated task and the newly created instance if applicable
     return NextResponse.json({ 
@@ -142,7 +162,11 @@ export async function PUT(request, { params }) {
     }, { status: 200 })
   } catch (error) {
     console.error("Update task by ID error:", error)
-    return NextResponse.json({ success: false, message: error.message || "Server error" }, { status: 500 })
+    return NextResponse.json({ 
+      success: false, 
+      message: error.message || "Server error",
+      error: error.toString()
+    }, { status: 500 })
   }
 }
 
