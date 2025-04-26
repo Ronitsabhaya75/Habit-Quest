@@ -36,9 +36,32 @@ type LeaderboardUser = {
   xp: number;
 }
 
+// Add this function at the top level (outside any component)
+async function initializeAchievements() {
+  try {
+    // Only call in development or when needed
+    if (process.env.NODE_ENV === 'development') {
+      const response = await fetch('/api/achievements/init')
+      const data = await response.json()
+      console.log('Achievement initialization:', data.success ? 'Success' : 'Failed')
+    }
+  } catch (error) {
+    console.error('Failed to initialize achievements:', error)
+  }
+}
+
+// This component will initialize achievements when mounted
+export function InitializeApp() {
+  useEffect(() => {
+    initializeAchievements()
+  }, [])
+
+  return null // This component doesn't render anything
+}
+
 export default function HomePage() {
-  const [darkMode, setDarkMode] = useState(true)
-  const [userCount, setUserCount] = useState(0)
+  const [darkMode, setDarkMode] = useState(false)
+  const [userCount] = useState(Math.floor(Math.random() * 10000) + 30000)
   const [showOnboarding, setShowOnboarding] = useState(false)
   const [isLoaded, setIsLoaded] = useState(false)
   

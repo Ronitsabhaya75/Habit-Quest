@@ -7,67 +7,104 @@ import { getUserFromToken } from "../../../../lib/auth"
 // Purchase a badge
 export async function POST(request) {
   try {
+    console.log("Starting badge purchase process");
+    
     // Get user from token
     const user = await getUserFromToken(request)
 
     if (!user) {
+      console.log("User not authenticated");
       return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 401 })
     }
 
     // Connect to the database
     await connectToDatabase()
 
-    // Get badge ID
-    const { badgeId } = await request.json()
+    // Get badge ID and log it
+    const requestData = await request.json()
+    const { badgeId } = requestData
+    console.log("Badge purchase request:", JSON.stringify(requestData));
 
     if (!badgeId) {
+      console.log("No badgeId provided");
       return NextResponse.json({ success: false, message: "Badge ID is required" }, { status: 400 })
     }
 
     // Get badge - check if the badgeId is a number to handle frontend numeric IDs
     let badge
+    const numericBadgeId = parseInt(badgeId)
     
-    if (typeof badgeId === 'number' || !isNaN(parseInt(badgeId))) {
-      const numericBadgeId = parseInt(badgeId)
-      
-      // First try to find the badge by numeric ID
+    console.log(`Attempting to find badge with ID: ${badgeId}, numericId: ${numericBadgeId}`);
+
+    // Try both numeric ID and name-based lookup to be more resilient
+    if (!isNaN(numericBadgeId)) {
+      // First try by numeric ID
       badge = await Badge.findOne({ numericId: numericBadgeId })
       
-      // If badge doesn't exist, create it directly
+      // If badge doesn't exist, try to create it
       if (!badge) {
-        try {
-          // Create the badge with the hardcoded data
-          badge = new Badge({
-            numericId: numericBadgeId,
-            name: getBadgeName(numericBadgeId),
-            description: getBadgeDescription(numericBadgeId),
-            price: getBadgePrice(numericBadgeId),
-            rarity: getBadgeRarity(numericBadgeId)
-          })
-          
-          // Save the new badge
-          await badge.save()
-        } catch (error) {
-          console.error("Error creating badge:", error)
-          // If there was an error with the numericId, try finding by name
-          badge = await Badge.findOne({ 
-            name: getBadgeName(numericBadgeId) 
-          })
-          
-          if (!badge) {
+        console.log(`Badge not found by numericId ${numericBadgeId}, attempting to create it`);
+        
+        // Get name based on common badge names
+        const badgeName = getBadgeName(numericBadgeId);
+        
+        // Try by name if numeric ID fails
+        badge = await Badge.findOne({ name: badgeName });
+        
+        // If still not found, create a new badge
+        if (!badge) {
+          console.log(`Creating new badge with name: ${badgeName}`);
+          try {
+            badge = new Badge({
+              numericId: numericBadgeId,
+              name: badgeName,
+              description: getBadgeDescription(numericBadgeId),
+              price: getBadgePrice(numericBadgeId),
+              rarity: getBadgeRarity(numericBadgeId),
+              criteria: "purchase",
+              threshold: 1
+            })
+            
+            await badge.save()
+            console.log(`Badge created successfully with ID: ${badge._id}`);
+          } catch (error) {
+            console.error("Error creating badge:", error)
             return NextResponse.json({ 
               success: false, 
-              message: "Failed to create or find badge" 
+              message: "Failed to create badge", 
+              error: error.message
             }, { status: 500 })
           }
+        } else {
+          console.log(`Found badge by name: ${badgeName}, ID: ${badge._id}`);
         }
+      } else {
+        console.log(`Found badge by numericId: ${numericBadgeId}, ID: ${badge._id}`);
       }
     } else {
       // If it's not a number, assume it's a valid MongoDB ID
-      badge = await Badge.findById(badgeId)
+      try {
+        badge = await Badge.findById(badgeId)
+        console.log(`Found badge by MongoDB ID: ${badgeId}`);
+      } catch (error) {
+        console.error("Error finding badge by ID:", error);
+        
+        // Try by name as a fallback
+        const possibleName = String(badgeId).replace(/[0-9]/g, '').trim();
+        if (possibleName) {
+          badge = await Badge.findOne({ 
+            name: { $regex: new RegExp(possibleName, 'i') } 
+          });
+          
+          if (badge) {
+            console.log(`Found badge by name regex: ${possibleName}, ID: ${badge._id}`);
+          }
+        }
+      }
     }
 
     if (!badge) {
+      console.log("Badge not found after all attempts");
       return NextResponse.json({ success: false, message: "Badge not found" }, { status: 404 })
     }
 
@@ -76,18 +113,24 @@ export async function POST(request) {
 
     // Check if user already has this badge (compare badge ID strings)
     if (userObj.badges.some(b => b.toString() === badge._id.toString())) {
+      console.log("User already owns this badge");
       return NextResponse.json({ success: false, message: "You already own this badge" }, { status: 400 })
     }
 
     // Check if user has enough XP
     if (userObj.xp < badge.price) {
+      console.log(`Insufficient XP. User has: ${userObj.xp}, Badge costs: ${badge.price}`);
       return NextResponse.json({ success: false, message: "Not enough XP" }, { status: 400 })
     }
 
+    console.log(`Processing purchase: Badge ${badge.name}, Cost: ${badge.price} XP`);
+    
     // Deduct XP and add badge
     userObj.xp -= badge.price
     userObj.badges.push(badge._id)
     await userObj.save()
+    
+    console.log(`Badge purchased successfully. User's new XP: ${userObj.xp}`);
 
     return NextResponse.json(
       {
@@ -101,7 +144,11 @@ export async function POST(request) {
     )
   } catch (error) {
     console.error("Purchase badge error:", error)
-    return NextResponse.json({ success: false, message: error.message || "Server error" }, { status: 500 })
+    return NextResponse.json({ 
+      success: false, 
+      message: error.message || "Server error",
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined 
+    }, { status: 500 })
   }
 }
 

@@ -1,12 +1,16 @@
 "use client"
 
-import { useState, ReactNode, FC, MouseEvent } from "react"
+import { useState, useEffect } from "react"
 import { Calendar } from "../../components/ui/calendar"
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card"
 import { Button } from "../../components/ui/button"
 import { Input } from "../../components/ui/input"
-import { Plus, Send } from "lucide-react"
+import { Plus } from "lucide-react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "../../components/ui/dialog"
+import { Label } from "../../components/ui/label"
+import { format, startOfDay } from "date-fns"
+import { useTask } from "../../components/task-context"
+import { TaskList } from "../../components/task-list"
 
 // Define types for NavItem props
 interface NavItemProps {
@@ -95,7 +99,42 @@ const SearchIcon: FC = () => (
 export default function CalendarPage() {
   const [date, setDate] = useState<Date | undefined>(new Date())
   const [showChatbot, setShowChatbot] = useState(false)
-  const [activeTab, setActiveTab] = useState("Calendar")
+  const [newTaskTitle, setNewTaskTitle] = useState("")
+  const [addTaskDialogOpen, setAddTaskDialogOpen] = useState(false)
+  const { addTask, fetchTasks } = useTask()
+
+  // Define the week days for the calendar header
+  const weekDays = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"]
+
+  // Refetch tasks when the component mounts or date changes
+  useEffect(() => {
+    fetchTasks()
+  }, [fetchTasks])
+
+  const handleAddTask = async () => {
+    if (newTaskTitle.trim() && date) {
+      try {
+        // Format date for the task
+        const taskDate = startOfDay(date);
+        
+        // Add the task
+        await addTask({
+          title: newTaskTitle,
+          dueDate: taskDate,
+          xpReward: 20
+        })
+        
+        // Clear the form and close dialog
+        setNewTaskTitle("")
+        setAddTaskDialogOpen(false)
+        
+        // Refetch tasks to ensure our new task shows up
+        fetchTasks()
+      } catch (error) {
+        console.error("Error adding task:", error)
+      }
+    }
+  }
 
   return (
     <div className="min-h-screen bg-[#0d1117] text-white">
@@ -155,12 +194,32 @@ export default function CalendarPage() {
               <CardTitle className="text-xl text-white">Calendar</CardTitle>
             </CardHeader>
             <CardContent>
+              {/* Month Navigation */}
+              <div className="flex justify-between items-center mb-4">
+                <button className="text-gray-400 hover:text-white">&lt;</button>
+                <h2 className="text-lg font-medium">
+                  {date ? format(date, "MMMM yyyy") : ""}
+                </h2>
+                <button className="text-gray-400 hover:text-white">&gt;</button>
+              </div>
+              
+              {/* Week Day Headers */}
+              <div className="grid grid-cols-7 gap-1 text-center mb-2">
+                {weekDays.map((day) => (
+                  <div key={day} className="text-sm text-gray-400">
+                    {day}
+                  </div>
+                ))}
+              </div>
+              
+              {/* Calendar Component */}
               <Calendar
                 mode="single"
                 selected={date}
                 onSelect={setDate}
                 className="rounded-md border border-[#2a3343] bg-[#1a2332]"
               />
+              
               <div className="mt-4 flex justify-between">
                 <Button
                   variant="outline"
@@ -170,7 +229,7 @@ export default function CalendarPage() {
                   {showChatbot ? "Hide Chatbot" : "Show Chatbot"}
                 </Button>
 
-                <Dialog>
+                <Dialog open={addTaskDialogOpen} onOpenChange={setAddTaskDialogOpen}>
                   <DialogTrigger asChild>
                     <Button className="bg-[#4cc9f0] hover:bg-[#4cc9f0]/80 text-black">
                       <Plus className="mr-2 h-4 w-4" /> Add Task
@@ -178,16 +237,25 @@ export default function CalendarPage() {
                   </DialogTrigger>
                   <DialogContent className="bg-[#1a2332] border-[#2a3343] text-white">
                     <DialogHeader>
-                      <DialogTitle>Add New Task</DialogTitle>
+                      <DialogTitle>Add New Task for {date ? format(date, "MMM d, yyyy") : ""}</DialogTitle>
                     </DialogHeader>
                     <div className="space-y-4 py-4">
                       <div className="space-y-2">
-                        <Input placeholder="Task name" className="bg-[#2a3343] border-[#3a4353] text-white" />
+                        <Label htmlFor="task-name">Task Name</Label>
+                        <Input 
+                          id="task-name"
+                          placeholder="Enter task name" 
+                          value={newTaskTitle}
+                          onChange={(e) => setNewTaskTitle(e.target.value)}
+                          className="bg-[#2a3343] border-[#3a4353] text-white" 
+                        />
                       </div>
-                      <div className="space-y-2">
-                        <Input type="datetime-local" className="bg-[#2a3343] border-[#3a4353] text-white" />
-                      </div>
-                      <Button className="w-full bg-[#4cc9f0] hover:bg-[#4cc9f0]/80 text-black">Save Task</Button>
+                      <Button 
+                        className="w-full bg-[#4cc9f0] hover:bg-[#4cc9f0]/80 text-black"
+                        onClick={handleAddTask}
+                      >
+                        Add Task
+                      </Button>
                     </div>
                   </DialogContent>
                 </Dialog>
@@ -198,7 +266,7 @@ export default function CalendarPage() {
           <Card className="md:col-span-2 bg-[#1a2332]/80 border-[#2a3343]">
             <CardHeader>
               <CardTitle className="text-xl text-white">
-                Tasks for {date?.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
+                Tasks for {date ? format(date, "MMMM d, yyyy") : ""}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -213,17 +281,15 @@ export default function CalendarPage() {
                       className="bg-[#2a3343] border-[#3a4353] text-white"
                     />
                     <Button className="bg-[#4cc9f0] hover:bg-[#4cc9f0]/80 text-black">
-                      <Send className="h-4 w-4" />
+                      Send
                     </Button>
                   </div>
                 </div>
               ) : (
-                <div className="flex flex-col items-center justify-center py-8">
-                  <p className="text-gray-400 mb-4">No tasks for this date. Add a task to get started!</p>
-                  <Button className="bg-[#4cc9f0] hover:bg-[#4cc9f0]/80 text-black">
-                    <Plus className="mr-2 h-4 w-4" /> Add Task
-                  </Button>
-                </div>
+                <>
+                  {/* Use the TaskList component to display tasks for the selected date */}
+                  {date && <TaskList date={date} />}
+                </>
               )}
             </CardContent>
           </Card>

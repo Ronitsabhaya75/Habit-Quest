@@ -7,6 +7,7 @@ import { EventProvider } from "../context/EventContext"
 // import Navbar from "../components/Navbar"
 import AudioPlayer from "../components/AudioPlayer"
 import "./globals.css"
+import { InitializeAchievements } from "../components/initialize-achievements"
 
 export const metadata = {
   generator: 'v0.dev',
@@ -33,6 +34,8 @@ export default function RootLayout({
             <HabitProvider>
               <EventProvider>
                 <TaskProvider>
+                  {/* Achievement initialization */}
+                  <InitializeAchievements />
                   {/* <Navbar /> */}
                   <div className="pt-16">
                     {children}

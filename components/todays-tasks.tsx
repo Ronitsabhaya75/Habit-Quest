@@ -231,15 +231,52 @@ export function TodaysTasks({ date = new Date() }: TodaysTasksProps) {
         // Update tasks list
         setTasks(tasks.map((task) => (task._id === id ? { ...task, completed } : task)))
 
-        // If task was completed, update user XP
+        // If task was completed, update user XP and check achievements
         if (completed) {
           // Import the XP_VALUES from lib/xp-system
           const { XP_VALUES } = await import("../lib/xp-system")
           
+          // Show toast for XP gained
           toast({
             title: "Task Completed!",
             description: `You earned ${XP_VALUES.TASK_COMPLETION} XP`,
           })
+          
+          // Check if any achievements were unlocked
+          try {
+            // Get count of completed tasks for today
+            const completedTodayCount = tasks.filter(t => t.completed).length + 1; // +1 for current task
+            
+            // Call achievement check endpoint
+            const achievementRes = await fetch('/api/achievements/check', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                taskCompleted: true,
+                tasksCompletedToday: completedTodayCount,
+                updatedTaskId: id
+              }),
+            });
+            
+            if (achievementRes.ok) {
+              const achievementData = await achievementRes.json();
+              
+              // If achievements were unlocked, show toasts
+              if (achievementData.unlockedAchievements && achievementData.unlockedAchievements.length > 0) {
+                achievementData.unlockedAchievements.forEach((achievement: any) => {
+                  toast({
+                    title: `🏆 Achievement Unlocked: ${achievement.name}!`,
+                    description: achievement.description,
+                    duration: 5000,
+                  });
+                });
+              }
+            }
+          } catch (error) {
+            console.error("Failed to check achievements:", error);
+          }
         }
       } else {
         throw new Error(data.message || "Failed to update task")
