@@ -204,13 +204,26 @@ export function TodaysTasks({ date = new Date() }: TodaysTasksProps) {
       }
       const completed = !task.completed
 
-      const res = await fetch(`/api/tasks/${id}`, {
+      // Try the direct PUT request first
+      let res = await fetch(`/api/tasks/${id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ completed }),
       })
+
+      // If PUT fails with a 405 error, try the fallback POST endpoint
+      if (res.status === 405) {
+        console.log("PUT method not allowed, using fallback POST endpoint")
+        res = await fetch(`/api/tasks/update`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ id, completed }),
+        })
+      }
 
       const data = await res.json()
       
