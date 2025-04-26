@@ -1,6 +1,14 @@
 import mongoose from "mongoose"
 
+// Clear existing model if it exists to ensure schema updates are applied
+mongoose.models = {}
+
 const BadgeSchema = new mongoose.Schema({
+  numericId: {
+    type: Number,
+    unique: true,
+    sparse: true, // This allows null/undefined values (for backward compatibility)
+  },
   name: {
     type: String,
     required: [true, "Please provide a badge name"],
@@ -29,6 +37,10 @@ const BadgeSchema = new mongoose.Schema({
     type: Date,
     default: Date.now,
   },
+}, { 
+  // Make the schema less strict to accommodate field additions
+  strict: false 
 })
 
+// Check if model already exists before creating
 export default mongoose.models.Badge || mongoose.model("Badge", BadgeSchema)

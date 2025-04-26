@@ -19,7 +19,6 @@ export interface Task {
   parentTaskId?: string
   createdAt: Date
   updatedAt: Date
-  dueDateString?: string
 }
 
 interface TaskContextType {
@@ -73,7 +72,7 @@ export const TaskProvider = ({ children }: { children: React.ReactNode }) => {
       // Check if achievements exist in local storage when offline
       if (!navigator.onLine) {
         const localAchievements = JSON.parse(localStorage.getItem('userAchievements') || '[]');
-        const pendingAchievements: Array<{threshold: number, name: string, description: string, xpReward: number}> = [];
+        const pendingAchievements = [];
         
         // Define achievement thresholds
         const achievementThresholds = [
@@ -327,8 +326,8 @@ export const TaskProvider = ({ children }: { children: React.ReactNode }) => {
       
       console.log("Updating task with data:", JSON.stringify(formattedData));
       
-      // Use the proper API endpoint for task updates - with the taskId in the URL
-      const response = await fetch(`/api/tasks/${taskData.id}`, {
+      // Use the proper API endpoint for task updates
+      const response = await fetch(`/api/tasks/update`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -453,12 +452,12 @@ export const TaskProvider = ({ children }: { children: React.ReactNode }) => {
       }
       
       // Use the specific task ID endpoint that matches our API structure
-      const response = await fetch(`/api/tasks/${id}`, {
+      const response = await fetch(`/api/tasks/update`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ completed: true }),
+        body: JSON.stringify({ id, completed: true }),
       });
       
       if (!response.ok) {
@@ -526,15 +525,11 @@ export const TaskProvider = ({ children }: { children: React.ReactNode }) => {
   // Function to get tasks for a specific date
   const getTasksForDate = (date: Date) => {
     try {
-      // Create copies of the date to avoid modifying the original
       const startOfDay = new Date(date);
       startOfDay.setHours(0, 0, 0, 0);
     
       const endOfDay = new Date(date);
       endOfDay.setHours(23, 59, 59, 999);
-    
-      const dateString = date.toISOString().split('T')[0]; // YYYY-MM-DD format
-      console.log(`Looking for tasks with date ${dateString} or between ${startOfDay.toISOString()} and ${endOfDay.toISOString()}`);
     
       // Make sure tasks is actually an array before filtering
       if (!Array.isArray(tasks)) {
@@ -542,63 +537,24 @@ export const TaskProvider = ({ children }: { children: React.ReactNode }) => {
         return [];
       }
     
-      // Debug the tasks
-      console.log(`Total tasks in state: ${tasks.length}`);
-    
-      const matchingTasks = tasks.filter(task => {
+      return tasks.filter(task => {
         // Skip null or undefined tasks
         if (!task) return false;
         
-        // Log task details for debugging
-        console.log(`Checking task: ${task.title}, dueDate: ${task.dueDate}, dueDateString: ${task.dueDateString || 'not set'}`);
-        
-        // First check if dueDateString matches exactly our date string
-        if (task.dueDateString === dateString) {
-          console.log(`Task ${task.title} matches by dueDateString`);
-          return true;
-        }
-        
-        // If no dueDateString, fall back to date range check
+        // Make sure the task has a dueDate
         if (!task.dueDate) return false;
         
         // Parse the date safely (could be string or Date object)
         let taskDate: Date;
         try {
           taskDate = new Date(task.dueDate);
-          
-          // Check if the dates match by comparing year, month, and day
-          const taskYear = taskDate.getFullYear();
-          const taskMonth = taskDate.getMonth();
-          const taskDay = taskDate.getDate();
-          
-          const targetYear = date.getFullYear();
-          const targetMonth = date.getMonth();
-          const targetDay = date.getDate();
-          
-          const datesMatch = taskYear === targetYear && 
-                             taskMonth === targetMonth && 
-                             taskDay === targetDay;
-                             
-          if (datesMatch) {
-            console.log(`Task ${task.title} matches by date components`);
-            return true;
-          }
-          
-          // Last resort: standard date range check
-          const isInRange = taskDate >= startOfDay && taskDate <= endOfDay;
-          if (isInRange) {
-            console.log(`Task ${task.title} matches by date range`);
-          }
-          return isInRange;
-          
         } catch (e) {
           console.error('Invalid date format:', task.dueDate);
           return false;
         }
+        
+        return taskDate >= startOfDay && taskDate <= endOfDay;
       });
-      
-      console.log(`Found ${matchingTasks.length} tasks for date ${dateString}`);
-      return matchingTasks;
     } catch (error) {
       console.error("Error in getTasksForDate:", error);
       return [];

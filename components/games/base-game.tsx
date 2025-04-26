@@ -45,7 +45,7 @@ export default function BaseGame({ onGameEnd, initialLevel = 1, maxTime, difficu
     })
   }
 
-  const handleGameEnd = (finalScore: number) => {
+  const handleGameEnd = async (finalScore: number) => {
     // Calculate XP based on difficulty and score
     const difficultyMultiplier = difficulty === "easy" ? 0.8 : difficulty === "hard" ? 1.5 : 1
     const earnedXP = Math.min(Math.ceil(finalScore * 0.1 * difficultyMultiplier), 10)
@@ -54,6 +54,26 @@ export default function BaseGame({ onGameEnd, initialLevel = 1, maxTime, difficu
       score: finalScore,
       level: gameState.level,
       completed: true,
+    }
+
+    // Update user XP and leaderboard
+    try {
+      const response = await fetch('/api/users/leaderboard/update', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          xpGained: earnedXP,
+          source: "game_completion" 
+        }),
+      });
+
+      if (!response.ok) {
+        console.error('Failed to update leaderboard with game XP');
+      }
+    } catch (error) {
+      console.error('Error updating leaderboard:', error);
     }
 
     if (onGameEnd) {

@@ -12,6 +12,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
+    "seed:badges": "NODE_OPTIONS='--experimental-json-modules' node --experimental-specifier-resolution=node scripts/add-badges.js",
     "postinstall": "echo 'Using npm for package management'"
   },
   "dependencies": {

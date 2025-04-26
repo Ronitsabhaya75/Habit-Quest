@@ -12,6 +12,7 @@ import { PacmanGame } from "../../components/games/pacman-game"
 import { MemoryGame } from "../../components/games/memory-game"
 import { Badge } from "../../components/ui/badge"
 import { Search } from "lucide-react"
+import Link from "next/link"
 
 export default function BreakthroughGame() {
   const [activeGame, setActiveGame] = useState<string | null>(null)
@@ -76,7 +77,7 @@ export default function BreakthroughGame() {
           <h1 className="text-2xl font-bold">HabitQuest</h1>
           
           <div className="hidden md:flex items-center justify-center space-x-4">
-            <nav className="flex items-center space-x-1">
+            <Link href="/dashboard" className="flex items-center space-x-1">
               <div className="flex items-center justify-center w-10 h-10 rounded-full bg-[#2a3343]">
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <rect width="7" height="9" x="3" y="3" rx="1" />
@@ -86,37 +87,9 @@ export default function BreakthroughGame() {
                 </svg>
               </div>
               <span className="text-sm ml-1">Dashboard</span>
-            </nav>
+            </Link>
             
-            <nav className="flex items-center space-x-1">
-              <div className="flex items-center justify-center w-10 h-10 rounded-full bg-purple-500">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M12 3v3" />
-                  <path d="M18.5 8.5l-2.1 2.1" />
-                  <path d="M21 12h-3" />
-                  <path d="M18.5 15.5l-2.1-2.1" />
-                  <path d="M12 18v3" />
-                  <path d="M7.5 15.5l2.1-2.1" />
-                  <path d="M6 12H3" />
-                  <path d="M7.5 8.5l2.1 2.1" />
-                </svg>
-              </div>
-              <span className="text-sm ml-1">Mini Games</span>
-            </nav>
-            
-            <nav className="flex items-center space-x-1">
-              <div className="flex items-center justify-center w-10 h-10 rounded-full bg-[#2a3343]">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-                  <line x1="16" y1="2" x2="16" y2="6" />
-                  <line x1="8" y1="2" x2="8" y2="6" />
-                  <line x1="3" y1="10" x2="21" y2="10" />
-                </svg>
-              </div>
-              <span className="text-sm ml-1">Calendar</span>
-            </nav>
-            
-            <nav className="flex items-center space-x-1">
+            <Link href="/habits" className="flex items-center space-x-1">
               <div className="flex items-center justify-center w-10 h-10 rounded-full bg-[#2a3343]">
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
@@ -124,9 +97,9 @@ export default function BreakthroughGame() {
                 </svg>
               </div>
               <span className="text-sm ml-1">Habit Creation</span>
-            </nav>
+            </Link>
             
-            <nav className="flex items-center space-x-1">
+            <Link href="/fitness" className="flex items-center space-x-1">
               <div className="flex items-center justify-center w-10 h-10 rounded-full bg-[#2a3343]">
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M18 8h1a4 4 0 0 1 0 8h-1" />
@@ -137,9 +110,9 @@ export default function BreakthroughGame() {
                 </svg>
               </div>
               <span className="text-sm ml-1">Fitness</span>
-            </nav>
+            </Link>
             
-            <nav className="flex items-center space-x-1">
+            <Link href="/shop" className="flex items-center space-x-1">
               <div className="flex items-center justify-center w-10 h-10 rounded-full bg-[#2a3343]">
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <circle cx="9" cy="21" r="1" />
@@ -148,9 +121,9 @@ export default function BreakthroughGame() {
                 </svg>
               </div>
               <span className="text-sm ml-1">Shop</span>
-            </nav>
+            </Link>
             
-            <nav className="flex items-center space-x-1">
+            <Link href="/review" className="flex items-center space-x-1">
               <div className="flex items-center justify-center w-10 h-10 rounded-full bg-[#2a3343]">
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
@@ -158,7 +131,7 @@ export default function BreakthroughGame() {
                 </svg>
               </div>
               <span className="text-sm ml-1">Review</span>
-            </nav>
+            </Link>
           </div>
           
           <div className="flex items-center space-x-4">

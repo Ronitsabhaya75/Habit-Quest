@@ -4,7 +4,7 @@ import Task from "../../../../models/Task"
 import { getUserFromToken } from "../../../../lib/auth"
 
 // Update task
-export async function POST(request) {
+export async function PUT(request) {
   try {
     // Get user from token
     const user = await getUserFromToken(request)
@@ -20,12 +20,12 @@ export async function POST(request) {
     const taskData = await request.json()
 
     // Basic validation
-    if (!taskData.taskId) {
+    if (!taskData.id) {
       return NextResponse.json({ success: false, message: "Task ID is required" }, { status: 400 })
     }
 
     // Find the task
-    const task = await Task.findOne({ _id: taskData.taskId, user: user._id })
+    const task = await Task.findOne({ _id: taskData.id, user: user._id })
 
     if (!task) {
       return NextResponse.json({ success: false, message: "Task not found" }, { status: 404 })
@@ -42,7 +42,7 @@ export async function POST(request) {
     
     // Update task
     const updatedTask = await Task.findByIdAndUpdate(
-      taskData.taskId,
+      taskData.id,
       { $set: updateFields },
       { new: true }
     )

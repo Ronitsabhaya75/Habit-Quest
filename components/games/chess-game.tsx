@@ -216,7 +216,9 @@ export function ChessGame() {
   }
 
   const handleSquareClick = (row: number, col: number) => {
-    if (gameStatus !== 'ongoing' || (vsComputer && currentPlayer === 'black')) return
+    // Allow interaction when game is ongoing OR when a king is in check
+    // but still block if it's computer's turn or game is over (checkmate/stalemate)
+    if ((gameStatus !== 'ongoing' && !gameStatus.includes('in check')) || (vsComputer && currentPlayer === 'black')) return
 
     // If a piece is already selected
     if (selectedPiece) {
@@ -272,6 +274,16 @@ export function ChessGame() {
     } else {
       setGameStatus('ongoing')
     }
+  }
+
+  // Add restart function to reset the game without exiting to menu
+  const restartGame = () => {
+    setBoard(initializeBoard())
+    setSelectedPiece(null)
+    setValidMoves([])
+    setCurrentPlayer('white')
+    setGameStatus('ongoing')
+    setCapturedPieces({white: [], black: []})
   }
 
   const findKingPosition = (board: Board, color: PieceColor): [number, number] | null => {
@@ -550,7 +562,17 @@ export function ChessGame() {
             {gameStatus.includes('ongoing') ? (
               <p>{currentPlayer === 'white' ? "Your turn (White)" : vsComputer ? "Computer thinking..." : "Black's turn"}</p>
             ) : (
-              <p>{gameStatus}</p>
+              <div className="flex flex-col items-center">
+                <p>{gameStatus}</p>
+                {(gameStatus.includes('Checkmate') || gameStatus.includes('Stalemate')) && (
+                  <Button 
+                    className="mt-4 bg-[#4cc9f0] hover:bg-[#4cc9f0]/90 text-black px-6 py-2"
+                    onClick={restartGame}
+                  >
+                    Play Again
+                  </Button>
+                )}
+              </div>
             )}
           </div>
           
