@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, ReactNode, FC } from "react"
 import { Calendar } from "../../components/ui/calendar"
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card"
 import { Button } from "../../components/ui/button"
@@ -101,6 +101,7 @@ export default function CalendarPage() {
   const [showChatbot, setShowChatbot] = useState(false)
   const [newTaskTitle, setNewTaskTitle] = useState("")
   const [addTaskDialogOpen, setAddTaskDialogOpen] = useState(false)
+  const [activeTab, setActiveTab] = useState("Calendar")
   const { addTask, fetchTasks } = useTask()
 
   // Define the week days for the calendar header
