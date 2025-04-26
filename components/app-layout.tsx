@@ -3,9 +3,10 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { ReactNode } from "react"
-import { ShoppingBag, Search, Home, Calendar, Plus, Activity, Star, LogOut } from "lucide-react"
+import { ShoppingBag, Search, Home, Calendar, Plus, Star, LogOut, Heart, Gamepad2 } from "lucide-react"
 import { Input } from "./ui/input"
 import { Button } from "./ui/button"
+import { motion, AnimatePresence } from "framer-motion"
 
 // Animated background particle component
 const ParticleBackground = () => {
@@ -37,17 +38,72 @@ interface AppLayoutProps {
   userLevel?: number
 }
 
+interface NavItemProps {
+  icon: JSX.Element
+  label: string
+  href: string
+  isActive: boolean
+}
+
+const NavItem = ({ icon, label, href, isActive }: NavItemProps) => {
+  return (
+    <Link
+      href={href}
+      className={`flex flex-col items-center justify-center p-2 rounded-lg transition-all ${
+        isActive ? "text-[#4cc9f0]" : "text-white/60 hover:text-white"
+      }`}
+    >
+      <div className="text-xl mb-1">{icon}</div>
+      <span className="text-xs font-medium">{label}</span>
+      {isActive && (
+        <motion.div
+          layoutId="activeTab"
+          className="w-1 h-1 bg-[#4cc9f0] rounded-full mt-1"
+        />
+      )}
+    </Link>
+  )
+}
+
 export function AppLayout({ children, title, subtitle, userXp = 0, userLevel = 1 }: AppLayoutProps) {
   const pathname = usePathname()
 
   const navItems = [
-    { href: "/dashboard", label: "Dashboard", icon: <Home className="w-5 h-5" /> },
-    { href: "/mini-games", label: "Mini Games", icon: <div className="w-5 h-5 flex items-center justify-center">🎮</div> },
-    { href: "/calendar", label: "Calendar", icon: <Calendar className="w-5 h-5" /> },
-    { href: "/habit-creation", label: "Habit Creation", icon: <Plus className="w-5 h-5" /> },
-    { href: "/fitness", label: "Fitness", icon: <Activity className="w-5 h-5" /> },
-    { href: "/shop", label: "Shop", icon: <ShoppingBag className="w-5 h-5" /> },
-    { href: "/review", label: "Review", icon: <Star className="w-5 h-5" /> },
+    {
+      icon: <Home size={22} />,
+      label: "Dashboard",
+      href: "/dashboard",
+    },
+    {
+      icon: <Gamepad2 size={22} />,
+      label: "Mini Games",
+      href: "/games",
+    },
+    {
+      icon: <Calendar size={22} />,
+      label: "Calendar",
+      href: "/calendar",
+    },
+    {
+      icon: <Plus size={22} />,
+      label: "Habit Creation",
+      href: "/habit-creation",
+    },
+    {
+      icon: <Heart size={22} />,
+      label: "Fitness",
+      href: "/fitness",
+    },
+    {
+      icon: <ShoppingBag size={22} />,
+      label: "Shop",
+      href: "/shop",
+    },
+    {
+      icon: <Star size={22} />,
+      label: "Review",
+      href: "/review",
+    },
   ]
 
   return (
@@ -73,17 +129,13 @@ export function AppLayout({ children, title, subtitle, userXp = 0, userLevel = 1
             {navItems.map((item) => {
               const isActive = pathname === item.href
               return (
-                <Link 
+                <NavItem
                   key={item.href}
-                  href={item.href} 
-                  className={`flex flex-col items-center px-3 ${isActive ? 'text-[#00FFF5]' : 'text-gray-400 hover:text-[#B8FFF9]'} transition-all duration-300`}
-                >
-                  <div className="w-8 h-8 flex items-center justify-center">
-                    {item.icon}
-                  </div>
-                  <span className="text-xs mt-1">{item.label}</span>
-                  <div className={`w-1 h-1 rounded-full ${isActive ? 'bg-[#00FFF5]' : 'bg-transparent'} mt-1`}></div>
-                </Link>
+                  icon={item.icon}
+                  label={item.label}
+                  href={item.href}
+                  isActive={isActive}
+                />
               )
             })}
           </div>

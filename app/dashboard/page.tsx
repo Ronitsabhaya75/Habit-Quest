@@ -783,7 +783,7 @@ export default function Dashboard() {
             {[
               { path: "dashboard", label: "Dashboard", icon: "👾" },
               { path: "breakthrough-game", label: "Mini Games", icon: "🎮" },
-              { path: "track", label: "Calendar", icon: "📅" },
+              { path: "calendar", label: "Calendar", icon: "📅" },
               // { path: "recurring-tasks", label: "Recurring", icon: "🔄" },
               { path: "new-habit", label: "Habit Creation", icon: "✨" },
               { path: "fitnessAssessment", label: "Fitness", icon: "🏋️" },
@@ -842,7 +842,7 @@ export default function Dashboard() {
             {[
               { path: "dashboard", label: "Dashboard", icon: "👾" },
               { path: "breakthrough-game", label: "Mini Games", icon: "🎮" },
-              { path: "track", label: "Calendar", icon: "📅" },
+              { path: "calendar", label: "Calendar", icon: "📅" },
               { path: "recurring-tasks", label: "Recurring", icon: "🔄" },
               { path: "new-habit", label: "Habit Creation", icon: "✨" },
               { path: "fitnessAssessment", label: "Fitness", icon: "🏋️" },

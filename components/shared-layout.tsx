@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation"
 import SharedBackground from "./shared-background"
+import { Home, Gamepad2, CalendarDays, Settings } from "lucide-react"
 
 interface SharedLayoutProps {
   children: React.ReactNode
@@ -15,13 +16,26 @@ export default function SharedLayout({
   const router = useRouter()
 
   const navItems = [
-    { path: "/dashboard", label: "Dashboard" },
-    { path: "/breakthrough-game", label: "Mini Games" },
-    { path: "/track", label: "Calendar Tracker" },
-    { path: "/new-habit", label: "Habit Creation" },
-    { path: "/fitnessAssessment", label: "Fitness Assessment" },
-    { path: "/shop", label: "Shop" },
-    { path: "/review", label: "Review" },
+    {
+      href: "/dashboard",
+      icon: <Home className="h-5 w-5" />,
+      title: "Dashboard",
+    },
+    {
+      href: "/mini-games",
+      icon: <Gamepad2 className="h-5 w-5" />,
+      title: "Mini Games",
+    },
+    {
+      href: "/calendar",
+      icon: <CalendarDays className="h-5 w-5" />,
+      title: "Calendar",
+    },
+    {
+      href: "/settings",
+      icon: <Settings className="h-5 w-5" />,
+      title: "Settings",
+    },
   ]
 
   return (
@@ -34,12 +48,13 @@ export default function SharedLayout({
             </h2>
             <ul className="space-y-2">
               {navItems.map((item) => (
-                <li key={item.path}>
+                <li key={item.href}>
                   <button
-                    onClick={() => router.push(item.path)}
+                    onClick={() => router.push(item.href)}
                     className="w-full text-left px-4 py-3 rounded-lg text-[#B8FFF9] hover:bg-[rgba(0,255,198,0.1)] hover:translate-x-1 transition-all duration-200 flex items-center gap-2"
                   >
-                    {item.label}
+                    {item.icon}
+                    {item.title}
                   </button>
                 </li>
               ))}
