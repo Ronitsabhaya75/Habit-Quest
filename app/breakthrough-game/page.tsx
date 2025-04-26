@@ -107,7 +107,13 @@ export default function BreakthroughGame() {
               </div>
               <span className="text-sm ml-1">Mini Game</span>
             </Link>
-            
+            <Link href="/calendar" className="flex items-center space-x-1">
+              <div className="flex items-center justify-center w-10 h-10 rounded-full bg-[#2a3343]">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                </svg>
+              </div>
+              <span className="text-sm ml-1">Calendar</span>
+            </Link>
             <Link href="/habits" className="flex items-center space-x-1">
               <div className="flex items-center justify-center w-10 h-10 rounded-full bg-[#2a3343]">
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
