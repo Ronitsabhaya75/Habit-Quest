@@ -132,7 +132,7 @@ export default function Fitness() {
                   </a>
                 </li>
                 <li>
-                  <a href="/mini-games" className="flex flex-col items-center text-gray-400 hover:text-[#4ADEDE] transition-colors py-1 nav-link">
+                  <a href="/breakthrough-game" className="flex flex-col items-center text-gray-400 hover:text-[#4ADEDE] transition-colors py-1 nav-link">
                     <Gamepad2 size={20} />
                     <span className="text-xs mt-1">Mini Games</span>
                   </a>

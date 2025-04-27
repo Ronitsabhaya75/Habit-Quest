@@ -393,10 +393,9 @@ export const TaskProvider = ({ children }: { children: React.ReactNode }) => {
       }
 
       setLoading(true);
-      const url = `/api/tasks?id=${id}${deleteRecurring ? '&deleteRecurring=true' : ''}`;
       
-      console.log(`Attempting to delete task with ID: ${id}`);
-      const response = await fetch(url, {
+      // Use the correct API endpoint for task deletion
+      const response = await fetch(`/api/tasks/${id}${deleteRecurring ? '?deleteRecurring=true' : ''}`, {
         method: "DELETE",
       });
       

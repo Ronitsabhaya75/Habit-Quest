@@ -112,9 +112,28 @@ export async function POST(request) {
     const userObj = await User.findById(user._id)
 
     // Check if user already has this badge (compare badge ID strings)
-    if (userObj.badges.some(b => b.toString() === badge._id.toString())) {
+    const badgeExists = userObj.badges.some(b => {
+      // Convert both to strings for proper comparison
+      const userBadgeId = b.toString();
+      const currentBadgeId = badge._id.toString();
+      
+      // Log the comparison for debugging
+      console.log(`Comparing user badge: ${userBadgeId} with current badge: ${currentBadgeId}`);
+      
+      return userBadgeId === currentBadgeId;
+    });
+    
+    if (badgeExists) {
       console.log("User already owns this badge");
-      return NextResponse.json({ success: false, message: "You already own this badge" }, { status: 400 })
+      return NextResponse.json({ 
+        success: true, 
+        message: "You already own this badge", 
+        data: {
+          badge,
+          userXp: userObj.xp,
+          alreadyOwned: true
+        }
+      }, { status: 200 })
     }
 
     // Check if user has enough XP

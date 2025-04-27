@@ -5,7 +5,7 @@ import { Calendar } from "../../components/ui/calendar"
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card"
 import { Button } from "../../components/ui/button"
 import { Input } from "../../components/ui/input"
-import { Plus } from "lucide-react"
+import { Plus, Gamepad2 } from "lucide-react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "../../components/ui/dialog"
 import { Label } from "../../components/ui/label"
 import { format, startOfDay } from "date-fns"
@@ -158,8 +158,8 @@ export default function CalendarPage() {
                 <HomeIcon />
                 <span className="text-xs mt-1">Dashboard</span>
               </a>
-              <a href="/mini-games" className="flex flex-col items-center text-gray-400 hover:text-[#4ADEDE] transition-colors py-1">
-                <GamepadIcon />
+              <a href="/breakthrough-game" className="flex flex-col items-center text-gray-400 hover:text-[#4ADEDE] transition-colors py-1">
+                <Gamepad2 size={20} />
                 <span className="text-xs mt-1">Mini Games</span>
               </a>
               <a href="/calendar" className="flex flex-col items-center text-[#4ADEDE] border-b-2 border-[#4ADEDE] py-1">

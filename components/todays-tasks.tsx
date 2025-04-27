@@ -36,12 +36,21 @@ export function TodaysTasks({ date = new Date() }: TodaysTasksProps) {
     async function fetchTasks() {
       try {
         setLoading(true)
-        // Format date correctly - use start of day to ensure consistent date handling
-        const targetDate = startOfDay(date)
-        const dateStr = format(targetDate, "yyyy-MM-dd") // More reliable ISO date string format
+        
+        // Create a new date in user's local timezone to respect CDT
+        // This ensures we're using the exact day as displayed to the user
+        const localDate = new Date(
+          date.getFullYear(),
+          date.getMonth(),
+          date.getDate(),
+          0, 0, 0
+        );
+        
+        // Use this approach to ensure the date displayed matches exactly what the server receives
+        const dateStr = `${localDate.getFullYear()}-${String(localDate.getMonth() + 1).padStart(2, '0')}-${String(localDate.getDate()).padStart(2, '0')}`;
         
         // Log the date we're querying for debugging
-        console.log("Fetching tasks for date:", dateStr)
+        console.log("Fetching tasks for date:", dateStr, "Original date object:", date.toString());
         
         const res = await fetch(`/api/tasks?date=${dateStr}`)
 
@@ -87,11 +96,19 @@ export function TodaysTasks({ date = new Date() }: TodaysTasksProps) {
   const addTask = async () => {
     if (newTaskTitle.trim()) {
       try {
-        // Ensure we're using start of day for consistent date handling
-        const targetDate = startOfDay(date)
-        // Use the format method for creating a reliable date string
-        const dateStr = format(targetDate, "yyyy-MM-dd")
-        console.log("Adding task for date:", dateStr)
+        // Create a new date in the user's local timezone without any time component
+        // to ensure consistent behavior with date displayed in the UI
+        const localDate = new Date(
+          date.getFullYear(),
+          date.getMonth(),
+          date.getDate(),
+          12, 0, 0 // Set to noon to avoid any timezone crossing issues
+        );
+        
+        // Use explicit date string formatting to match our API expectations
+        const dateStr = `${localDate.getFullYear()}-${String(localDate.getMonth() + 1).padStart(2, '0')}-${String(localDate.getDate()).padStart(2, '0')}`;
+        
+        console.log("Adding task for date:", dateStr, "ISO string:", localDate.toISOString());
         
         const res = await fetch("/api/tasks", {
           method: "POST",
@@ -100,7 +117,7 @@ export function TodaysTasks({ date = new Date() }: TodaysTasksProps) {
           },
           body: JSON.stringify({
             title: newTaskTitle,
-            dueDate: targetDate.toISOString(), // Use the selected date ISO string
+            dueDate: localDate.toISOString(), // Use the selected date ISO string
             dueDateString: dateStr, // Also include the formatted date string
             xpReward: 20,
           }),

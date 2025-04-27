@@ -33,8 +33,8 @@ export function MainLayout({ children }: MainLayoutProps) {
                 <Link href="/shop" className="text-gray-300 hover:text-white">
                   Shop
                 </Link>
-                <Link href="/mini-games" className="text-gray-300 hover:text-white">
-                  Games
+                <Link href="/breakthrough-game" className="text-gray-300 hover:text-white">
+                  Mini Games
                 </Link>
               </div>
             </div>

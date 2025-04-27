@@ -35,6 +35,9 @@
 import { useState, useEffect, useCallback } from "react"
 import { GameWrapper } from "./game-wrapper"
 import { Button } from "../ui/button"
+import { toast } from "react-hot-toast" 
+import { useRouter } from "next/navigation"
+import { XP_VALUES } from "../../lib/xp-system"
 
 type PieceType = 'pawn' | 'rook' | 'knight' | 'bishop' | 'queen' | 'king'
 type PieceColor = 'white' | 'black'
@@ -178,6 +181,17 @@ export function ChessGame() {
     if (newBoard[toRow][toCol]) {
       const capturedPiece = newBoard[toRow][toCol]
       if (capturedPiece) {
+        // Check if a king is captured (game over condition)
+        if (capturedPiece.type === 'king') {
+          const winner = movingPiece.color === 'white' ? 'White' : 'Black';
+          setGameStatus(`Game Over - ${winner} wins!`)
+          
+          // Award XP to the user if they win (white player)
+          if (movingPiece.color === 'white') {
+            awardXpForWinning();
+          }
+        }
+        
         setCapturedPieces(prev => ({
           ...prev,
           [movingPiece.color === 'white' ? 'white' : 'black']: [
@@ -207,19 +221,70 @@ export function ChessGame() {
     setBoard(newBoard)
     setSelectedPiece(null)
     setValidMoves([])
-    const nextPlayer = currentPlayer === 'white' ? 'black' : 'white'
-    setCurrentPlayer(nextPlayer)
     
-    // Check for game end conditions
-    checkGameStatus(newBoard, nextPlayer)
+    // Only change turns if the game is still ongoing
+    if (gameStatus === 'ongoing') {
+      const nextPlayer = currentPlayer === 'white' ? 'black' : 'white'
+      setCurrentPlayer(nextPlayer)
+    }
     
     return true
   }
 
+  // Function to award XP to the user when they win
+  const awardXpForWinning = async () => {
+    try {
+      // Award the XP (10 points for winning chess)
+      const xpAmount = 10;
+      
+      // Show a toast notification to the user
+      toast.success(`Congratulations! +${xpAmount} XP for winning the game!`, {
+        duration: 4000,
+        icon: '🏆'
+      });
+      
+      // Update the user's XP and leaderboard position via API
+      await fetch("/api/users/leaderboard/update", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ 
+          xpGained: xpAmount,
+          source: "chess_victory"
+        }),
+      });
+      
+      // Also update the game scores specifically for the chess game
+      await fetch("/api/game-scores", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          game: "chess",
+          score: 1, // Victory count
+          xpEarned: xpAmount
+        }),
+      });
+      
+    } catch (error) {
+      console.error("Error awarding XP for chess victory:", error);
+      // Still show a toast even if the server update fails
+      toast.success(`+${10} XP earned! (Will sync when connection restored)`, {
+        duration: 3000,
+        icon: '🏆'
+      });
+      
+      // Store the earned XP locally to sync later when connection is restored
+      const offlineXp = parseInt(localStorage.getItem('offlineXpScore') || '0');
+      localStorage.setItem('offlineXpScore', (offlineXp + 10).toString());
+    }
+  }
+
   const handleSquareClick = (row: number, col: number) => {
     // Don't allow interaction when game is over or computer's turn
-    if ((gameStatus !== 'ongoing' && !gameStatus.includes('in check')) || 
-        (vsComputer && currentPlayer === 'black')) {
+    if (gameStatus !== 'ongoing' || (vsComputer && currentPlayer === 'black')) {
       return
     }
 
@@ -250,41 +315,6 @@ export function ChessGame() {
         setSelectedPiece([row, col])
         setValidMoves(getValidMoves(row, col, board))
       }
-    }
-  }
-
-  const checkGameStatus = (board: Board, nextPlayer: PieceColor) => {
-    // First check if the king is in check
-    const isCheck = isKingInCheck(board, nextPlayer)
-    
-    // Check if the next player has any valid moves
-    let hasValidMoves = false
-    for (let row = 0; row < 8 && !hasValidMoves; row++) {
-      for (let col = 0; col < 8 && !hasValidMoves; col++) {
-        const piece = board[row][col]
-        if (piece && piece.color === nextPlayer) {
-          const moves = getValidMoves(row, col, board)
-          if (moves.length > 0) {
-            hasValidMoves = true
-          }
-        }
-      }
-    }
-
-    if (!hasValidMoves) {
-      if (isCheck) {
-        // Checkmate
-        setGameStatus(`Checkmate - ${nextPlayer === 'white' ? 'Black' : 'White'} wins!`)
-      } else {
-        // Stalemate
-        setGameStatus('Stalemate - Draw!')
-      }
-    } else if (isCheck) {
-      // Regular check
-      setGameStatus(`${nextPlayer === 'white' ? 'White' : 'Black'} is in check!`)
-    } else {
-      // Ongoing game
-      setGameStatus('ongoing')
     }
   }
 
@@ -330,7 +360,7 @@ export function ChessGame() {
     return false
   }
 
-  const getValidMoves = (row: number, col: number, board: Board, ignoreKingSafety = false): [number, number][] => {
+  const getValidMoves = (row: number, col: number, board: Board, ignoreKingSafety = true): [number, number][] => {
     const piece = board[row][col]
     if (!piece) return []
 
@@ -452,24 +482,7 @@ export function ChessGame() {
         break
     }
 
-    if (!ignoreKingSafety) {
-      // Filter out moves that would leave the king in check
-      return moves.filter(([r, c]) => {
-        const newBoard = [...board.map(row => [...row])]
-        const piece = newBoard[row][col]
-        if (!piece) return false
-        
-        // Simulate the move
-        newBoard[r][c] = {...piece, hasMoved: true}
-        newBoard[row][col] = null
-        
-        const kingPosition = findKingPosition(newBoard, color)
-        if (!kingPosition) return false
-        
-        return !isSquareUnderAttack(kingPosition[0], kingPosition[1], newBoard, color)
-      })
-    }
-
+    // Remove king safety check - allow all moves
     return moves
   }
 

@@ -33,6 +33,8 @@ import {
 import { cn } from "../../lib/utils"
 import { useToast } from "../../components/ui/use-toast"
 import { motion, AnimatePresence } from "framer-motion"
+import { useTask } from "../../components/task-context"
+import { useRouter } from 'next/navigation'
 
 // Example habits suggestions for rotating placeholders
 const habitSuggestions = [
@@ -113,6 +115,8 @@ export default function HabitCreation() {
   const [showParticleBurst, setShowParticleBurst] = useState(false)
   const [randomNodePulse, setRandomNodePulse] = useState(-1)
   const { toast } = useToast()
+  const { addTask } = useTask()
+  const router = useRouter()
   
   // Audio reference for background music
   const audioRef = useRef<HTMLAudioElement | null>(null)
@@ -179,6 +183,80 @@ export default function HabitCreation() {
   
   const progressStarPos = getProgressStarPosition(formProgress);
 
+  const saveHabitToDatabase = async () => {
+    try {
+      if (!startDate || !endDate) {
+        toast({
+          title: "Missing Dates",
+          description: "Please select start and end dates for your habit",
+          variant: "destructive",
+        })
+        return null
+      }
+
+      // Create the habit object
+      const habitData = {
+        name: habitName,
+        description: habitDescription,
+        startDate: startDate,
+        endDate: endDate,
+        frequency: frequency,
+        reminder: reminder === "yes",
+      }
+
+      // Save the habit to the database
+      const response = await fetch("/api/habits", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(habitData),
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to create habit")
+      }
+
+      const data = await response.json()
+      return data.habit
+    } catch (error) {
+      console.error("Error saving habit:", error)
+      toast({
+        title: "Error",
+        description: "Failed to save habit. Please try again.",
+        variant: "destructive",
+      })
+      return null
+    }
+  }
+
+  const createHabitTasks = async (habit: any) => {
+    try {
+      // For now, let's add a task for today if the start date is today or in the past
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+      
+      const startDay = new Date(habit.startDate)
+      startDay.setHours(0, 0, 0, 0)
+      
+      // Create the initial task for today if applicable
+      if (startDay <= today) {
+        await addTask({
+          title: habit.name,
+          description: habit.description,
+          dueDate: new Date(), // today
+          xpReward: 30, // default XP for habits
+          isHabit: true, // mark as a habit task
+          isRecurring: true, // habits are recurring
+          frequency: habit.frequency as "daily" | "weekly" | "biweekly" | "monthly",
+          recurringEndDate: new Date(habit.endDate)
+        })
+      }
+    } catch (error) {
+      console.error("Error creating habit tasks:", error)
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
@@ -186,12 +264,17 @@ export default function HabitCreation() {
     setShowParticleBurst(true)
     setIsGenerating(true)
     
-    // Simulate loading time for the animation
-    setTimeout(async () => {
-      try {
-        // Import the XP_VALUES from lib/xp-system
-        const { XP_VALUES } = await import("../../lib/xp-system")
+    try {
+      // Import the XP_VALUES from lib/xp-system
+      const { XP_VALUES } = await import("../../lib/xp-system")
 
+      // Save the habit to the database
+      const savedHabit = await saveHabitToDatabase()
+      
+      if (savedHabit) {
+        // Create tasks for this habit
+        await createHabitTasks(savedHabit)
+        
         // Show success message with XP and sparkle effect
         toast({
           title: "Habit Mission Launched! 🚀",
@@ -206,24 +289,26 @@ export default function HabitCreation() {
         setEndDate(undefined)
         setFrequency("")
         setFormProgress(0)
-        setIsGenerating(false)
         
-        // Hide particle burst after animation completes
+        // Navigate to calendar to see the new habit task
         setTimeout(() => {
-          setShowParticleBurst(false)
-        }, 1500)
-
-      } catch (error) {
-        console.error("Error creating habit:", error)
-        toast({
-          title: "Mission Failed",
-          description: "Failed to create habit. Please try again.",
-          variant: "destructive",
-        })
+          router.push('/calendar')
+        }, 2000)
+      }
+    } catch (error) {
+      console.error("Error creating habit:", error)
+      toast({
+        title: "Mission Failed",
+        description: "Failed to create habit. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      // Hide particle burst and stop generating state
+      setTimeout(() => {
         setIsGenerating(false)
         setShowParticleBurst(false)
-      }
-    }, 2500)
+      }, 1500)
+    }
   }
 
   return (
@@ -249,7 +334,7 @@ export default function HabitCreation() {
                   </a>
                 </li>
                 <li>
-                  <a href="/mini-games" className="flex flex-col items-center text-gray-400 hover:text-[#4ADEDE] transition-colors py-1 nav-link">
+                  <a href="/breakthrough-game" className="flex flex-col items-center text-gray-400 hover:text-[#4ADEDE] transition-colors py-1 nav-link">
                     <Gamepad2 size={20} />
                     <span className="text-xs mt-1">Mini Games</span>
                   </a>

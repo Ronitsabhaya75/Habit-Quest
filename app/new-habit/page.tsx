@@ -191,6 +191,63 @@ export default function HabitCreation() {
       try {
         // Import the XP_VALUES from lib/xp-system
         const { XP_VALUES } = await import("../../lib/xp-system")
+        
+        // Prepare habit data
+        const habitData = {
+          title: habitName,
+          description: habitDescription,
+          startDate: startDate?.toISOString(),
+          endDate: endDate?.toISOString(),
+          frequency: frequency,
+          reminder: reminder === "yes",
+          isHabit: true,
+          dueDate: startDate?.toISOString(), // Set first due date to start date
+          xpReward: XP_VALUES.HABIT_COMPLETION || 30,
+        }
+        
+        console.log("Submitting habit data:", habitData)
+        
+        // Send habit data to API
+        const response = await fetch("/api/habits", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(habitData)
+        })
+        
+        if (!response.ok) {
+          const errorText = await response.text()
+          throw new Error(`Failed to create habit: ${errorText}`)
+        }
+        
+        const result = await response.json()
+        console.log("Habit created successfully:", result)
+        
+        // Also create as task for tracking
+        const taskData = {
+          title: habitName,
+          description: habitDescription,
+          dueDate: startDate?.toISOString(),
+          isHabit: true,
+          isRecurring: true,
+          frequency: frequency,
+          recurringEndDate: endDate?.toISOString(),
+          xpReward: XP_VALUES.HABIT_COMPLETION || 30,
+        }
+        
+        // Send task data to API
+        const taskResponse = await fetch("/api/tasks", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(taskData)
+        })
+        
+        if (!taskResponse.ok) {
+          console.warn("Habit created but task creation failed")
+        }
 
         // Show success message with XP and sparkle effect
         toast({
@@ -198,6 +255,22 @@ export default function HabitCreation() {
           description: `You earned ${XP_VALUES.HABIT_CREATION} XP for creating a new habit.`,
           className: "bg-[#1a2332] border-[#4cc9f0] text-white",
         })
+
+        // Update user XP
+        try {
+          await fetch("/api/users/update-xp", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+              xpAmount: XP_VALUES.HABIT_CREATION,
+              source: "habit_creation"
+            })
+          })
+        } catch (xpError) {
+          console.error("Error updating XP:", xpError)
+        }
 
         // Reset form
         setHabitName("")
@@ -249,7 +322,7 @@ export default function HabitCreation() {
                   </a>
                 </li>
                 <li>
-                  <a href="/mini-games" className="flex flex-col items-center text-gray-400 hover:text-[#4ADEDE] transition-colors py-1 nav-link">
+                  <a href="/breakthrough-game" className="flex flex-col items-center text-gray-400 hover:text-[#4ADEDE] transition-colors py-1 nav-link">
                     <Gamepad2 size={20} />
                     <span className="text-xs mt-1">Mini Games</span>
                   </a>

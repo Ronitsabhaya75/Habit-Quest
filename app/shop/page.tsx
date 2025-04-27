@@ -246,6 +246,24 @@ export default function Shop() {
       
       // Check if the purchase was successful
       if (response.ok && data.success) {
+        // Handle already owned badge
+        if (data.data.alreadyOwned) {
+          toast.info(`You already own the ${badge.name} badge!`, {
+            duration: 3000,
+          });
+          setUserBadges(prev => {
+            // Only add the badge ID if it's not already in the array
+            if (!prev.includes(badge.id.toString())) {
+              return [...prev, badge.id.toString()];
+            }
+            return prev;
+          });
+          setAnimatingPurchase(null);
+          setPurchaseDialogOpen(false);
+          setLoading(false);
+          return;
+        }
+        
         // Update user XP and badges after animation completes
         setTimeout(() => {
           setUserXp(data.data.userXp);
@@ -335,9 +353,15 @@ export default function Shop() {
               <Home size={20} />
               <span className="text-xs mt-1">Dashboard</span>
             </Link>
-            <Link href="/mini-games" className="flex flex-col items-center text-[#A0A4B8] hover:text-white transition-colors">
-              <GamepadIcon size={20} />
-              <span className="text-xs mt-1">Mini Games</span>
+            <Link href="/breakthrough-game" className="flex flex-col items-center text-[#A0A4B8] hover:text-white transition-colors">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="mb-1">
+                <path d="M21 6H3C1.89543 6 1 6.89543 1 8V16C1 17.1046 1.89543 18 3 18H21C22.1046 18 23 17.1046 23 16V8C23 6.89543 22.1046 6 21 6Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                <path d="M10 12H6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                <path d="M8 10V14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                <circle cx="16" cy="14" r="1" fill="currentColor" />
+                <circle cx="18" cy="10" r="1" fill="currentColor" />
+              </svg>
+              <span className="text-xs">Mini Games</span>
             </Link>
             <Link href="/calendar" className="flex flex-col items-center text-[#A0A4B8] hover:text-white transition-colors">
               <Calendar size={20} />
