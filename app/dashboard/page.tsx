@@ -8,7 +8,7 @@ import { Input } from "../../components/ui/input"
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts"
 import { useAuth } from "../../context/auth-context"
 import { LogOut, Search, RefreshCw } from "lucide-react"
-import AIChat from "../../components/ai-chat"
+import AIChat from "../../components/AIChat.jsx"
 import { TodaysTasks } from "../../components/todays-tasks"
 
 // Define types for tasks and notifications

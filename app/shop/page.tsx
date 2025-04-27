@@ -130,8 +130,13 @@ export default function Shop() {
     { id: 2, name: "Night Owl", description: "Complete 5 tasks after 10 PM", price: 100, rarity: "common" },
     { id: 3, name: "Streak Master", description: "Maintain a 7-day streak", price: 200, rarity: "rare" },
     { id: 4, name: "Game Champion", description: "Win all mini games", price: 300, rarity: "rare" },
-    { id: 5, name: "Fitness Guru", description: "Complete a 30-day fitness plan", price: 500, rarity: "epic" },
+    { id: 5, name: "Fitness Guru", description: "Complete a 30-day fitness plan", price: 500, rarity: "rare" },
     { id: 6, name: "Habit Hero", description: "Create and complete 10 habits", price: 500, rarity: "epic" },
+    { id: 7, name: "XP Collector", description: "Collect 1000 XP", price: 1000, rarity: "epic" },
+    { id: 8, name: "Shopaholic", description: "Purchase 5 badges", price: 2000, rarity: "epic" },
+    { id: 9, name: "Master of Badges", description: "Collect all badges", price: 5000, rarity: "epic" },
+    { id: 10, name: "Ultimate Achiever", description: "Complete all achievements", price: 10000, rarity: "epic" }
+
   ]
 
   const filteredBadges = activeTab === "all" ? badges : badges.filter((badge) => badge.rarity === activeTab)
