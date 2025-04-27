@@ -207,18 +207,21 @@ export function ChessGame() {
     setBoard(newBoard)
     setSelectedPiece(null)
     setValidMoves([])
-    setCurrentPlayer(currentPlayer === 'white' ? 'black' : 'white')
+    const nextPlayer = currentPlayer === 'white' ? 'black' : 'white'
+    setCurrentPlayer(nextPlayer)
     
     // Check for game end conditions
-    checkGameStatus(newBoard, currentPlayer === 'white' ? 'black' : 'white')
+    checkGameStatus(newBoard, nextPlayer)
     
     return true
   }
 
   const handleSquareClick = (row: number, col: number) => {
-    // Allow interaction when game is ongoing OR when a king is in check
-    // but still block if it's computer's turn or game is over (checkmate/stalemate)
-    if ((gameStatus !== 'ongoing' && !gameStatus.includes('in check')) || (vsComputer && currentPlayer === 'black')) return
+    // Don't allow interaction when game is over or computer's turn
+    if ((gameStatus !== 'ongoing' && !gameStatus.includes('in check')) || 
+        (vsComputer && currentPlayer === 'black')) {
+      return
+    }
 
     // If a piece is already selected
     if (selectedPiece) {
@@ -251,32 +254,40 @@ export function ChessGame() {
   }
 
   const checkGameStatus = (board: Board, nextPlayer: PieceColor) => {
+    // First check if the king is in check
+    const isCheck = isKingInCheck(board, nextPlayer)
+    
     // Check if the next player has any valid moves
-    const hasValidMoves = board.some((row, rowIndex) => 
-      row.some((piece, colIndex) => {
+    let hasValidMoves = false
+    for (let row = 0; row < 8 && !hasValidMoves; row++) {
+      for (let col = 0; col < 8 && !hasValidMoves; col++) {
+        const piece = board[row][col]
         if (piece && piece.color === nextPlayer) {
-          return getValidMoves(rowIndex, colIndex, board).length > 0
+          const moves = getValidMoves(row, col, board)
+          if (moves.length > 0) {
+            hasValidMoves = true
+          }
         }
-        return false
-      })
-    )
+      }
+    }
 
     if (!hasValidMoves) {
-      // Check if the king is in check (checkmate) or not (stalemate)
-      const kingPosition = findKingPosition(board, nextPlayer)
-      if (kingPosition && isSquareUnderAttack(kingPosition[0], kingPosition[1], board, nextPlayer)) {
+      if (isCheck) {
+        // Checkmate
         setGameStatus(`Checkmate - ${nextPlayer === 'white' ? 'Black' : 'White'} wins!`)
       } else {
+        // Stalemate
         setGameStatus('Stalemate - Draw!')
       }
-    } else if (isKingInCheck(board, nextPlayer)) {
+    } else if (isCheck) {
+      // Regular check
       setGameStatus(`${nextPlayer === 'white' ? 'White' : 'Black'} is in check!`)
     } else {
+      // Ongoing game
       setGameStatus('ongoing')
     }
   }
 
-  // Add restart function to reset the game without exiting to menu
   const restartGame = () => {
     setBoard(initializeBoard())
     setSelectedPiece(null)
@@ -559,8 +570,10 @@ export function ChessGame() {
             gameStatus.includes('Black') ? 'text-[#4cc9f0]' : 
             'text-gray-300'
           }`}>
-            {gameStatus.includes('ongoing') ? (
+            {gameStatus === 'ongoing' ? (
               <p>{currentPlayer === 'white' ? "Your turn (White)" : vsComputer ? "Computer thinking..." : "Black's turn"}</p>
+            ) : gameStatus.includes('in check') ? (
+              <p>{gameStatus}</p>
             ) : (
               <div className="flex flex-col items-center">
                 <p>{gameStatus}</p>

@@ -1,0 +1,53 @@
+Updated Sprint 5 Summary
+During Sprint 5, I focused on modernizing the application architecture, improving backend stability, expanding features, and enhancing the overall deployment strategy. Key updates include transitioning from a Node.js backend to a full-stack Next.js application, redeploying the platform on Vercel, refining MongoDB models and APIs, and introducing a background music feature to elevate user experience.
+
+Key Accomplishments
+Migration to Next.js
+Successfully transitioned the codebase from a traditional Node.js/Express setup to a full-stack Next.js architecture.
+
+Simplified API routing and improved frontend-backend integration, resulting in faster load times and a more maintainable project structure.
+
+Deployment on Vercel
+Deployed the updated Next.js application to Vercel, leveraging serverless functions and automatic scaling.
+
+Configured environment variables, database connections, and optimized the build for production deployment.
+
+Backend and MongoDB Model Refinement
+Audited and improved the MongoDB models to ensure data consistency, validation, and scalability.
+
+Refactored backend logic to align with the new Next.js API routes, resulting in cleaner and more modular code.
+
+Task API Fixes
+Debugged and enhanced the task management API, ensuring accurate CRUD operations and proper task assignment handling.
+
+Improved the reliability of task updates, completion tracking, and integration with the leaderboard and calendar systems.
+
+Background Music Feature
+Introduced a background music functionality, allowing users to enjoy a more immersive and engaging app environment.
+
+Developed a toggle option so users can control music playback according to their preference.
+
+Challenges Faced
+Migrating the backend while maintaining existing functionalities required careful restructuring and incremental testing.
+
+Managing database operations with new Next.js API routes introduced challenges around session management and API call optimization.
+
+Ensuring smooth music playback across various components without performance degradation required fine-tuned state management.
+
+Lessons Learned
+Deepened my knowledge of Next.js architecture, including API routes, server-side rendering, and deployment best practices.
+
+Strengthened skills in MongoDB schema design, data validation, and error handling.
+
+Gained experience integrating multimedia features (background music) in web applications to enhance user experience.
+
+Areas for Improvement
+Further optimize serverless function calls on Vercel to minimize cold start times.
+
+Enhance database indexing and query efficiency for faster API responses.
+
+Expand user settings for background music (e.g., volume control, playlist options).
+
+Conclusion
+Sprint 5 marked a major technical leap by modernizing the backend, deploying efficiently on Vercel, and enriching the user experience with background music. These changes laid a strong foundation for future scalability, smoother interactions, and a more engaging environment. Moving forward, I plan to continue optimizing backend performance and explore more personalization features for users.
+

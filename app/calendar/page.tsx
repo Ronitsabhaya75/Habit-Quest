@@ -23,7 +23,7 @@ interface NavItemProps {
 // NavItem component with proper typing
 const NavItem: FC<NavItemProps> = ({ icon, name, isActive, onClick }) => {
   return (
-    <div className="flex flex-col items-center cursor-pointer" onClick={onClick}>
+    <a href={`/${name.toLowerCase().replace(' ', '-')}`} className="flex flex-col items-center cursor-pointer">
       <div className="text-gray-400 hover:text-white mb-1">
         {icon}
       </div>
@@ -31,7 +31,7 @@ const NavItem: FC<NavItemProps> = ({ icon, name, isActive, onClick }) => {
       {isActive && (
         <div className="h-1 w-1 bg-[#4cc9f0] rounded-full mt-1"></div>
       )}
-    </div>
+    </a>
   )
 }
 
@@ -107,10 +107,11 @@ export default function CalendarPage() {
   // Define the week days for the calendar header
   const weekDays = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"]
 
-  // Refetch tasks when the component mounts or date changes
+  // Refetch tasks when the component mounts only
   useEffect(() => {
     fetchTasks()
-  }, [fetchTasks])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []) // Empty dependency array means this runs once on mount
 
   const handleAddTask = async () => {
     if (newTaskTitle.trim() && date) {
@@ -153,13 +154,34 @@ export default function CalendarPage() {
           {/* Navigation */}
           <nav className="flex-1 flex justify-center">
             <div className="flex space-x-8">
-              <NavItem icon={<HomeIcon />} name="Dashboard" isActive={activeTab === "Dashboard"} onClick={() => setActiveTab("Dashboard")} />
-              <NavItem icon={<GamepadIcon />} name="Mini Games" isActive={activeTab === "Mini Games"} onClick={() => setActiveTab("Mini Games")} />
-              <NavItem icon={<CalendarIcon />} name="Calendar" isActive={activeTab === "Calendar"} onClick={() => setActiveTab("Calendar")} />
-              <NavItem icon={<PlusIcon />} name="Habit Creation" isActive={activeTab === "Habit Creation"} onClick={() => setActiveTab("Habit Creation")} />
-              <NavItem icon={<FitnessIcon />} name="Fitness" isActive={activeTab === "Fitness"} onClick={() => setActiveTab("Fitness")} />
-              <NavItem icon={<ShopIcon />} name="Shop" isActive={activeTab === "Shop"} onClick={() => setActiveTab("Shop")} />
-              <NavItem icon={<StarIcon />} name="Review" isActive={activeTab === "Review"} onClick={() => setActiveTab("Review")} />
+              <a href="/dashboard" className="flex flex-col items-center text-gray-400 hover:text-[#4ADEDE] transition-colors py-1">
+                <HomeIcon />
+                <span className="text-xs mt-1">Dashboard</span>
+              </a>
+              <a href="/mini-games" className="flex flex-col items-center text-gray-400 hover:text-[#4ADEDE] transition-colors py-1">
+                <GamepadIcon />
+                <span className="text-xs mt-1">Mini Games</span>
+              </a>
+              <a href="/calendar" className="flex flex-col items-center text-[#4ADEDE] border-b-2 border-[#4ADEDE] py-1">
+                <CalendarIcon />
+                <span className="text-xs mt-1">Calendar</span>
+              </a>
+              <a href="/habit-creation" className="flex flex-col items-center text-gray-400 hover:text-[#4ADEDE] transition-colors py-1">
+                <PlusIcon />
+                <span className="text-xs mt-1">Habit Creation</span>
+              </a>
+              <a href="/fitness" className="flex flex-col items-center text-gray-400 hover:text-[#4ADEDE] transition-colors py-1">
+                <FitnessIcon />
+                <span className="text-xs mt-1">Fitness</span>
+              </a>
+              <a href="/shop" className="flex flex-col items-center text-gray-400 hover:text-[#4ADEDE] transition-colors py-1">
+                <ShopIcon />
+                <span className="text-xs mt-1">Shop</span>
+              </a>
+              <a href="/review" className="flex flex-col items-center text-gray-400 hover:text-[#4ADEDE] transition-colors py-1">
+                <StarIcon />
+                <span className="text-xs mt-1">Review</span>
+              </a>
             </div>
           </nav>
           
