@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/ca
 import { Button } from "../../components/ui/button"
 import { Input } from "../../components/ui/input"
 import { MainLayout } from "../../components/main-layout"
-import AIChat from "../../components/ai-chat"
+import AIChat from "../../components/AIChat.jsx"
 import { TaskList } from "../../components/task-list"
 import { Plus, Send } from "lucide-react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "../../components/ui/dialog"
