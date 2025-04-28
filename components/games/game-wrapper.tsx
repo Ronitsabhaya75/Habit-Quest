@@ -7,13 +7,14 @@ import { Coins } from "lucide-react"
 import { Button } from "../ui/button"
 import { Badge } from "../ui/badge"
 
-interface GameWrapperProps {
+export interface GameWrapperProps {
   title: string
   description: string
   children: React.ReactNode
   gameStarted: boolean
   gameOver: boolean
   score: number
+  highScore?: number
   onStart: () => void
   onEnd: () => void
   showScore?: boolean
@@ -27,6 +28,7 @@ export function GameWrapper({
   gameStarted,
   gameOver,
   score,
+  highScore,
   onStart,
   onEnd,
   showScore = true,
@@ -43,6 +45,9 @@ export function GameWrapper({
             <div className="my-4">
               <h4 className="text-lg font-bold text-white">Game Over!</h4>
               <p className="text-[#4cc9f0] text-2xl font-bold">{score} points</p>
+              {highScore !== undefined && (
+                <p className="text-gray-400">High Score: {highScore}</p>
+              )}
               <p className="text-white">You earned {Math.min(Math.floor(score * 0.2), 10)} XP</p>
             </div>
           )}

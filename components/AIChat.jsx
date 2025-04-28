@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import PropTypes from 'prop-types';
 import styled from 'styled-components';
 import { theme } from '../theme';
 
@@ -19,7 +20,7 @@ const ChatContainer = styled.div`
   z-index: 1000;
   backdrop-filter: blur(10px);
   transition: all 0.3s cubic-bezier(0.17, 0.67, 0.83, 0.67);
-  transform: ${props => props.isOpen ? 'translateY(0)' : 'translateY(calc(100% - 60px))'};
+  transform: ${props => props.isopen ? 'translateY(0)' : 'translateY(calc(100% - 60px))'};
 `;
 
 const ChatHeader = styled.div`
@@ -90,7 +91,7 @@ const SendButton = styled.button`
   }
 `;
 
-const AIChat = ({ user, tasks, onTaskUpdate, onAddTaskWithDate }) => {
+const AIChat = ({ user, tasks, onTaskUpdate, onAddTask, onAddTaskWithDate }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [message, setMessage] = useState('');
   const [chatHistory, setChatHistory] = useState([
@@ -388,7 +389,7 @@ const AIChat = ({ user, tasks, onTaskUpdate, onAddTaskWithDate }) => {
   };
 
   return (
-    <ChatContainer isOpen={isOpen}>
+    <ChatContainer isopen={isOpen}>
       <ChatHeader onClick={toggleChat}>
         <span>💬 Habit Coach</span>
         <span>{isOpen ? '▼' : '▲'}</span>
@@ -423,6 +424,23 @@ const AIChat = ({ user, tasks, onTaskUpdate, onAddTaskWithDate }) => {
       )}
     </ChatContainer>
   );
+};
+
+AIChat.propTypes = {
+  user: PropTypes.object,
+  tasks: PropTypes.arrayOf(
+    PropTypes.shape({
+      id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
+      title: PropTypes.string.isRequired,
+      completed: PropTypes.bool.isRequired,
+      isHabit: PropTypes.bool,
+      estimatedTime: PropTypes.number,
+      isEditing: PropTypes.bool,
+    })
+  ),
+  onTaskUpdate: PropTypes.func.isRequired,
+  onAddTask: PropTypes.func.isRequired,
+  onAddTaskWithDate: PropTypes.func.isRequired
 };
 
 export default AIChat;

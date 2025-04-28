@@ -33,6 +33,46 @@ export function SpinWheel({ onXPReward }: SpinWheelProps) {
   const [score, setScore] = useState(0)
   const [gameOver, setGameOver] = useState(false)
 
+  const updateUserStats = async (xp: number) => {
+    try {
+      const res = await fetch('/api/users/update-stats', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          xp,
+          gameType: 'spinWheel',
+          plays: 1
+        }),
+      });
+      if (!res.ok) throw new Error('Failed to update stats');
+    } catch (error) {
+      console.error('Error updating stats:', error);
+    }
+  };
+
+  const createSpinTask = async (totalXP: number) => {
+    try {
+      const res = await fetch('/api/tasks/create-game-task', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          gameType: 'spinWheel',
+          title: 'Spin Wheel Challenge',
+          description: `Earn ${totalXP + 5} XP in the Spin Wheel game`,
+          xpReward: totalXP + 5,
+          dueDate: new Date(Date.now() + 86400000) // Due in 1 day
+        }),
+      });
+      if (!res.ok) throw new Error('Failed to create task');
+    } catch (error) {
+      console.error('Error creating spin task:', error);
+    }
+  };
+
   useEffect(() => {
     if (gameStarted && canvasRef.current) {
       const canvas = canvasRef.current
@@ -134,6 +174,8 @@ export function SpinWheel({ onXPReward }: SpinWheelProps) {
         setResult(selectedResult)
         setScore(prev => prev + selectedResult)
         
+        updateUserStats(selectedResult)
+
         if (onXPReward) {
           onXPReward(selectedResult)
         }
@@ -163,6 +205,7 @@ export function SpinWheel({ onXPReward }: SpinWheelProps) {
   const handleEndGame = () => {
     setGameOver(true)
     setGameStarted(false)
+    createSpinTask(score)
 
     toast({
       title: "Game Complete!",

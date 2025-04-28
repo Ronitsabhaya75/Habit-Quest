@@ -3,8 +3,8 @@
 import { useState, useEffect } from "react"
 import { Button } from "./ui/button"
 import { Checkbox } from "./ui/checkbox"
-import { Pencil, Trash2 } from "lucide-react"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "./ui/dialog"
+import { Pencil, Trash2, AlertCircle, Trash } from "lucide-react"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription, DialogFooter } from "./ui/dialog"
 import { Input } from "./ui/input"
 import { Label } from "./ui/label"
 import { useTask, type Task } from "./task-context"
@@ -20,9 +20,20 @@ export function TaskList({ date = new Date() }: TaskListProps) {
   const [editingTask, setEditingTask] = useState<{ id: string; title: string } | null>(null)
   const [newTaskTitle, setNewTaskTitle] = useState("")
   const [dialogOpen, setDialogOpen] = useState(false)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [taskToDelete, setTaskToDelete] = useState<string | null>(null)
   const { toast } = useToast()
   const [isRecurring, setIsRecurring] = useState(false)
   const [frequency, setFrequency] = useState("daily")
+  const [deletedTaskCount, setDeletedTaskCount] = useState<number>(0)
+
+  // Load the deleted task count from localStorage on component mount
+  useEffect(() => {
+    const storedCount = localStorage.getItem('deletedTaskCount')
+    if (storedCount) {
+      setDeletedTaskCount(parseInt(storedCount, 10))
+    }
+  }, [])
 
   // Filter tasks based on the selected date
   useEffect(() => {
@@ -99,15 +110,74 @@ export function TaskList({ date = new Date() }: TaskListProps) {
     }
   }
 
+  const confirmDeleteTask = (id: string) => {
+    setTaskToDelete(id)
+    setDeleteDialogOpen(true)
+  }
+
   const deleteTask = (id: string) => {
     const task = tasks.find((t) => t._id === id)
     if (task) {
       removeTask(id)
 
+      // Update deleted task count and check for achievements
+      const newDeletedCount = deletedTaskCount + 1
+      setDeletedTaskCount(newDeletedCount)
+      localStorage.setItem('deletedTaskCount', newDeletedCount.toString())
+      
+      // Check for achievement unlock
+      checkDeleteAchievement(newDeletedCount)
+
       toast({
         title: "Task Deleted",
         description: `Task "${task.title}" has been removed.`,
       })
+    }
+    
+    setDeleteDialogOpen(false)
+  }
+
+  // Check if user should unlock "Task Manager" achievement
+  const checkDeleteAchievement = async (count: number) => {
+    // Unlock achievement at 5 task deletions
+    if (count === 5) {
+      try {
+        // Call achievement check API endpoint
+        const response = await fetch('/api/achievements/check', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ 
+            taskDeleted: true,
+            tasksDeletedTotal: count
+          }),
+        })
+        
+        if (response.ok) {
+          const data = await response.json()
+          
+          // Show notification for newly unlocked achievements
+          if (data.unlockedAchievements && data.unlockedAchievements.length > 0) {
+            data.unlockedAchievements.forEach((achievement: any) => {
+              toast({
+                title: `🏆 Achievement Unlocked: ${achievement.name}!`,
+                description: `${achievement.description} (+${achievement.xpReward} XP)`,
+                duration: 5000,
+              })
+            })
+          }
+        }
+      } catch (error) {
+        console.error("Failed to check achievements:", error)
+        
+        // Fallback for offline mode
+        toast({
+          title: `🏆 Achievement Unlocked: Task Manager!`,
+          description: `You've deleted 5 tasks! (+30 XP)`,
+          duration: 5000,
+        })
+      }
     }
   }
 
@@ -195,10 +265,10 @@ export function TaskList({ date = new Date() }: TaskListProps) {
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-8 w-8 text-gray-400 hover:text-red-500"
-                      onClick={() => deleteTask(task._id)}
+                      className="h-8 w-8 text-gray-400 hover:bg-red-500/20 hover:text-red-500 transition-all duration-200 ease-in-out"
+                      onClick={() => confirmDeleteTask(task._id)}
                     >
-                      <Trash2 className="h-4 w-4" />
+                      <Trash className="h-4 w-4" />
                     </Button>
                   </div>
                 </>
@@ -210,6 +280,7 @@ export function TaskList({ date = new Date() }: TaskListProps) {
         <div className="text-center py-8 text-gray-400">No tasks for this date. Add a task to get started!</div>
       )}
 
+      {/* Add Task Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogTrigger asChild>
           <Button className="w-full bg-[#4cc9f0] hover:bg-[#4cc9f0]/80 text-black">+ Add Task</Button>
@@ -260,6 +331,37 @@ export function TaskList({ date = new Date() }: TaskListProps) {
               Add Task
             </Button>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Task Confirmation Dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent className="bg-[#1a2332] border-[#2a3343] text-white">
+          <DialogHeader>
+            <DialogTitle className="flex items-center">
+              <AlertCircle className="h-5 w-5 text-red-500 mr-2" />
+              Confirm Deletion
+            </DialogTitle>
+            <DialogDescription className="text-gray-400">
+              Are you sure you want to delete this task? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="sm:justify-between">
+            <Button 
+              variant="outline" 
+              onClick={() => setDeleteDialogOpen(false)}
+              className="border-[#3a4353] hover:bg-[#2a3343] hover:text-white"
+            >
+              Cancel
+            </Button>
+            <Button 
+              variant="destructive" 
+              onClick={() => taskToDelete && deleteTask(taskToDelete)}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Delete Task
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

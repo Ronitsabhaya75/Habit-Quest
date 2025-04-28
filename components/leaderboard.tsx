@@ -1,12 +1,18 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { RefreshCw } from "lucide-react"
 
 interface LeaderboardEntry {
   rank: number
   username: string
   xp: number
   level: number
+  gameStats?: {
+    spinWheel?: { totalXP: number }
+    quizGame?: { totalXP: number }
+    wordScrambler?: { totalXP: number }
+  }
   badge?: string
   isCurrentUser?: boolean
 }
@@ -16,74 +22,97 @@ export function Leaderboard() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
 
-  useEffect(() => {
-    async function fetchLeaderboard() {
-      try {
-        setLoading(true)
-        setError(false)
+  const fetchLeaderboard = async () => {
+    try {
+      setLoading(true)
+      setError(false)
 
-        // Fetch leaderboard data from API
-        const res = await fetch("/api/users/leaderboard")
+      const res = await fetch("/api/users/leaderboard")
+      if (!res.ok) throw new Error("Failed to fetch leaderboard")
 
-        if (!res.ok) {
-          console.error("Leaderboard fetch failed with status:", res.status)
-          setError(true)
-          // Use placeholder data as fallback
-          setLeaderboardData(generatePlaceholderData())
-          return
-        }
-
-        const data = await res.json()
-        if (data.success && data.data && data.data.length > 0) {
-          // If we have real data, use it
-          setLeaderboardData(data.data)
-        } else {
-          // If API returns empty data, use fallback
-          setError(true)
-          setLeaderboardData(generatePlaceholderData())
-        }
-      } catch (error) {
-        console.error("Leaderboard error:", error)
-        setError(true)
-        setLeaderboardData(generatePlaceholderData())
-      } finally {
-        setLoading(false)
+      const data = await res.json()
+      if (data.success && data.data?.length > 0) {
+        setLeaderboardData(data.data)
+      } else {
+        throw new Error("No data available")
       }
+    } catch (error) {
+      console.error("Leaderboard error:", error)
+      setError(true)
+      setLeaderboardData(generatePlaceholderData())
+    } finally {
+      setLoading(false)
     }
+  }
 
+  useEffect(() => {
     fetchLeaderboard()
   }, [])
 
-  // Generate placeholder data if the API fails
   function generatePlaceholderData(): LeaderboardEntry[] {
     const mockUsers = [
-      { username: "AstroAchiever", xp: 350, isCurrentUser: true },
-      { username: "CosmicExplorer", xp: 520, isCurrentUser: false },
-      { username: "StarGazer42", xp: 480, isCurrentUser: false },
-      { username: "GalaxyQuester", xp: 410, isCurrentUser: false },
-      { username: "NebulaNinja", xp: 380, isCurrentUser: false },
-      { username: "MoonWalker", xp: 320, isCurrentUser: false },
-      { username: "SolarSurfer", xp: 290, isCurrentUser: false },
-      { username: "CosmicCaptain", xp: 260, isCurrentUser: false },
-      { username: "VoyagerVIP", xp: 230, isCurrentUser: false },
-      { username: "OrbitObtainer", xp: 200, isCurrentUser: false },
+      { 
+        username: "AstroAchiever", 
+        xp: 350, 
+        isCurrentUser: true,
+        gameStats: {
+          spinWheel: { totalXP: 100 },
+          quizGame: { totalXP: 150 },
+          wordScrambler: { totalXP: 100 }
+        }
+      },
+      { 
+        username: "CosmicExplorer", 
+        xp: 520, 
+        isCurrentUser: false,
+        gameStats: {
+          spinWheel: { totalXP: 170 },
+          quizGame: { totalXP: 200 },
+          wordScrambler: { totalXP: 150 }
+        }
+      },
+      { 
+        username: "StarGazer42", 
+        xp: 480, 
+        isCurrentUser: false,
+        gameStats: {
+          spinWheel: { totalXP: 150 },
+          quizGame: { totalXP: 180 },
+          wordScrambler: { totalXP: 150 }
+        }
+      },
+      { 
+        username: "GalaxyQuester", 
+        xp: 410, 
+        isCurrentUser: false,
+        gameStats: {
+          spinWheel: { totalXP: 110 },
+          quizGame: { totalXP: 150 },
+          wordScrambler: { totalXP: 150 }
+        }
+      },
+      { 
+        username: "NebulaNinja", 
+        xp: 380, 
+        isCurrentUser: false,
+        gameStats: {
+          spinWheel: { totalXP: 100 },
+          quizGame: { totalXP: 130 },
+          wordScrambler: { totalXP: 150 }
+        }
+      }
     ]
 
-    // Sort by XP
-    const sortedUsers = mockUsers.sort((a, b) => b.xp - a.xp)
-
-    // Add rank and level
-    const rankedUsers = sortedUsers.map((user, index) => ({
-      ...user,
-      rank: index + 1,
-      level: Math.floor(user.xp / 100) + 1,
-      badge: getBadgeForUser(user.xp, index),
-    }))
-
-    return rankedUsers
+    return mockUsers
+      .sort((a, b) => b.xp - a.xp)
+      .map((user, index) => ({
+        ...user,
+        rank: index + 1,
+        level: Math.floor(user.xp / 100) + 1,
+        badge: getBadgeForUser(user.xp, index),
+      }))
   }
 
-  // Function to determine badge based on XP and rank
   function getBadgeForUser(xp: number, rank: number): string {
     if (rank === 0) return "🥇"
     if (rank === 1) return "🥈"
@@ -115,7 +144,11 @@ export function Leaderboard() {
     return (
       <div className="text-center py-4 text-gray-400">
         <p>Unable to load leaderboard data.</p>
-        <button onClick={() => window.location.reload()} className="mt-2 text-[#4cc9f0] hover:underline">
+        <button 
+          onClick={fetchLeaderboard} 
+          className="mt-2 flex items-center justify-center gap-1 text-[#4cc9f0] hover:underline mx-auto"
+        >
+          <RefreshCw className="h-4 w-4" />
           Refresh
         </button>
       </div>
@@ -123,7 +156,10 @@ export function Leaderboard() {
   }
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-4">
+      <div className="text-sm text-gray-400 text-center">
+        Total XP includes points from all games: Spin Wheel, Quiz, and Word Scrambler
+      </div>
       <div className="space-y-1">
         {leaderboardData.map((user) => (
           <div
@@ -149,7 +185,9 @@ export function Leaderboard() {
               </div>
             </div>
             <div className="flex items-center space-x-2">
-              <span className="text-[#40E0D0] font-bold bg-[#40E0D0]/10 px-3 py-1 rounded-full">{user.xp} XP</span>
+              <span className="text-[#40E0D0] font-bold bg-[#40E0D0]/10 px-3 py-1 rounded-full">
+                {user.xp} XP
+              </span>
               <span className="text-xs px-1.5 py-0.5 rounded bg-[#2a3343] text-gray-300">Lv.{user.level}</span>
             </div>
           </div>

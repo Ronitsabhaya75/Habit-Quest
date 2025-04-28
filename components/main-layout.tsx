@@ -13,8 +13,8 @@ export function MainLayout({ children }: MainLayoutProps) {
   
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#0F2027] via-[#203A43] to-[#2C5364]">
-      <header className="fixed top-0 left-0 right-0 bg-gradient-to-br from-[#0F2027] via-[#203A43] to-[#2C5364] z-50">
-        <div className="container mx-auto px-4 py-4">
+      <header className="fixed top-0 left-0 right-0 bg-gradient-to-br from-[#0F2027] via-[#203A43] to-[#2C5364] z-50 h-16 flex items-center">
+        <div className="container mx-auto px-4">
           <nav className="flex items-center justify-between">
             <div className="flex items-center">
               <Link href="/dashboard" className="text-2xl font-bold text-white">
@@ -52,7 +52,7 @@ export function MainLayout({ children }: MainLayoutProps) {
           </nav>
         </div>
       </header>
-      <main className="pt-20 container mx-auto px-4 py-8">
+      <main className="pt-16 container mx-auto px-4 py-8">
         {children}
       </main>
       <footer className="text-center text-gray-500 text-sm py-6">

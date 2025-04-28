@@ -9,7 +9,7 @@ import { Input } from "./ui/input"
 import { Label } from "./ui/label"
 import { useAuth } from "../context/auth-context"
 import { toast } from "./ui/use-toast"
-import { format, startOfDay, endOfDay, parseISO } from "date-fns"
+import { format, startOfDay, endOfDay, parseISO, isSameDay } from "date-fns"
 
 interface Task {
   _id: string
@@ -30,48 +30,49 @@ export function TodaysTasks({ date = new Date() }: TodaysTasksProps) {
   const [newTaskTitle, setNewTaskTitle] = useState("")
   const [loading, setLoading] = useState(true)
   const [dialogOpen, setDialogOpen] = useState(false)
+  const [completedTaskCount, setCompletedTaskCount] = useState(0)
 
   // Fetch tasks for the specified date
   useEffect(() => {
+    let isMounted = true;
+    
     async function fetchTasks() {
       try {
         setLoading(true)
         
-        // Create a new date in user's local timezone to respect CDT
-        // This ensures we're using the exact day as displayed to the user
-        const localDate = new Date(
+        // Fix the date handling by using UTC dates to prevent timezone issues
+        // This way we'll consistently get the selected date, not the date + timezone offset
+        const normalizedDate = new Date(
           date.getFullYear(),
           date.getMonth(),
-          date.getDate(),
-          0, 0, 0
+          date.getDate()
         );
         
-        // Use this approach to ensure the date displayed matches exactly what the server receives
-        const dateStr = `${localDate.getFullYear()}-${String(localDate.getMonth() + 1).padStart(2, '0')}-${String(localDate.getDate()).padStart(2, '0')}`;
+        // Format date string in YYYY-MM-DD format for the API
+        const dateStr = format(normalizedDate, 'yyyy-MM-dd');
         
-        // Log the date we're querying for debugging
-        console.log("Fetching tasks for date:", dateStr, "Original date object:", date.toString());
+        console.log("Fetching tasks for date:", dateStr, "Original date:", date.toISOString());
         
         const res = await fetch(`/api/tasks?date=${dateStr}`)
 
         if (!res.ok) {
           console.error("Failed to fetch tasks with status:", res.status)
           // Use placeholder data
-          setTasks([])
+          if (isMounted) setTasks([])
           return
         }
 
         const contentType = res.headers.get("content-type")
         if (!contentType || !contentType.includes("application/json")) {
           console.error("API returned non-JSON response:", contentType)
-          setTasks([])
+          if (isMounted) setTasks([])
           return
         }
 
         const data = await res.json()
         console.log("API response for tasks:", data)
         
-        if (data.success) {
+        if (data.success && isMounted) {
           // Ensure each task has a properly formatted date for display
           const formattedTasks = data.data.map((task: any) => ({
             ...task,
@@ -79,36 +80,45 @@ export function TodaysTasks({ date = new Date() }: TodaysTasksProps) {
           }));
           console.log("Formatted tasks:", formattedTasks)
           setTasks(formattedTasks)
-        } else {
+        } else if (isMounted) {
           setTasks([])
         }
       } catch (error) {
         console.error("Failed to fetch tasks:", error)
-        setTasks([])
+        if (isMounted) setTasks([])
       } finally {
-        setLoading(false)
+        if (isMounted) setLoading(false)
       }
     }
 
     fetchTasks()
+    
+    return () => {
+      isMounted = false;
+    }
   }, [date])
+  
+  // Update completed task count when tasks change
+  useEffect(() => {
+    const newCompletedCount = tasks.filter(task => task.completed).length;
+    setCompletedTaskCount(newCompletedCount);
+  }, [tasks]);
 
   const addTask = async () => {
     if (newTaskTitle.trim()) {
       try {
-        // Create a new date in the user's local timezone without any time component
-        // to ensure consistent behavior with date displayed in the UI
-        const localDate = new Date(
+        // Fix the date handling for new tasks
+        const normalizedDate = new Date(
           date.getFullYear(),
           date.getMonth(),
           date.getDate(),
-          12, 0, 0 // Set to noon to avoid any timezone crossing issues
+          12, 0, 0 // Set to noon to avoid any date crossing issues
         );
         
-        // Use explicit date string formatting to match our API expectations
-        const dateStr = `${localDate.getFullYear()}-${String(localDate.getMonth() + 1).padStart(2, '0')}-${String(localDate.getDate()).padStart(2, '0')}`;
+        // Format the date consistently as YYYY-MM-DD
+        const dateStr = format(normalizedDate, 'yyyy-MM-dd');
         
-        console.log("Adding task for date:", dateStr, "ISO string:", localDate.toISOString());
+        console.log("Adding task for date:", dateStr, "ISO string:", normalizedDate.toISOString());
         
         const res = await fetch("/api/tasks", {
           method: "POST",
@@ -117,8 +127,8 @@ export function TodaysTasks({ date = new Date() }: TodaysTasksProps) {
           },
           body: JSON.stringify({
             title: newTaskTitle,
-            dueDate: localDate.toISOString(), // Use the selected date ISO string
-            dueDateString: dateStr, // Also include the formatted date string
+            dueDate: normalizedDate.toISOString(),
+            dueDateString: dateStr,
             xpReward: 20,
           }),
         })
@@ -160,57 +170,47 @@ export function TodaysTasks({ date = new Date() }: TodaysTasksProps) {
     }
   }
 
-  const toggleTask = async (id: string, completed: boolean) => {
+  // Check for unlocked achievements
+  const checkAchievements = async (newCompletedCount: number, taskId: string) => {
     try {
-      const res = await fetch(`/api/tasks/${id}`, {
-        method: "PUT",
+      // Call achievement check endpoint
+      const achievementRes = await fetch('/api/achievements/check', {
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ completed }),
-      })
-
-      if (res.ok) {
-        const data = await res.json()
-        if (data.success) {
-          // Update tasks list
-          setTasks(tasks.map((task) => (task._id === id ? { ...task, completed } : task)))
-
-          // If task was completed, update user XP
-          if (completed) {
-            // Fetch updated user data
-            const userRes = await fetch("/api/users/me")
-            if (userRes.ok) {
-              const userData = await userRes.json()
-              if (userData.success) {
-                updateUser(userData.data)
-
-                toast({
-                  title: "Task Completed!",
-                  description: `You earned 20 XP`,
-                })
-              }
-            }
+        body: JSON.stringify({
+          taskCompleted: true,
+          tasksCompletedToday: newCompletedCount,
+          updatedTaskId: taskId
+        }),
+      });
+      
+      if (achievementRes.ok) {
+        const achievementData = await achievementRes.json();
+        
+        // If achievements were unlocked, show toasts and update UI
+        if (achievementData.unlockedAchievements && achievementData.unlockedAchievements.length > 0) {
+          achievementData.unlockedAchievements.forEach((achievement: any) => {
+            toast({
+              title: `🏆 Achievement Unlocked: ${achievement.name}!`,
+              description: achievement.description,
+              duration: 5000,
+            });
+          });
+          
+          // Trigger a custom event to update the achievements display
+          if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('achievement-unlocked', { 
+              detail: { achievements: achievementData.unlockedAchievements }
+            }));
           }
-        } else {
-          throw new Error(data.message || "Failed to update task")
         }
-      } else {
-        throw new Error("Failed to update task")
       }
     } catch (error) {
-      console.error("Toggle task error:", error)
-      // Update task locally for demo purposes
-      setTasks(tasks.map((task) => (task._id === id ? { ...task, completed } : task)))
-
-      if (completed) {
-        toast({
-          title: "Task Completed!",
-          description: `You earned 20 XP (offline mode)`,
-        })
-      }
+      console.error("Failed to check achievements:", error);
     }
-  }
+  };
 
   const handleTaskToggle = async (id: string) => {
     try {
@@ -253,47 +253,21 @@ export function TodaysTasks({ date = new Date() }: TodaysTasksProps) {
           // Import the XP_VALUES from lib/xp-system
           const { XP_VALUES } = await import("../lib/xp-system")
           
+          // Update completed task count
+          const newCompletedCount = completedTaskCount + 1
+          setCompletedTaskCount(newCompletedCount)
+          
           // Show toast for XP gained
           toast({
             title: "Task Completed!",
             description: `You earned ${XP_VALUES.TASK_COMPLETION} XP`,
           })
           
-          // Check if any achievements were unlocked
-          try {
-            // Get count of completed tasks for today
-            const completedTodayCount = tasks.filter(t => t.completed).length + 1; // +1 for current task
-            
-            // Call achievement check endpoint
-            const achievementRes = await fetch('/api/achievements/check', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                taskCompleted: true,
-                tasksCompletedToday: completedTodayCount,
-                updatedTaskId: id
-              }),
-            });
-            
-            if (achievementRes.ok) {
-              const achievementData = await achievementRes.json();
-              
-              // If achievements were unlocked, show toasts
-              if (achievementData.unlockedAchievements && achievementData.unlockedAchievements.length > 0) {
-                achievementData.unlockedAchievements.forEach((achievement: any) => {
-                  toast({
-                    title: `🏆 Achievement Unlocked: ${achievement.name}!`,
-                    description: achievement.description,
-                    duration: 5000,
-                  });
-                });
-              }
-            }
-          } catch (error) {
-            console.error("Failed to check achievements:", error);
-          }
+          // Check for unlocked achievements
+          await checkAchievements(newCompletedCount, id)
+        } else {
+          // Task was uncompleted, decrease count
+          setCompletedTaskCount(prevCount => Math.max(0, prevCount - 1))
         }
       } else {
         throw new Error(data.message || "Failed to update task")
@@ -305,6 +279,10 @@ export function TodaysTasks({ date = new Date() }: TodaysTasksProps) {
 
       const task = tasks.find((task) => task._id === id)
       if (task && !task.completed) {
+        // Update completed count locally
+        const newCount = completedTaskCount + 1
+        setCompletedTaskCount(newCount)
+        
         toast({
           title: "Task Completed!",
           description: `You earned 20 XP (offline mode)`,
@@ -317,8 +295,11 @@ export function TodaysTasks({ date = new Date() }: TodaysTasksProps) {
     return <div className="text-center py-8 text-gray-400">Loading tasks...</div>
   }
   
-  // Format the date for display
-  const isToday = new Date().toDateString() === date.toDateString();
+  // Properly check if the provided date is today
+  const today = new Date();
+  const isToday = isSameDay(today, date);
+  
+  // Use the formatted date for display purposes
   const formattedDate = isToday ? "Today" : format(date, "EEEE, MMMM d, yyyy");
 
   return (

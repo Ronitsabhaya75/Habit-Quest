@@ -1,3 +1,36 @@
+/**
+ * Achievement Schema for Mongoose
+ * 
+ * This schema defines the structure for Achievement documents in the MongoDB database.
+ * Achievements are used to reward users based on specific criteria, such as completing tasks
+ * or creating habits.
+ * 
+ * Fields:
+ * 
+ * 1. name: String
+ *    - Required. Unique name for the achievement.
+ * 
+ * 2. description: String
+ *    - Required. Description of what the achievement entails.
+ * 
+ * 3. xpReward: Number
+ *    - Required. The amount of XP awarded upon achieving this milestone.
+ * 
+ * 4. criteria: String
+ *    - Required. Specifies the criteria for earning the achievement.
+ *    - Must be one of the following:
+ *      - "tasks_completed"
+ *      - "habits_created"
+ *      - "streak_reached"
+ *      - "games_played"
+ *      - "fitness_plan_completed"
+ * 
+ * 5. threshold: Number
+ *    - Required. The threshold value that must be met to achieve this award.
+ * 
+ * 6. createdAt: Date
+ *    - Defaults to the current date and time when the achievement is created.
+ */
 import mongoose from "mongoose"
 
 const AchievementSchema = new mongoose.Schema({

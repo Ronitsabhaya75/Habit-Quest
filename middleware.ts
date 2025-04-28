@@ -1,3 +1,22 @@
+/**
+ * Middleware for handling authentication and routing in a Next.js application.
+ * 
+ * This middleware checks the user's authentication status based on a token stored in cookies
+ * and handles redirection based on the user's access to certain paths.
+ * 
+ * Functionality:
+ * 
+ * 1. Redirects unauthenticated users trying to access protected paths to the login page.
+ * 2. Redirects authenticated users trying to access the login or register pages to the dashboard.
+ * 
+ * Public paths that do not require authentication:
+ * - "/" (home)
+ * - "/login" (login page)
+ * - "/register" (registration page)
+ * 
+ * Configuration:
+ * - Applies to all request paths except for API calls, static files, images, and favicon.
+ */
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 

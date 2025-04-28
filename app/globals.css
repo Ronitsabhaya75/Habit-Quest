@@ -1,3 +1,20 @@
+@import 'tailwindcss/base';
+@import 'tailwindcss/components';
+@import 'tailwindcss/utilities';
+
+/* Ensure no gap at the top of pages */
+html, body {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  min-height: 100vh;
+  background-color: #0d1520;
+  color: white;
+}
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;

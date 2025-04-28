@@ -26,7 +26,9 @@ export async function POST(request) {
     const { 
       taskCompleted = false, 
       tasksCompletedToday = 0,
-      updatedTaskId = null
+      updatedTaskId = null,
+      taskDeleted = false,
+      tasksDeletedTotal = 0
     } = await request.json();
     
     // Find all achievements that haven't been unlocked by the user yet
@@ -66,6 +68,17 @@ export async function POST(request) {
     
     if (streakAchievement && userData.streak >= 7) {
       unlockedAchievements.push(streakAchievement);
+    }
+    
+    // Check Task Manager achievement (deleted 5 tasks)
+    if (taskDeleted) {
+      const taskManagerAchievement = allAchievements.find(a => 
+        a.name === "Task Manager" && !userAchievementIds.includes(a._id.toString())
+      );
+      
+      if (taskManagerAchievement && tasksDeletedTotal >= 5) {
+        unlockedAchievements.push(taskManagerAchievement);
+      }
     }
     
     // Check Habit Master achievement (completed 3 habits consistently)
@@ -153,4 +166,4 @@ export async function POST(request) {
       message: error.message || "Server error" 
     }, { status: 500 });
   }
-} 
+}

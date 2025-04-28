@@ -77,7 +77,7 @@ export function AppLayout({ children, title, subtitle, userXp = 0, userLevel = 1
     {
       icon: <Gamepad2 size={22} />,
       label: "Mini Games",
-      href: "/games",
+      href: "/breakthrough-game",
     },
     {
       icon: <Calendar size={22} />,
@@ -114,9 +114,9 @@ export function AppLayout({ children, title, subtitle, userXp = 0, userLevel = 1
       {/* Gradient Overlay */}
       <div className="absolute inset-0 bg-gradient-radial from-transparent to-[#0d1520]/70 pointer-events-none"></div>
       
-      {/* Top Navigation Bar */}
-      <div className="relative bg-[#0a1623]/95 backdrop-blur-md border-b border-[rgba(0,255,198,0.1)] z-10">
-        <div className="container mx-auto flex items-center justify-between py-3 px-4">
+      {/* Top Navigation Bar - Fixed positioning to ensure it stays at the very top */}
+      <div className="fixed top-0 left-0 right-0 bg-[#0a1623]/95 backdrop-blur-md border-b border-[rgba(0,255,198,0.1)] z-50 h-16 flex items-center">
+        <div className="container mx-auto flex items-center justify-between h-full px-4">
           {/* Logo */}
           <div className="text-2xl font-bold text-white">
             <Link href="/dashboard" className="flex items-center transition-all duration-300 hover:text-[#00FFF5]">
@@ -171,8 +171,8 @@ export function AppLayout({ children, title, subtitle, userXp = 0, userLevel = 1
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="flex-1 overflow-y-auto">
+      {/* Add padding to the top to compensate for fixed navbar */}
+      <div className="pt-16 flex-1 overflow-y-auto">
         <div className="container mx-auto px-4 md:px-6 py-8">
           {/* Page Title */}
           <div className="mb-6 text-center md:text-left">

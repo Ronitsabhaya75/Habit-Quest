@@ -337,7 +337,6 @@ const quizQuestions = [
     explanation: "Satisficing means selecting the first option that meets your acceptable criteria rather than searching for the 'perfect' approach, which can help overcome analysis paralysis in habit formation."
   }
 ]
-
 export function QuizGame() {
   // State variables for controlling game logic
   const [gameStarted, setGameStarted] = useState(false)
@@ -364,11 +363,64 @@ export function QuizGame() {
   const totalQuestionsPerRound = rounds.map(round => round.questionsCount)
   const totalQuestions = totalQuestionsPerRound.reduce((sum, count) => sum + count, 0)
 
+  /**
+   * Updates user stats in the backend when answering questions or completing rounds
+   * @param {number} xp - XP earned
+   * @param {boolean} correct - Whether the answer was correct
+   * @param {boolean} roundCompleted - Whether a round was completed
+   */
+  const updateUserStats = async (xp: number, correct: boolean, roundCompleted: boolean) => {
+    try {
+      const res = await fetch('/api/users/update-stats', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          xp,
+          gameType: 'quizGame',
+          correct,
+          roundCompleted
+        }),
+      });
+      if (!res.ok) throw new Error('Failed to update stats');
+    } catch (error) {
+      console.error('Error updating stats:', error);
+    }
+  };
+
+  /**
+   * Creates a follow-up quiz challenge task for the user
+   * @param {number} totalScore - The user's final score
+   */
+  const createQuizTask = async (totalScore: number) => {
+    try {
+      const res = await fetch('/api/tasks/create-game-task', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          gameType: 'quizGame',
+          title: 'Quiz Master Challenge',
+          description: `Score ${totalScore + 3} or more in the next quiz`,
+          xpReward: totalScore + 5,
+          dueDate: new Date(Date.now() + 86400000 * 3) // Due in 3 days
+        }),
+      });
+      if (!res.ok) throw new Error('Failed to create task');
+    } catch (error) {
+      console.error('Error creating quiz task:', error);
+    }
+  };
+
+  // Starts the game and initializes state
   const handleStartGame = () => {
-    // Starts the game and initializes state
+    // Shuffle questions and select first round
     const shuffledQuestions = [...quizQuestions].sort(() => 0.5 - Math.random())
     const firstRoundQuestions = shuffledQuestions.slice(0, rounds[0].questionsCount)
     
+    // Reset all game state
     setGameStarted(true)
     setGameOver(false)
     setCurrentQuestion(0)
@@ -402,6 +454,12 @@ export function QuizGame() {
       const newRoundScores = [...roundScores]
       newRoundScores[currentRound] += 1
       setRoundScores(newRoundScores)
+      
+      // Update stats for correct answer
+      updateUserStats(0, true, false)
+    } else {
+      // Update stats for incorrect answer
+      updateUserStats(0, false, false)
     }
   }
 
@@ -439,15 +497,24 @@ export function QuizGame() {
       setShowExplanation(false)
       setIsAnswerChecked(false)
       setShowRoundComplete(false)
+      
+      // Update stats for round completion
+      updateUserStats(0, false, true)
     } else {
       // End of game
       setGameOver(true)
       setGameStarted(false)
       setShowRoundComplete(false)
 
-      // Award XP
+      // Calculate and award XP (minimum of score*2 or 20)
       const earnedXP = Math.min(score * 2, 20)
       
+      // Update stats with final XP
+      updateUserStats(earnedXP, false, true)
+      // Create follow-up challenge
+      createQuizTask(score)
+      
+      // Show completion toast
       toast({
         title: "Habit Quiz Complete!",
         description: `You scored ${score}/${totalQuestions} and earned ${earnedXP} XP!`,

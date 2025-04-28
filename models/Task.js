@@ -1,5 +1,80 @@
+/**
+ * Task Schema for Mongoose
+ * 
+ * This schema defines the structure for Task documents in the MongoDB database.
+ * Tasks can be linked to users and can represent both standard tasks and habits.
+ * 
+ * Fields:
+ * 
+ * 1. user: ObjectId
+ *    - Required. References the User document associated with the task.
+ * 
+ * 2. title: String
+ *    - Required. The title of the task.
+ *    - Must be trimmed and cannot exceed 100 characters.
+ * 
+ * 3. description: String
+ *    - A description of the task.
+ *    - Can be trimmed and cannot exceed 500 characters.
+ * 
+ * 4. dueDate: Date
+ *    - Required. The date by which the task must be completed.
+ * 
+ * 5. dueDateString: String
+ *    - A string representation of the due date in YYYY-MM-DD format for easier filtering.
+ * 
+ * 6. completed: Boolean
+ *    - Indicates whether the task has been completed.
+ *    - Defaults to false.
+ * 
+ * 7. completedAt: Date
+ *    - The date when the task was completed.
+ *    - Defaults to null.
+ * 
+ * 8. xpReward: Number
+ *    - The amount of experience points awarded for completing the task.
+ *    - Defaults to 10 and must be at least 1.
+ * 
+ * 9. isHabit: Boolean
+ *    - Indicates whether the task is a habit.
+ *    - Defaults to false.
+ * 
+ * 10. habitId: String
+ *     - Links to a habit if this task was created from a habit.
+ *     - Defaults to null.
+ * 
+ * 11. isRecurring: Boolean
+ *     - Indicates whether the task is recurring.
+ *     - Defaults to false.
+ * 
+ * 12. frequency: String
+ *     - Specifies the frequency of the task if it is recurring.
+ *     - Must be one of: "daily", "weekly", "biweekly", "monthly".
+ *     - Required only if isRecurring is true.
+ * 
+ * 13. recurringEndDate: Date
+ *     - The date when the recurring task ends.
+ *     - Defaults to null.
+ * 
+ * 14. parentTaskId: ObjectId
+ *     - References another Task document if this task is a subtask.
+ * 
+ * 15. createdAt: Date
+ *     - The timestamp of when the task was created.
+ *     - Automatically managed by Mongoose.
+ * 
+ * Static Methods:
+ * 
+ * 1. getNextDueDate(currentDate, frequency)
+ *    - Calculates the next due date for recurring tasks based on the current date and frequency.
+ * 
+ * 2. createHabitTask(habitData, userId)
+ *    - Creates a task based on a habit for the specified user, ensuring that a task for today does not already exist.
+ * 
+ * Pre-save Middleware:
+ * - Ensures dueDateString is normalized to YYYY-MM-DD format before saving.
+ */
 import mongoose from "mongoose"
-
 const TaskSchema = new mongoose.Schema(
   {
     user: {
@@ -24,8 +99,6 @@ const TaskSchema = new mongoose.Schema(
     },
     dueDateString: {
       type: String,
-      // This will be in YYYY-MM-DD format
-      // Used for easier date filtering
     },
     completed: {
       type: Boolean,
@@ -44,7 +117,6 @@ const TaskSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
-    // New field to link to the habit if this task was created from a habit
     habitId: {
       type: String,
       default: null,
@@ -67,6 +139,11 @@ const TaskSchema = new mongoose.Schema(
     parentTaskId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Task"
+    },
+    gameRelated: {  // New field to track game association
+      type: String,
+      enum: ['spinWheel', 'quizGame', 'wordScrambler', null],
+      default: null
     }
   },
   {
@@ -74,7 +151,7 @@ const TaskSchema = new mongoose.Schema(
   }
 )
 
-// Static method to calculate the next due date for recurring tasks
+// Static method to calculate next due date (unchanged)
 TaskSchema.statics.getNextDueDate = function(currentDate, frequency) {
   const date = new Date(currentDate)
   
@@ -92,38 +169,69 @@ TaskSchema.statics.getNextDueDate = function(currentDate, frequency) {
       date.setMonth(date.getMonth() + 1)
       break
     default:
-      date.setDate(date.getDate() + 1) // Default to daily
+      date.setDate(date.getDate() + 1)
   }
   
   return date
 }
 
-// Pre-save middleware to ensure dueDateString is set
-TaskSchema.pre('save', function(next) {
+// Enhanced pre-save hook with game XP tracking
+TaskSchema.pre('save', async function(next) {
+  // Existing dueDateString logic
   if (this.dueDate) {
     const date = new Date(this.dueDate)
-    // Ensure date is normalized
     date.setHours(0, 0, 0, 0)
-    // Update the dueDate to be normalized
     this.dueDate = date
-    this.dueDateString = date.toISOString().split('T')[0] // YYYY-MM-DD format
-    
-    console.log(`Pre-save: Setting dueDateString to ${this.dueDateString} for task ${this.title}`)
+    this.dueDateString = date.toISOString().split('T')[0]
   }
+
+  // New: Handle XP reward when task is completed
+  if (this.isModified('completed') && this.completed) {
+    this.completedAt = new Date()
+    
+    try {
+      const User = mongoose.model('User')
+      await User.findByIdAndUpdate(this.user, {
+        $inc: { xp: this.xpReward },
+        $set: { lastActive: new Date() }
+      })
+
+      // Update game stats if this is a game-related task
+      if (this.gameRelated) {
+        await User.findByIdAndUpdate(this.user, {
+          $inc: { [`gameStats.${this.gameRelated}.totalXP`]: this.xpReward }
+        })
+      }
+    } catch (error) {
+      console.error('Error updating user XP:', error)
+    }
+  }
+
   next()
 })
 
-// Create a static method to create or update habit tasks
+// Static method to create game-related tasks
+TaskSchema.statics.createGameTask = async function(userId, gameType, taskData) {
+  const task = new this({
+    user: userId,
+    title: taskData.title || `Game: ${gameType}`,
+    description: taskData.description || `Complete ${gameType} challenge`,
+    dueDate: taskData.dueDate || new Date(),
+    xpReward: taskData.xpReward || 15,
+    gameRelated: gameType,
+    ...taskData
+  })
+
+  await task.save()
+  return task
+}
+
+// Existing createHabitTask method (unchanged)
 TaskSchema.statics.createHabitTask = async function(habitData, userId) {
   const today = new Date()
   today.setHours(0, 0, 0, 0)
-  
-  // Ensure we format the date string consistently as YYYY-MM-DD
   const todayStr = today.toISOString().split('T')[0]
   
-  console.log("Creating habit task for date:", todayStr)
-  
-  // Check if a task for this habit already exists today
   const existingTask = await this.findOne({
     user: userId,
     isHabit: true,
@@ -131,12 +239,8 @@ TaskSchema.statics.createHabitTask = async function(habitData, userId) {
     dueDateString: todayStr
   })
   
-  if (existingTask) {
-    console.log("Habit task already exists for today:", existingTask._id)
-    return existingTask // Task already exists
-  }
+  if (existingTask) return existingTask
   
-  // Create a new task for today's habit
   const newTask = new this({
     title: `${habitData.name || 'Daily Habit'} 💪`,
     description: habitData.description || 'Complete your daily habit',
@@ -154,8 +258,8 @@ TaskSchema.statics.createHabitTask = async function(habitData, userId) {
   })
   
   await newTask.save()
-  console.log("Created new habit task with ID:", newTask._id)
   return newTask
 }
 
 export default mongoose.models.Task || mongoose.model("Task", TaskSchema)
+

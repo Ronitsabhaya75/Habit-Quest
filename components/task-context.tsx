@@ -67,7 +67,7 @@ export const TaskProvider = ({ children }: { children: React.ReactNode }) => {
   const [completedTaskCount, setCompletedTaskCount] = useState(0);
 
   // Check and unlock achievements when tasks are completed
-  const checkAndUnlockAchievements = async (completedTaskCount: number) => {
+  const checkAndUnlockAchievements = async (completedTaskCount: number, taskId?: string) => {
     try {
       // Check if achievements exist in local storage when offline
       if (!navigator.onLine) {
@@ -117,7 +117,11 @@ export const TaskProvider = ({ children }: { children: React.ReactNode }) => {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ tasksCompleted: completedTaskCount }),
+        body: JSON.stringify({ 
+          taskCompleted: true,
+          tasksCompletedToday: completedTaskCount,
+          updatedTaskId: taskId
+        }),
       });
       
       if (!response.ok) return;
@@ -125,8 +129,8 @@ export const TaskProvider = ({ children }: { children: React.ReactNode }) => {
       const data = await response.json();
       
       // Show notifications for newly unlocked achievements
-      if (data.newAchievements && data.newAchievements.length > 0) {
-        data.newAchievements.forEach((achievement: any) => {
+      if (data.unlockedAchievements && data.unlockedAchievements.length > 0) {
+        data.unlockedAchievements.forEach((achievement: any) => {
           toast.success(`🏆 Achievement Unlocked: ${achievement.name} (+${achievement.xpReward} XP)`, {
             duration: 5000,
             icon: '🏆'
@@ -136,7 +140,7 @@ export const TaskProvider = ({ children }: { children: React.ReactNode }) => {
         // Trigger a dashboard refresh if available
         if (typeof window !== 'undefined' && window.dispatchEvent) {
           window.dispatchEvent(new CustomEvent('achievement-unlocked', { 
-            detail: { achievements: data.newAchievements }
+            detail: { achievements: data.unlockedAchievements }
           }));
         }
       }
@@ -474,7 +478,7 @@ export const TaskProvider = ({ children }: { children: React.ReactNode }) => {
       // Increment completed task count and check achievements
       const newCount = completedTaskCount + 1;
       setCompletedTaskCount(newCount);
-      checkAndUnlockAchievements(newCount);
+      checkAndUnlockAchievements(newCount, id);
       
       // Update leaderboard with task XP
       updateLeaderboard(updatedTask.xpReward || 20);

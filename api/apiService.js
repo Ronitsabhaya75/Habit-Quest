@@ -1,10 +1,40 @@
+/**
+ * API Service Module
+ * 
+ * This module provides functions to interact with various API endpoints related to user profiles,
+ * habits, and leaderboard functionalities. It uses the Fetch API to make HTTP requests and handles
+ * responses, including error management.
+ * 
+ * Functions:
+ * 
+ * 1. fetchUserProfile(token)
+ *    - Fetches the user's profile information.
+ *    - Requires a Bearer token for authentication.
+ * 
+ * 2. fetchHabits(token)
+ *    - Retrieves a list of habits for the authenticated user.
+ *    - Requires a Bearer token for authentication.
+ * 
+ * 3. createHabit(habitData, token)
+ *    - Creates a new habit for the authenticated user.
+ *    - Requires a Bearer token for authentication and habit data in JSON format.
+ * 
+ * 4. completeHabit(habitId, date, token)
+ *    - Marks a specified habit as completed on a given date.
+ *    - Requires a Bearer token for authentication, habit ID, and completion date in JSON format.
+ * 
+ * 5. fetchLeaderboard()
+ *    - Retrieves the top users from the leaderboard.
+ *    - Does not require authentication.
+ * 
+ */
 import { API_BASE_URL } from './config';
 
 const apiService = {
   // User related API calls
   fetchUserProfile: async (token) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/user/profile`, {
+      const response = await fetch(`${API_BASE_URL}/user/profile`, {  //GET request to endpoint
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -26,7 +56,7 @@ const apiService = {
   // Habit related API calls
   fetchHabits: async (token) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/habits`, {
+      const response = await fetch(`${API_BASE_URL}/habits`, {   //GET Request to endpoint
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -47,7 +77,7 @@ const apiService = {
   
   createHabit: async (habitData, token) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/habits`, {
+      const response = await fetch(`${API_BASE_URL}/habits`, {       //POST request to mark as completed
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -69,7 +99,7 @@ const apiService = {
   
   completeHabit: async (habitId, date, token) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/habits/${habitId}/complete`, {
+      const response = await fetch(`${API_BASE_URL}/habits/${habitId}/complete`, {   //POST request to mark as completed
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -92,7 +122,7 @@ const apiService = {
   // Leaderboard related API calls
   fetchLeaderboard: async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/leaderboard/top-users?limit=10&_=${Date.now()}`, {
+      const response = await fetch(`${API_BASE_URL}/leaderboard/top-users?limit=10&_=${Date.now()}`, { //GET request to endpoint
         method: 'GET',
         headers: {
           'Content-Type': 'application/json'

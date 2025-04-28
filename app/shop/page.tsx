@@ -126,7 +126,7 @@ export default function Shop() {
   };
 
   const badges = [
-    { id: 1, name: "Early Bird", description: "Complete 5 tasks before 9 AM", price: 100, rarity: "common" },
+    // { id: 1, name: "Early Bird", description: "Complete 5 tasks before 9 AM", price: 100, rarity: "common" },
     { id: 2, name: "Night Owl", description: "Complete 5 tasks after 10 PM", price: 100, rarity: "common" },
     { id: 3, name: "Streak Master", description: "Maintain a 7-day streak", price: 200, rarity: "rare" },
     { id: 4, name: "Game Champion", description: "Win all mini games", price: 300, rarity: "rare" },

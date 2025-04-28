@@ -17,8 +17,6 @@
  * 14. Continues game seamlessly when switching modes rather than resetting
  * 15. Wrapped in GameWrapper component for consistent UI across different word games
  */
-
-
 "use client"
 
 import { useState, useEffect } from "react"
@@ -192,12 +190,65 @@ export function WordScrambler() {
   const handleEndGame = () => {
     setGameOver(true)
     setGameStarted(false)
+    
+    // Calculate total XP earned in this session
+    const earnedXP = Math.min(score * 10, 100) // Cap at 100 XP per game
+    
+    // Update user stats with the earned XP
+    updateUserStats(earnedXP)
   }
+
+  const updateUserStats = async (xp: number) => {
+    try {
+      const res = await fetch('/api/users/update-stats', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          xp,
+          gameType: 'wordScrambler',
+          mode: gameMode,
+          correctWords: score
+        }),
+      });
+      
+      if (!res.ok) throw new Error('Failed to update stats');
+      
+      toast({
+        title: "XP Updated!",
+        description: `You earned ${xp} XP for the leaderboard!`,
+      });
+    } catch (error) {
+      console.error('Error updating stats:', error);
+    }
+  };
+
+  const createWordGameTask = async (totalScore: number) => {
+    try {
+      const res = await fetch('/api/tasks/create-game-task', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          gameType: 'wordScrambler',
+          title: 'Word Master Challenge',
+          description: `Score ${totalScore + 2} or more in the next word game`,
+          xpReward: totalScore + 5,
+          dueDate: new Date(Date.now() + 86400000 * 2) // Due in 2 days
+        }),
+      });
+      
+      if (!res.ok) throw new Error('Failed to create task');
+    } catch (error) {
+      console.error('Error creating word game task:', error);
+    }
+  };
 
   const handleModeChange = (mode: "scrambled" | "missing") => {
     setGameMode(mode)
     // Only reset the game if it's already started
-    
     if (gameStarted) {
       // Instead of ending the game, restart it with new mode
       prepareGameSet()
@@ -271,10 +322,13 @@ export function WordScrambler() {
       handleEndGame()
       
       // Award final XP based on score
-      const earnedXP = Math.min(score + 1, totalQuestions)
+      const earnedXP = Math.min(score * 10, 100)
+      updateUserStats(earnedXP)
+      createWordGameTask(score)
+      
       toast({
         title: "Game Complete!",
-        description: `You've completed all rounds with ${score + 1} correct answers. Total earned: ${earnedXP} XP!`,
+        description: `You've completed all rounds with ${score} correct answers. Total earned: ${earnedXP} XP!`,
       })
     } 
     // Regular next question

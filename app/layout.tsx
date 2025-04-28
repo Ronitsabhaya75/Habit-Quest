@@ -37,7 +37,7 @@ export default function RootLayout({
                   {/* Achievement initialization */}
                   <InitializeAchievements />
                   {/* <Navbar /> */}
-                  <div className="pt-16">
+                  <div>
                     {children}
                   </div>
                   <AudioPlayer />
