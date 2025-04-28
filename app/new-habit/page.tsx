@@ -33,6 +33,7 @@ import {
 import { cn } from "../../lib/utils"
 import { useToast } from "../../components/ui/use-toast"
 import { motion, AnimatePresence } from "framer-motion"
+import { createTaskFromHabit } from "../../utils/dateUtils"
 
 // Examples habits suggestions for rotating placeholders
 const habitSuggestions = [
@@ -192,7 +193,7 @@ export default function HabitCreation() {
         // Import the XP_VALUES from lib/xp-system
         const { XP_VALUES } = await import("../../lib/xp-system")
         
-        // Prepare habit data
+        // Prepare habit data with correct XP value
         const habitData = {
           title: habitName,
           description: habitDescription,
@@ -202,7 +203,7 @@ export default function HabitCreation() {
           reminder: reminder === "yes",
           isHabit: true,
           dueDate: startDate?.toISOString(), // Set first due date to start date
-          xpReward: XP_VALUES.HABIT_COMPLETION || 30,
+          xpReward: XP_VALUES.TASK_COMPLETION || 30,
         }
         
         console.log("Submitting habit data:", habitData)
@@ -224,29 +225,32 @@ export default function HabitCreation() {
         const result = await response.json()
         console.log("Habit created successfully:", result)
         
-        // Also create as task for tracking
-        const taskData = {
-          title: habitName,
-          description: habitDescription,
-          dueDate: startDate?.toISOString(),
-          isHabit: true,
-          isRecurring: true,
-          frequency: frequency,
-          recurringEndDate: endDate?.toISOString(),
-          xpReward: XP_VALUES.HABIT_COMPLETION || 30,
-        }
-        
-        // Send task data to API
-        const taskResponse = await fetch("/api/tasks", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify(taskData)
-        })
-        
-        if (!taskResponse.ok) {
-          console.warn("Habit created but task creation failed")
+        // Also create as task for tracking using our utility function
+        if (result.habit) {
+          console.log(`Creating recurring task for habit with frequency: ${frequency}`);
+          
+          const taskData = createTaskFromHabit(
+            { 
+              ...habitData, 
+              user: result.habit.user 
+            }, 
+            result.habit.user
+          );
+          
+          // Send task data to API
+          const taskResponse = await fetch("/api/tasks", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify(taskData)
+          })
+          
+          if (!taskResponse.ok) {
+            console.warn("Habit created but task creation failed")
+          } else {
+            console.log("Created recurring task for habit:", await taskResponse.json());
+          }
         }
 
         // Show success message with XP and sparkle effect

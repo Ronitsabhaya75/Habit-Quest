@@ -125,4 +125,39 @@ export function isSameDay(date1, date2) {
     d1.getMonth() === d2.getMonth() &&
     d1.getDate() === d2.getDate()
   );
+}
+
+/**
+ * Creates a task object from a habit with proper recurring settings
+ * @param {Object} habit - The habit object
+ * @returns {Object} - Task object ready to be saved
+ */
+export function createTaskFromHabit(habit, userId) {
+  // Ensure dates are properly formatted
+  const startDate = safelyParseDate(habit.startDate);
+  const endDate = habit.endDate ? safelyParseDate(habit.endDate) : null;
+  
+  // Set to midnight to avoid timezone issues
+  startDate.setHours(0, 0, 0, 0);
+  if (endDate) endDate.setHours(0, 0, 0, 0);
+  
+  // Create the task object
+  const taskData = {
+    title: habit.title || habit.name,
+    description: habit.description,
+    dueDate: startDate,
+    user: userId,
+    completed: false,
+    completedAt: null,
+    xpReward: habit.xpReward || 30,
+    isHabit: true,
+    isRecurring: true,
+    frequency: habit.frequency || 'daily',
+    recurringEndDate: endDate,
+    dueDateString: formatDateForAPI(startDate)
+  };
+  
+  console.log(`Creating habit task with frequency: ${taskData.frequency}, due date: ${taskData.dueDate}`);
+  
+  return taskData;
 } 

@@ -1,4 +1,4 @@
-"use client" // Directive to use client-side rendering in Next.js app
+"use client"
 
 import { useState, useEffect, useCallback } from "react"
 import { Button } from "../ui/button"
@@ -9,15 +9,15 @@ import { toast } from "../ui/use-toast"
 
 export function MemoryGame() {
   // Game state management
-  const [gameStarted, setGameStarted] = useState(false) // Track if the game has started
-  const [gameOver, setGameOver] = useState(false) // Track if the game is over
-  const [cards, setCards] = useState<{ id: number; emoji: string; flipped: boolean; matched: boolean }[]>([]) // Holds the deck of cards
-  const [flippedCards, setFlippedCards] = useState<number[]>([]) // Tracks the currently flipped cards
-  const [matchedPairs, setMatchedPairs] = useState(0) // Counts matched pairs
-  const [moves, setMoves] = useState(0) // Tracks total number of moves made
-  const [score, setScore] = useState(0) // Player's score
+  const [gameStarted, setGameStarted] = useState(false)
+  const [gameOver, setGameOver] = useState(false)
+  const [cards, setCards] = useState<{ id: number; emoji: string; flipped: boolean; matched: boolean }[]>([])
+  const [flippedCards, setFlippedCards] = useState<number[]>([])
+  const [matchedPairs, setMatchedPairs] = useState(0)
+  const [moves, setMoves] = useState(0)
+  const [score, setScore] = useState(0)
 
-  // Game initializer function
+  // Initialize the game with a fixed set of cards
   const initializeGame = () => {
     // Emoji pairs to be matched
     const emojis = ["🚀", "🌟", "🔥", "💎", "🎮", "🏆", "🎯", "🎲"]
@@ -31,13 +31,14 @@ export function MemoryGame() {
     }))
 
     // Shuffle cards using Fisher–Yates algorithm
-    for (let i = cardPairs.length - 1; i > 0; i--) {
+    const shuffledCards = [...cardPairs];
+    for (let i = shuffledCards.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1))
-      ;[cardPairs[i], cardPairs[j]] = [cardPairs[j], cardPairs[i]]
+      ;[shuffledCards[i], shuffledCards[j]] = [shuffledCards[j], shuffledCards[i]]
     }
 
     // Set initial state
-    setCards(cardPairs)
+    setCards(shuffledCards)
     setFlippedCards([])
     setMatchedPairs(0)
     setMoves(0)
@@ -49,7 +50,11 @@ export function MemoryGame() {
   // Handle card click logic
   const handleCardClick = (id: number) => {
     // Prevent clicking on already flipped/matched or too many cards
-    if (cards[id].flipped || cards[id].matched || flippedCards.length >= 2) {
+    if (
+      flippedCards.length >= 2 || 
+      cards[id].flipped || 
+      cards[id].matched
+    ) {
       return
     }
 
@@ -67,9 +72,10 @@ export function MemoryGame() {
       setMoves(moves + 1) // Increment move count
 
       const [firstId, secondId] = newFlippedCards
-
+      
+      // Check if the two flipped cards match
       if (cards[firstId].emoji === cards[secondId].emoji) {
-        // It's a match
+        // It's a match!
         setTimeout(() => {
           const matchedCards = [...cards]
           matchedCards[firstId].matched = true
@@ -79,7 +85,7 @@ export function MemoryGame() {
           setMatchedPairs(matchedPairs + 1)
           setScore(score + 10)
 
-          // If all pairs are matched, end game
+          // Check if all pairs are matched
           if (matchedPairs + 1 === cards.length / 2) {
             handleGameOver()
           }
@@ -106,10 +112,10 @@ export function MemoryGame() {
     const finalScore = Math.max(100 - moves * 5, 10) // Prevent score going below 10
     setScore(finalScore)
 
-    // XP calculation based on performance
+    // Calculate XP based on performance
     const earnedXP = Math.min(Math.floor(finalScore / 10), 10)
 
-    // Display toast message
+    // Display completion message
     toast({
       title: "Memory Game Complete!",
       description: `You earned ${earnedXP} XP!`,
@@ -164,4 +170,4 @@ export function MemoryGame() {
       </div>
     </GameWrapper>
   )
-}
+} 

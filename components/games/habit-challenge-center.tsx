@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import styled, { keyframes } from "styled-components"
+import { toast } from "../ui/use-toast"
 
 const spaceTheme = {
   deepSpace: "#0E1A40",
@@ -221,7 +222,7 @@ const HabitCard = styled.div<HabitCardProps>`
 interface HabitTitleProps {
     color?: string;
   }
-  
+ 
   const HabitTitle = styled.h3<HabitTitleProps>`
     display: flex;
     align-items: center;
@@ -232,18 +233,18 @@ interface HabitTitleProps {
     font-weight: normal;
     text-shadow: none;
   `
-  
+ 
   const HabitEmoji = styled.span`
     font-size: 1.1rem;
     margin-right: 0.5rem;
   `
-  
+ 
   interface ButtonProps {
     selected?: boolean;
     difficulty?: 'easy' | 'moderate' | 'hard';
     disabled?: boolean;
   }
-  
+ 
   const Button = styled.button<ButtonProps>`
     margin: 0.25rem 0.15rem;
     background: ${({ selected, difficulty }) =>
@@ -273,7 +274,7 @@ interface HabitTitleProps {
     font-family: 'Orbitron', sans-serif;
     text-shadow: ${({ selected }) => (selected ? 'none' : `0 0 5px rgba(208, 231, 255, 0.5)`)};
     font-size: 0.75rem;
-  
+ 
     &:hover {
       transform: ${props => props.disabled ? 'none' : 'translateY(-2px)'};
       box-shadow: ${props => props.disabled ? 'none' : `0 0 15px rgba(50, 255, 192, 0.3)`};
@@ -290,7 +291,7 @@ interface HabitTitleProps {
   interface MessageBoxProps {
     type?: 'easy' | 'moderate' | 'hard';
   }
-  
+ 
   const MessageBox = styled.div<MessageBoxProps>`
     margin-top: 0.75rem;
     padding: 0.6rem;
@@ -308,7 +309,7 @@ interface HabitTitleProps {
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
     border: 1px solid rgba(255, 255, 255, 0.2);
   `
-  
+ 
   const CompleteSetButton = styled.button`
     margin-top: 1.25rem;
     background: linear-gradient(to right, ${spaceTheme.accentGlow}, ${spaceTheme.actionButton});
@@ -323,12 +324,12 @@ interface HabitTitleProps {
     box-shadow: 0 0 15px rgba(50, 255, 192, 0.5);
     z-index: 10;
     font-family: 'Orbitron', sans-serif;
-  
+ 
     &:hover {
       transform: translateY(-3px);
       box-shadow: 0 0 25px rgba(50, 255, 192, 0.7);
     }
-  
+ 
     &:active {
       transform: translateY(1px);
     }
@@ -609,7 +610,7 @@ const DayCard = styled.div<DayCardProps>`
   }
 
   &:after {
-    content: '${({ isComplete }) => isComplete ? "COMPLETED" : ""}';
+    content: '${({ isComplete }) => isComplete ? 'COMPLETED' : ''}';
     position: absolute;
     top: 10px;
     right: 10px;
@@ -696,7 +697,7 @@ const HabitOption = styled.div<HabitOptionProps>`
   }
 
   &:after {
-    content: '${({ status }) => status === "checked" ? "✓" : status === "crossed" ? "✕" : ""}';
+    content: '${({ status }) => status === 'checked' ? '✓' : status === 'crossed' ? '✕' : ''}';
     position: absolute;
     top: 5px;
     right: 5px;
@@ -715,7 +716,7 @@ const HabitOption = styled.div<HabitOptionProps>`
 interface HabitTextProps {
     status: 'checked' | 'crossed' | 'unchecked';
   }
-  
+ 
   const HabitText = styled.div<HabitTextProps>`
     font-weight: bold;
     font-size: 0.9rem;
@@ -728,7 +729,7 @@ interface HabitTextProps {
       status === 'crossed' ? `0 0 5px ${spaceTheme.actionButtonAlt}` :
       'none'};
   `
-  
+ 
   const NextDayButton = styled.button`
     margin-top: 1.5rem;
     background: linear-gradient(to right, ${spaceTheme.accentGold}, ${spaceTheme.highlightAlt});
@@ -743,18 +744,18 @@ interface HabitTextProps {
     transition: all 0.3s ease;
     font-family: 'Orbitron', sans-serif;
     z-index: 10;
-  
+ 
     &:hover {
       background: linear-gradient(to right, ${spaceTheme.highlightAlt}, ${spaceTheme.accentGold});
       transform: translateY(-2px);
       box-shadow: 0 0 20px rgba(255, 223, 108, 0.6);
     }
-  
+ 
     &:active {
       transform: translateY(1px);
     }
   `
-  
+ 
   const XPNotification = styled.div`
     position: fixed;
     top: 20px;
@@ -775,12 +776,12 @@ interface HabitItem {
     text: string;
     emoji: string;
   }
-  
+ 
   interface BadgeItem {
     title: string;
     color: string;
   }
-  
+ 
   const allWeeklyHabits = [
     "Drink 8 glasses of water", "Stretch for 5 mins", "Journal for 3 mins", "Meditate 5 mins", "Walk 15 mins",
     "Plan tomorrow's tasks", "No sugar today", "Read 10 mins", "Sleep by 10 PM", "Digital detox 1hr",
@@ -833,7 +834,7 @@ interface HabitItem {
     "🧩", "✨", "💌", "🌬️", "🍔", "🧘", "📔", "🍵", "📨", "🌅",
     "🛌", "🌈", "🎨", "🔄", "📑", "📰", "⚡", "🎬", "🔧"
   ]
-  
+ 
   const feedbackMessages = {
     easy: [
       "Great start! Every small step counts in your journey.",
@@ -863,11 +864,11 @@ const getCompletionMessage = (xp: number): string => {
     if (xp >= 50) return "Interstellar Success!"
     return "Galactic Progress!"
   }
-  
+ 
   const getWeeklyHabits = (): HabitItem[][] => {
     const shuffled = [...allWeeklyHabits].sort(() => 0.5 - Math.random())
     const weeklySet: HabitItem[][] = []
-  
+ 
     for (let i = 0; i < 7; i++) {
       const dayHabits: HabitItem[] = []
       for (let j = 0; j < 3; j++) {
@@ -881,12 +882,12 @@ const getCompletionMessage = (xp: number): string => {
     }
     return weeklySet
   }
-  
+ 
   const getHourlyHabits = (): HabitItem[] => {
     const shuffled = [...allHourlyHabits].sort(() => 0.5 - Math.random())
     return shuffled.slice(0, 10)
   }
-  
+ 
   const getBadges = (level: number): BadgeItem[] => {
     const badgeMap: Record<number, BadgeItem> = {
       1: { title: "Starter", color: spaceTheme.actionButton },
@@ -900,7 +901,7 @@ const getCompletionMessage = (xp: number): string => {
       9: { title: "Universal Guru", color: spaceTheme.accentGold },
       10: { title: "Elite", color: spaceTheme.accentGlow }
     }
-  
+ 
     return Object.entries(badgeMap)
       .filter(([lvl]) => parseInt(lvl) <= level)
       .map(([_, data]) => data)
@@ -909,7 +910,7 @@ const getCompletionMessage = (xp: number): string => {
     const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
     return days[index]
   }
-  
+ 
   const useHabit = () => ({
     updateProgress: (type: string, amount: number) => {
       console.log(`Updated ${type} progress by ${amount} XP`)
@@ -932,10 +933,10 @@ const getCompletionMessage = (xp: number): string => {
     const [showCompletionMessage, setShowCompletionMessage] = useState(false)
     const [showWeekCompletionMessage, setShowWeekCompletionMessage] = useState(false)
     const [activeDay, setActiveDay] = useState(0)
-  
+ 
     const { updateProgress } = useHabit()
     const router = useRouter()
-  
+ 
     const colors = [
       spaceTheme.accentGlow,
       spaceTheme.actionButton,
@@ -959,17 +960,17 @@ const getCompletionMessage = (xp: number): string => {
           }, 6000)
         }
       }, [completedHourly, hourlyHabits.length])
-    
+   
       useEffect(() => {
         const newLevel = Math.floor(totalXP / 50) + 1
         setLevel(newLevel)
       }, [totalXP])
-    
+   
       useEffect(() => {
         const isComplete = completedWeekly.every((day, index) =>
           day.length === weeklyHabits[index].length
         )
-    
+   
         if (isComplete && completedWeekly.some(day => day.length > 0)) {
           setShowWeekCompletionMessage(true)
           setTimeout(() => {
@@ -977,110 +978,132 @@ const getCompletionMessage = (xp: number): string => {
           }, 6000)
         }
       }, [completedWeekly, weeklyHabits])
-    
+   
       const handleTabChange = (newTab: 'hourly' | 'weekly') => {
         setTab(newTab)
       }
-    
-      const handleHabitCompletion = (index: number, difficulty: 'easy' | 'moderate' | 'hard') => {
-        if (completedHourly[index]) return
-    
-        const xp = difficulty === 'easy' ? 5 : difficulty === 'moderate' ? 7 : 10
-        setCompletedHourly(prev => ({ ...prev, [index]: difficulty }))
-    
-        const message = feedbackMessages[difficulty][Math.floor(Math.random() * feedbackMessages[difficulty].length)]
-        setHourlyMessages(prev => ({ ...prev, [index]: message }))
-        setHourlyXP(prev => prev + xp)
-        setTotalXP(prev => prev + xp)
-        updateProgress('games', xp)
-    
-        setXpGained(xp)
-        setShowXPNotification(true)
-        setTimeout(() => setShowXPNotification(false), 3000)
+   
+      const handleHabitCompletion = async (index: number, difficulty: 'easy' | 'moderate' | 'hard') => {
+        if (completedHourly[index]) return;
+     
+        const xp = difficulty === 'easy' ? 1 : difficulty === 'moderate' ? 2 : 3;
+        setCompletedHourly(prev => ({ ...prev, [index]: difficulty }));
+     
+        const message = feedbackMessages[difficulty][Math.floor(Math.random() * feedbackMessages[difficulty].length)];
+        setHourlyMessages(prev => ({ ...prev, [index]: message }));
+        setHourlyXP(prev => prev + xp);
+        setTotalXP(prev => prev + xp);
+        updateProgress('games', xp);
+     
+        await fetch("/api/users/leaderboard/update", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ xpGained: xp, source: "habit_challenge" }),
+        });
+     
+        setXpGained(xp);
+        setShowXPNotification(true);
+        setTimeout(() => setShowXPNotification(false), 3000);      
       }
-      const handleWeeklyHabitToggle = (dayIndex: number, habitIndex: number) => {
-        const updated = [...completedWeekly]
-        const pos = updated[dayIndex].indexOf(habitIndex)
-    
+
+      const handleWeeklyHabitToggle = async (dayIndex: number, habitIndex: number) => {
+        const updated = [...completedWeekly];
+        const pos = updated[dayIndex].indexOf(habitIndex);
+     
         if (pos > -1) {
-          updated[dayIndex].splice(pos, 1)
-          setWeeklyXP(prev => prev - 5)
-          setTotalXP(prev => prev - 5)
+          updated[dayIndex].splice(pos, 1);
+          setWeeklyXP(prev => prev - 1);
+          setTotalXP(prev => prev - 1);
         } else {
-          updated[dayIndex].push(habitIndex)
-          setWeeklyXP(prev => prev + 5)
-          setTotalXP(prev => prev + 5)
-          updateProgress('games', 5)
-          setXpGained(5)
-          setShowXPNotification(true)
-          setTimeout(() => setShowXPNotification(false), 3000)
+          updated[dayIndex].push(habitIndex);
+          setWeeklyXP(prev => prev + 1);
+          setTotalXP(prev => prev + 1);
+          updateProgress('games', 1);
+     
+          await fetch("/api/users/leaderboard/update", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ xpGained: 1, source: "habit_challenge" }),
+          });
+     
+          setXpGained(1);
+          setShowXPNotification(true);
+          setTimeout(() => setShowXPNotification(false), 3000);
         }
-    
-        setCompletedWeekly(updated)
-      }
-    
+     
+        setCompletedWeekly(updated);
+      }      
+   
       const regenerateHourlyHabits = () => {
         setHourlyHabits(getHourlyHabits())
         setCompletedHourly({})
         setHourlyMessages({})
         setShowCompletionMessage(false)
       }
-    
+   
       const regenerateWeeklyHabits = () => {
         setWeeklyHabits(getWeeklyHabits())
         setCompletedWeekly(Array(7).fill(0).map(() => []))
         setShowWeekCompletionMessage(false)
       }
-    
+   
       const resetXP = () => {
         setHourlyXP(0)
         setWeeklyXP(0)
         setTotalXP(0)
       }
-    
+   
       const getTotalWeekCompletion = () => {
         const total = weeklyHabits.reduce((acc, day) => acc + day.length, 0)
         const completed = completedWeekly.reduce((acc, day) => acc + day.length, 0)
         return Math.round((completed / total) * 100)
       }
-    
+   
       const getDayCompletion = (dayIndex: number) => {
         return Math.round((completedWeekly[dayIndex].length / weeklyHabits[dayIndex].length) * 100)
       }
-      const handleNextDay = () => {
-        const next = activeDay + 1
+      const handleNextDay = async () => {
+        const next = activeDay + 1;
         if (next <= 6) {
-          setActiveDay(next)
-          const xp = 5
-          setTotalXP(prev => prev + xp)
-          updateProgress('games', xp)
-          setXpGained(xp)
-          setShowXPNotification(true)
-          setTimeout(() => setShowXPNotification(false), 2500)
+          setActiveDay(next);
+          const xp = 1;
+          setTotalXP(prev => prev + xp);
+          updateProgress('games', xp);
+     
+          // New added: Leaderboard API call
+          await fetch("/api/users/leaderboard/update", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ xpGained: xp, source: "habit_challenge" }),
+          });
+     
+          setXpGained(xp);
+          setShowXPNotification(true);
+          setTimeout(() => setShowXPNotification(false), 2500);
         }
-      }
-    
+      }      
+   
       const navigateHome = () => {
         router.push('/dashboard')
       }
-    
+   
       const navigateToBreakthrough = () => {
         router.push('/breakthrough-game')
       }
       return (
         <GameContainer>
           <BackgroundOverlay />
-    
+   
           <GameHeader>
             <GameTitle>Habit Challenge Center</GameTitle>
             <GameSubtitle>Complete challenges to earn XP and level up your habits</GameSubtitle>
           </GameHeader>
-    
+   
           <NavigationButtons>
             <NavigationButton onClick={navigateHome}>Home</NavigationButton>
             <NavigationButton onClick={navigateToBreakthrough}>Breakthrough Game</NavigationButton>
           </NavigationButtons>
-    
+   
           <StatsContainer>
             <StatItem>
               <StatValue>{hourlyXP}</StatValue>
@@ -1099,15 +1122,15 @@ const getCompletionMessage = (xp: number): string => {
               <StatLabel>Level</StatLabel>
             </StatItem>
           </StatsContainer>
-    
+   
           <LevelInfo>
             Level <span>{level}</span> Habit Builder
           </LevelInfo>
-    
+   
           <XPBar>
             <XPProgress xp={totalXP % 50} />
           </XPBar>
-    
+   
           <BadgeList>
             {getBadges(level).map((badge, index) => (
               <Badge key={index} color={badge.color}>{badge.title}</Badge>

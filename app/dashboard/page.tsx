@@ -1,5 +1,5 @@
 "use client"
- 
+
 import { useState, useEffect, useRef, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card"
@@ -10,7 +10,7 @@ import { useAuth } from "../../context/auth-context"
 import { LogOut, Search, RefreshCw } from "lucide-react"
 import AIChat from "../../components/AIChat"
 import { TodaysTasks } from "../../components/todays-tasks"
- 
+
 // Define types for tasks and notifications
 type Task = {
   id: number | string
@@ -20,13 +20,13 @@ type Task = {
   estimatedTime?: number
   isEditing?: boolean
 }
- 
+
 type Notification = {
   id: number
   message: string
   actions: { label: string; onClick: () => void }[]
 }
- 
+
 // Type definitions for cosmic background elements
 interface Star {
   x: number
@@ -63,7 +63,7 @@ interface Galaxy {
   rotationSpeed: number
   opacity: number
 }
- 
+
 interface ShootingStar {
   id: number
   x: number
@@ -98,7 +98,7 @@ type Achievement = {
   description: string
   earned: boolean
 }
- 
+
 export default function Dashboard() {
   const router = useRouter()
   const { user, logout } = useAuth()
@@ -124,13 +124,13 @@ export default function Dashboard() {
   const animationRef = useRef<number | null>(null)
   const [performanceMode, setPerformanceMode] = useState('auto')
   const [quality, setQuality] = useState('high')
- 
+  
   // Cosmic background state with proper types
   const [stars, setStars] = useState<Star[]>([])
   const [nebulae, setNebulae] = useState<Nebula[]>([])
   const [galaxies, setGalaxies] = useState<Galaxy[]>([])
   const [shootingStars, setShootingStars] = useState<ShootingStar[]>([])
- 
+  
   // Calculate derived values from totalXP
   const currentLevel = Math.floor(totalXP / 100) + 1
   const levelProgress = totalXP % 100
@@ -147,14 +147,14 @@ export default function Dashboard() {
       setQuality(performanceMode);
     }
   }, [performanceMode]);
- 
+
   // Add notification with animation and auto-dismissal
   const addNotification = useCallback((message: string, actions: { label: string; onClick: () => void }[] = []) => {
     const newNotification: Notification = { id: Date.now(), message, actions }
     setNotifications((prev) => [...prev, newNotification])
     setTimeout(() => setNotifications((prev) => prev.filter((n) => n.id !== newNotification.id)), 5000)
   }, [])
- 
+
   // Enhanced achievements with more visual appeal - set all to not earned by default for new users
   const achievements: Achievement[] = [
     { id: 1, title: "First Week Streak", description: "Completed 7 days of habits", earned: false },
@@ -575,7 +575,7 @@ export default function Dashboard() {
       }
     };
   }, [quality]); // Only re-create the animation when quality changes
- 
+
   // Add a function to fetch the user profile with XP and streak
   const fetchUserProfile = useCallback(async () => {
     try {
@@ -587,13 +587,13 @@ export default function Dashboard() {
         },
         cache: "no-store" // Ensure fresh data
       })
- 
+
       if (!res.ok) {
         throw new Error(`Failed to fetch user profile: ${res.status}`)
       }
- 
+
       const data = await res.json()
-     
+      
       if (data.success && data.data) {
         // Update XP and streak from the user profile
         setTotalXP(data.data.xp || 0)
@@ -605,10 +605,10 @@ export default function Dashboard() {
       console.error("Error fetching user profile:", error)
     }
   }, [])
- 
+
   const fetchUserProgress = useCallback(async () => {
     setLoading(true)
- 
+
     try {
       // Use the real API endpoint for performance data
       const res = await fetch("/api/stats/performance", {
@@ -618,13 +618,13 @@ export default function Dashboard() {
         },
         cache: "no-store" // Ensure fresh data
       })
- 
+
       if (!res.ok) {
         throw new Error(`Failed to fetch performance data: ${res.status}`)
       }
- 
+
       const data = await res.json()
-     
+      
       if (data.success) {
         // For new users with no data, show empty state
         if (data.data && data.data.length > 0) {
@@ -633,7 +633,7 @@ export default function Dashboard() {
             day: item.day,
             progress: item.xp // Use the xp value as progress
           }))
-         
+          
           setChartData(formattedData)
         } else {
           // No data yet - show empty state
@@ -644,14 +644,14 @@ export default function Dashboard() {
       }
     } catch (error) {
       console.error("Error fetching progress data:", error)
-     
+      
       // For new users, show empty state
       setChartData([])
     } finally {
       setLoading(false)
     }
   }, [])
- 
+
   const fetchLeaderboard = useCallback(async () => {
     try {
       // Use the real API endpoint for leaderboard data
@@ -662,20 +662,20 @@ export default function Dashboard() {
         },
         cache: "no-store" // Ensure fresh data
       })
- 
+
       if (!res.ok) {
         throw new Error(`Failed to fetch leaderboard data: ${res.status}`)
       }
- 
+
       const data = await res.json()
-     
+      
       if (data.success) {
         // Validate data exists and is an array
         if (!data.data || !Array.isArray(data.data)) {
           setLeaderboard([])
           return
         }
-       
+        
         // Map the API response to the leaderboard format needed for the UI
         // Take the top 5 users
         let leaderboardData = data.data.slice(0, 5).map((entry: any) => ({
@@ -684,12 +684,12 @@ export default function Dashboard() {
           xp: entry.xp,
           isCurrentUser: entry.isCurrentUser
         }))
-       
+        
         // If the current user is not in the top 5, add a note about their position
         if (!leaderboardData.some((entry: { isCurrentUser?: boolean }) => entry.isCurrentUser)) {
           addNotification(`You're not in the top 5 yet. Keep earning XP!`)
         }
-       
+        
         setLeaderboard(leaderboardData)
       } else {
         // No successful response, show empty state
@@ -698,12 +698,12 @@ export default function Dashboard() {
       }
     } catch (error) {
       console.error("Error fetching leaderboard data:", error)
-     
+      
       // Show empty state instead of mock data
       setLeaderboard([])
     }
   }, [addNotification])
- 
+
   // Fetch user tasks from API - with debouncing to reduce load
   const fetchUserTasks = useCallback(async () => {
     try {
@@ -715,13 +715,13 @@ export default function Dashboard() {
         },
         cache: "no-store"
       })
- 
+
       if (!res.ok) {
         throw new Error(`Failed to fetch tasks: ${res.status}`)
       }
- 
+
       const data = await res.json()
-     
+      
       if (data.success) {
         // Map API response to the task format
         const tasksData = data.data.map((task: any) => ({
@@ -731,7 +731,7 @@ export default function Dashboard() {
           isHabit: task.isHabit || false,
           estimatedTime: task.estimatedTime
         }))
-       
+        
         setTasks(tasksData)
       } else {
         throw new Error(data.message || "Failed to fetch tasks")
@@ -742,7 +742,7 @@ export default function Dashboard() {
       setTasks([])
     }
   }, [])
- 
+
   // Fetch achievements from API
   const fetchUserAchievements = useCallback(async () => {
     try {
@@ -754,13 +754,13 @@ export default function Dashboard() {
         },
         cache: "no-store"
       })
- 
+
       if (!res.ok) {
         throw new Error(`Failed to fetch achievements: ${res.status}`)
       }
- 
+
       const data = await res.json()
-     
+      
       if (data.success && data.data) {
         // Update achievements based on API data
         // Instead of replacing the achievements array, update the earned status
@@ -774,7 +774,7 @@ export default function Dashboard() {
           }
           return achievement
         })
-       
+        
         // We're not setting state directly since achievements is already defined in the component
         // If you want to make achievements a state, you'd need to refactor that part
       } else {
@@ -785,7 +785,7 @@ export default function Dashboard() {
       // Keep existing achievements definition but don't assume any are earned
     }
   }, [])
- 
+
   // Use a debounced update function for API calls to prevent excessive requests
   const debouncedFetchData = useCallback(() => {
     let timeoutId: NodeJS.Timeout | null = null;
@@ -861,7 +861,7 @@ export default function Dashboard() {
       window.removeEventListener('achievement-unlocked', handleAchievementUpdate);
     };
   }, [fetchLeaderboard, fetchUserProgress, fetchUserAchievements]);
- 
+
   // Handle task completion with notification
   const handleTaskCompletion = async (taskId: number | string, completed: boolean) => {
     setTasks((prevTasks) =>
@@ -872,19 +872,19 @@ export default function Dashboard() {
         return task
       }),
     )
-   
+    
     try {
       if (completed) {
         // Task is being completed, update XP
         const xpGain = 10
-       
+        
         // Update XP on the server
         const xpResponse = await fetch("/api/users/update-xp", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ xpGain, taskId })
         })
-       
+        
         if (xpResponse.ok) {
           const xpData = await xpResponse.json()
           if (xpData.success) {
@@ -893,7 +893,7 @@ export default function Dashboard() {
             if (xpData.data.streak) {
               setStreak(xpData.data.streak)
             }
-           
+            
             // Show notification
             addNotification(`✅ Task completed! (+${xpGain} XP)`, [
               { label: "Review", onClick: () => router.push("/review") },
@@ -905,14 +905,14 @@ export default function Dashboard() {
           }
         }
       }
-     
+      
       // Update task status on the server regardless of completed state
       await fetch("/api/tasks/update", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          taskId,
-          completed
+        body: JSON.stringify({ 
+          taskId, 
+          completed 
         })
       })
     } catch (err) {
@@ -920,20 +920,20 @@ export default function Dashboard() {
       addNotification("Failed to update task. Please try again.")
     }
   }
- 
+
   // Add a new task (both locally and on the server)
   const handleAddTask = async (title: string) => {
     // Add to local state temporarily with placeholder ID
     const tempId = Date.now()
-    const newTask: Task = {
+    const newTask: Task = { 
       id: tempId,
       title: title.trim(),
       completed: false,
       isHabit: false
     }
-   
+    
     setTasks(prevTasks => [...prevTasks, newTask])
-   
+    
     try {
       // Send to server
       const response = await fetch("/api/tasks", {
@@ -945,15 +945,15 @@ export default function Dashboard() {
           dueDate: new Date().toISOString(), // Add today's date as the due date
         })
       })
-     
+      
       if (response.ok) {
         const data = await response.json()
         if (data.success) {
           // Replace temporary task with real one from server
-          setTasks(prevTasks => prevTasks.map(task =>
+          setTasks(prevTasks => prevTasks.map(task => 
             task.id === tempId ? { ...task, id: data.data._id } : task
           ))
-         
+          
           // Add notification
           addNotification(`🌟 New task "${title.trim()}" added!`)
         }
@@ -969,7 +969,7 @@ export default function Dashboard() {
       addNotification("Failed to create task. Please try again.")
     }
   }
- 
+
   // Updated keyboard handler for adding tasks
   const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter" && newTask.trim()) {
@@ -978,14 +978,14 @@ export default function Dashboard() {
       setShowInput(false)
     }
   }
- 
+
   // Delete a task
   const deleteTask = async (taskId: number | string) => {
     const task = tasks.find((t) => t.id === taskId)
     if (task) {
       // Remove from local state
       setTasks((prevTasks) => prevTasks.filter((t) => t.id !== taskId))
-     
+      
       try {
         // Delete from server
         const response = await fetch(`/api/tasks/delete`, {
@@ -993,7 +993,7 @@ export default function Dashboard() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ taskId })
         })
-       
+        
         if (response.ok) {
           addNotification(`Task "${task.title}" deleted`)
         } else {
@@ -1009,30 +1009,30 @@ export default function Dashboard() {
       }
     }
   }
- 
+
   // Handle task update from AI chatbot
   const handleTaskUpdateFromAI = (taskId: number | string, completed: boolean) => {
     handleTaskCompletion(taskId, completed)
   }
- 
+
   // Add task with date from AI chatbot
   const handleAddTaskWithDate = (date: Date, taskInput: { title: string, completed: boolean }) => {
     // Add to local state temporarily with placeholder ID
     const tempId = Date.now()
-    const newTask: Task = {
+    const newTask: Task = { 
       id: tempId,
       title: taskInput.title,
       completed: taskInput.completed,
-      isHabit: false
+      isHabit: false 
     }
-   
+    
     setTasks(prevTasks => [...prevTasks, newTask])
-   
+    
     // Format date string for display
-    const dateStr = date.toDateString() === new Date().toDateString()
-      ? "today"
+    const dateStr = date.toDateString() === new Date().toDateString() 
+      ? "today" 
       : date.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })
-   
+    
     // Send task to server with the date
     fetch("/api/tasks", {
       method: "POST",
@@ -1053,7 +1053,7 @@ export default function Dashboard() {
     .then(data => {
       if (data.success) {
         // Replace temporary task with real one from server
-        setTasks(prevTasks => prevTasks.map(task =>
+        setTasks(prevTasks => prevTasks.map(task => 
           task.id === tempId ? { ...task, id: data.data._id } : task
         ));
         addNotification(`🆕 New task "${taskInput.title}" added for ${dateStr}!`);
@@ -1066,12 +1066,12 @@ export default function Dashboard() {
       addNotification("Failed to create task. Please try again.");
     });
   }
- 
+
   const openTimeAllocationModal = (task: Task) => setSelectedTask(task)
- 
+
   const saveTimeAllocation = () => {
     if (!selectedTask || !timeAllocation) return
- 
+
     setTasks((prevTasks) =>
       prevTasks.map((task) => {
         if (task.id === selectedTask.id) {
@@ -1080,21 +1080,21 @@ export default function Dashboard() {
         return task
       }),
     )
- 
+
     addNotification(`⏱️ Time allocated for "${selectedTask.title}": ${timeAllocation} minutes`)
     setSelectedTask(null)
     setTimeAllocation("")
   }
- 
+
   // Use effect to focus input when shown
   useEffect(() => {
     if (showInput && inputRef.current) {
       inputRef.current.focus()
     }
   }, [showInput])
- 
+
   const addTask = () => setShowInput(true)
- 
+
   const handleNavigation = (section: string) => {
     setActiveSection(section)
     if (section !== "dashboard") {
@@ -1102,7 +1102,7 @@ export default function Dashboard() {
     }
     setShowMobileMenu(false)
   }
- 
+
   // Render welcome message for the graph when there's no data
   const renderEmptyChartMessage = () => {
     return (
@@ -1113,7 +1113,7 @@ export default function Dashboard() {
       </div>
     )
   }
- 
+
   // Render empty leaderboard message
   const renderEmptyLeaderboardMessage = () => {
     return (
@@ -1124,14 +1124,14 @@ export default function Dashboard() {
       </div>
     )
   }
- 
+
   // Override the chart component to ensure it properly displays for new users
   const renderChart = () => {
     // If no data or empty array, always show the empty state
     if (!chartData || chartData.length === 0) {
       return renderEmptyChartMessage()
     }
- 
+
     // Otherwise render the appropriate chart
     return (
       <div className="h-[200px]">
@@ -1186,7 +1186,7 @@ export default function Dashboard() {
       </div>
     )
   }
- 
+
   // Request notification permission on dashboard mount
   useEffect(() => {
     // Check if notifications are supported
@@ -1252,7 +1252,7 @@ export default function Dashboard() {
         className="fixed inset-0 w-full h-full z-0"
         style={{ pointerEvents: 'none' }}
       />
- 
+
       {/* Notification System */}
       <div className="fixed top-20 right-5 z-50 flex flex-col gap-2 max-w-sm">
         {notifications.map((notification) => (
@@ -1277,13 +1277,13 @@ export default function Dashboard() {
           </div>
         ))}
       </div>
- 
+
       {/* Top Navigation Bar - Simplified for performance */}
       <nav className="sticky top-0 left-0 w-full bg-[#050714]/95 backdrop-blur-md shadow-md z-40 h-[70px] flex items-center justify-between px-4 md:px-8 border-b border-[#7FE9FF]/10">
         <div className="flex items-center text-2xl font-bold text-[#7FE9FF] cursor-pointer tracking-wider">
           HabitQuest
         </div>
- 
+
         {/* Desktop Navigation Links */}
         <div className="hidden md:flex items-center justify-center flex-1">
           <ul className="flex gap-6">
@@ -1292,7 +1292,7 @@ export default function Dashboard() {
               { path: "breakthrough-game", label: "Mini Games", icon: "🎮" },
               { path: "calendar", label: "Calendar", icon: "📅" },
               { path: "new-habit", label: "Habit Creation", icon: "✨" },
-             { path: "fitnessAssessment", label: "Fitness", icon: "🏋️" },
+              { path: "fitnessAssessment", label: "Fitness", icon: "🏋️" },
               { path: "shop", label: "Shop", icon: "🛒" },
               { path: "review", label: "Review", icon: "📊" },
             ].map((item) => (
@@ -1314,7 +1314,7 @@ export default function Dashboard() {
             ))}
           </ul>
         </div>
- 
+
         {/* Right Section */}
         <div className="flex items-center gap-4">
           {/* Search (Desktop only) */}
@@ -1328,19 +1328,19 @@ export default function Dashboard() {
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
- 
+
           {/* Level Badge */}
           <div className="bg-gradient-to-r from-[#7FE9FF] to-[#9C6AFF] px-4 py-2 rounded-full font-semibold shadow-[0_0_15px_rgba(127,233,255,0.25)] text-white hover:-translate-y-1 hover:shadow-[0_0_20px_rgba(127,233,255,0.3)] transition-all">
             Level {currentLevel}
           </div>
- 
+
           {/* Mobile Menu Toggle */}
           <button className="md:hidden text-[#D4EEFF] text-2xl" onClick={() => setShowMobileMenu(!showMobileMenu)}>
             {showMobileMenu ? "✕" : "☰"}
           </button>
         </div>
       </nav>
- 
+
       {/* Mobile Menu */}
       {showMobileMenu && (
         <div className="md:hidden fixed top-[70px] left-0 w-full bg-[#050714]/95 backdrop-blur-md z-30 shadow-md animate-fadeIn">
@@ -1371,7 +1371,7 @@ export default function Dashboard() {
           </ul>
         </div>
       )}
- 
+
       {/* Main Content */}
       <main className="flex-1 p-4 md:p-8 z-10 max-w-7xl mx-auto w-full animate-fadeIn">
         {/* Header */}
@@ -1395,7 +1395,7 @@ export default function Dashboard() {
             Logout
           </Button>
         </div>
- 
+
         {/* Grid Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Progress Overview Card */}
@@ -1440,7 +1440,7 @@ export default function Dashboard() {
               <div className="bg-[#050714]/60 rounded-xl p-6 shadow-inner border border-[#7FE9FF]/10 transition-all hover:border-[#7FE9FF]/20 hover:shadow-cosmic">
                 {loading ? renderEmptyChartMessage() : renderChart()}
               </div>
- 
+
               <h3 className="mt-6 text-[#7FE9FF] flex items-center gap-2 font-medium tracking-wide">
                 <span className="text-xl">🔥</span> Current Streak: {streak} days
               </h3>
@@ -1455,7 +1455,7 @@ export default function Dashboard() {
               </p>
             </CardContent>
           </Card>
- 
+
           {/* Leaderboard Card */}
           <Card
             className="bg-[#0A0F2C]/30 border border-[#7FE9FF]/10 backdrop-blur-md shadow-cosmic hover:shadow-cosmic-lg hover:-translate-y-2 hover:border-[#7FE9FF]/20 transition-all animate-fadeIn glass-card"
@@ -1484,7 +1484,7 @@ export default function Dashboard() {
                       // Use a trophy icon instead of numbers for other positions
                       rankDisplay = "🏆"
                     }
- 
+
                     return (
                       <li
                         key={index}
@@ -1513,11 +1513,11 @@ export default function Dashboard() {
                       </li>
                     )
                   })
-               )}
+                )}
               </ul>
             </CardContent>
           </Card>
- 
+
           {/* Today's Tasks Card - Now spans lg:col-span-3 for full width */}
           <Card
             className="bg-[#0A0F2C]/30 border border-[#7FE9FF]/10 backdrop-blur-md shadow-cosmic hover:shadow-cosmic-lg hover:-translate-y-2 hover:border-[#7FE9FF]/20 transition-all animate-fadeIn glass-card lg:col-span-3"
@@ -1527,7 +1527,7 @@ export default function Dashboard() {
               <CardTitle className="text-[#7FE9FF] text-xl border-b border-[#7FE9FF]/10 pb-2 tracking-wide text-shadow-cosmic flex justify-between items-center">
                 <span>Tasks</span>
                 <div className="flex items-center gap-2">
-                  <button
+                  <button 
                     onClick={() => {
                       const prevDate = new Date(selectedDate);
                       prevDate.setDate(prevDate.getDate() - 1);
@@ -1537,13 +1537,13 @@ export default function Dashboard() {
                   >
                     ◀
                   </button>
-                  <input
-                    type="date"
-                    value={selectedDate.toISOString().split('T')[0]}
+                  <input 
+                    type="date" 
+                    value={selectedDate.toISOString().split('T')[0]} 
                     onChange={(e) => setSelectedDate(new Date(e.target.value))}
                     className="bg-[#050714]/70 border border-[#7FE9FF]/30 text-[#D4EEFF] rounded-md p-1 text-sm"
                   />
-                  <button
+                  <button 
                     onClick={() => {
                       const nextDate = new Date(selectedDate);
                       nextDate.setDate(nextDate.getDate() + 1);
@@ -1585,7 +1585,7 @@ export default function Dashboard() {
           </select>
         </div>
       </main>
- 
+
       {/* Time Allocation Modal */}
       {selectedTask && (
         <div className="fixed inset-0 bg-[#050714]/80 backdrop-blur-sm flex items-center justify-center z-50 animate-fadeIn">
@@ -1616,8 +1616,8 @@ export default function Dashboard() {
             </div>
           </div>
         </div>
-     )}
- 
+      )}
+
       {/* AI Chat Component - Load with lower priority */}
       <AIChat
         user={user}
@@ -1633,13 +1633,13 @@ export default function Dashboard() {
           0%, 100% { opacity: 0.3; transform: scale(0.8); }
           50% { opacity: 1; transform: scale(1.2); }
         }
-       
+        
         @keyframes shootingStar {
           0% { transform: translateX(0) translateY(0); opacity: 0; }
           10% { opacity: 1; }
           100% { transform: translateX(200vw) translateY(200vh); opacity: 0; }
         }
-       
+        
         @keyframes nebulaFloat {
           0% { transform: translateX(0); }
           50% { transform: translateX(var(--drift, 20px)); }
@@ -1655,24 +1655,24 @@ export default function Dashboard() {
           from { transform: translateX(-10px); opacity: 0; }
           to { transform: translateX(0); opacity: 1; }
         }
-       
+        
         @keyframes notificationTimer {
           from { width: 100%; }
           to { width: 0%; }
         }
-       
+        
         .animate-fadeIn {
           animation: fadeIn 0.5s ease-out;
         }
-       
+        
         .animate-slideIn {
           animation: slideIn 0.3s ease-out;
         }
-       
+        
         .animate-notificationTimer {
           animation: notificationTimer 5s linear forwards;
         }
-       
+        
         .text-shadow-cosmic {
           text-shadow: 0 0 10px rgba(127, 233, 255, 0.3);
         }
@@ -1704,4 +1704,3 @@ export default function Dashboard() {
     </div>
   )
 }
- 

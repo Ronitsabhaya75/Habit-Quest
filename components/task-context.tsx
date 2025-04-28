@@ -376,6 +376,14 @@ export const TaskProvider = ({ children }: { children: React.ReactNode }) => {
         taskData.dueDate = new Date();
       }
       
+      // Add debugging for recurring tasks
+      if (taskData.isRecurring) {
+        console.log(`Adding recurring task: ${taskData.title}`);
+        console.log(`Frequency: ${taskData.frequency}`);
+        console.log(`Start date: ${taskData.dueDate}`);
+        console.log(`End date: ${taskData.recurringEndDate}`);
+      }
+      
       const response = await fetch("/api/tasks", {
         method: "POST",
         headers: {
@@ -555,6 +563,8 @@ export const TaskProvider = ({ children }: { children: React.ReactNode }) => {
         return null;
       }
       
+      console.log(`Completing task with ID: ${id}`);
+      
       // Use the specific task ID endpoint that matches our API structure
       const response = await fetch(`/api/tasks/update`, {
         method: "PUT",
@@ -570,11 +580,22 @@ export const TaskProvider = ({ children }: { children: React.ReactNode }) => {
       
       const data = await response.json();
       const updatedTask = data.data;
+      const nextInstance = data.nextInstance;
+      
+      console.log("Task update response:", data);
       
       // Update the completed task in state
-      setTasks((prevTasks) =>
-        prevTasks.map((t) => (t._id === id ? updatedTask : t))
-      );
+      setTasks((prevTasks) => {
+        const updatedTasks = prevTasks.map((t) => (t._id === id ? updatedTask : t));
+        
+        // Add next instance if it was created
+        if (nextInstance) {
+          console.log("Adding next instance to task list:", nextInstance);
+          return [...updatedTasks, nextInstance];
+        }
+        
+        return updatedTasks;
+      });
       
       // Increment completed task count and check achievements
       const newCount = completedTaskCount + 1;

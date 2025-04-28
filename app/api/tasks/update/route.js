@@ -3,6 +3,7 @@ import connectToDatabase from "../../../../lib/mongodb"
 import Task from "../../../../models/Task"
 import User from "../../../../models/User"
 import { getUserFromToken } from "../../../../lib/auth"
+import { getNextOccurrenceDate, shouldCreateNextInstance } from '../../../../utils/dateUtils'
 
 // Update task via PUT or POST for compatibility
 export async function PUT(request) {
@@ -46,10 +47,13 @@ async function handleTaskUpdate(request) {
     const updateFields = {}
     
     if (taskData.title !== undefined) updateFields.title = taskData.title
+    if (taskData.description !== undefined) updateFields.description = taskData.description
     if (taskData.completed !== undefined) updateFields.completed = taskData.completed
     if (taskData.dueDate !== undefined) updateFields.dueDate = taskData.dueDate
     if (taskData.estimatedTime !== undefined) updateFields.estimatedTime = taskData.estimatedTime
     if (taskData.isHabit !== undefined) updateFields.isHabit = taskData.isHabit
+    if (taskData.frequency !== undefined) updateFields.frequency = taskData.frequency
+    if (taskData.recurringEndDate !== undefined) updateFields.recurringEndDate = taskData.recurringEndDate
     
     // Check if this is a task completion update
     const completingTask = taskData.completed && !task.completed
@@ -60,6 +64,42 @@ async function handleTaskUpdate(request) {
       { $set: updateFields },
       { new: true }
     )
+
+    // Create next instance for recurring tasks if being completed
+    let nextInstanceTask = null
+    if (completingTask && task.isRecurring && shouldCreateNextInstance(task)) {
+      const nextDueDate = getNextOccurrenceDate(
+        task.dueDate,
+        task.frequency || 'daily',
+        task.recurringEndDate
+      )
+      
+      if (nextDueDate) {
+        const parentId = task.parentTaskId || task._id
+        
+        // Create the next instance
+        nextInstanceTask = new Task({
+          title: task.title,
+          description: task.description,
+          dueDate: nextDueDate,
+          completed: false,
+          completedAt: null,
+          xpReward: task.xpReward,
+          isHabit: task.isHabit,
+          isRecurring: true,
+          frequency: task.frequency,
+          recurringEndDate: task.recurringEndDate,
+          parentTaskId: parentId,
+          user: user._id
+        })
+        
+        // Set dueDateString for proper filtering
+        nextInstanceTask.dueDateString = nextDueDate.toISOString().split('T')[0]
+        
+        await nextInstanceTask.save()
+        console.log(`Created next recurring instance for task ${task.title} with due date ${nextDueDate}`)
+      }
+    }
 
     // Add XP for task completion
     if (completingTask) {
@@ -77,7 +117,11 @@ async function handleTaskUpdate(request) {
       }
     }
 
-    return NextResponse.json({ success: true, data: updatedTask }, { status: 200 })
+    return NextResponse.json({ 
+      success: true, 
+      data: updatedTask,
+      nextInstance: nextInstanceTask 
+    }, { status: 200 })
   } catch (error) {
     console.error("Update task error:", error)
     return NextResponse.json({ success: false, message: error.message || "Server error" }, { status: 500 })

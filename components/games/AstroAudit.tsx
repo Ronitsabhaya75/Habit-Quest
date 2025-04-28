@@ -362,7 +362,7 @@ export function AstroAudit({ backToGames }: AstroAuditProps) {
           )}
         </div>
       ) : (
-        <div className="w-full max-w-5xl mx-auto space-y-8 px-4">
+      <div className="w-full max-w-5xl mx-auto space-y-8 px-4">
           {/* Score Display */}
           <div className="flex justify-center mb-2">
             <Badge className="bg-[#4cc9f0] text-black px-6 py-1 text-base">
@@ -370,70 +370,70 @@ export function AstroAudit({ backToGames }: AstroAuditProps) {
             </Badge>
           </div>
 
-          {/* Resources Display */}
+        {/* Resources Display */}
           <div className="flex justify-center gap-6">
             <div className="flex items-center gap-2 bg-[#1a2332] border border-[#2a3343] px-4 py-2 rounded-md">
-              <Coins className="w-5 h-5 text-yellow-400" />
+                <Coins className="w-5 h-5 text-yellow-400" />
               <span className="mr-1">Credits</span>
               <Badge className="bg-yellow-400 text-black">{resources.credits}/{MAX_RESOURCES.credits}</Badge>
             </div>
             <div className="flex items-center gap-2 bg-[#1a2332] border border-[#2a3343] px-4 py-2 rounded-md">
-              <GaugeCircle className="w-5 h-5 text-blue-400" />
+                <GaugeCircle className="w-5 h-5 text-blue-400" />
               <span className="mr-1">Fuel</span>
               <Badge className="bg-blue-400 text-black">{resources.fuel}/{MAX_RESOURCES.fuel}</Badge>
             </div>
             <div className="flex items-center gap-2 bg-[#1a2332] border border-[#2a3343] px-4 py-2 rounded-md">
-              <Building2 className="w-5 h-5 text-gray-400" />
+                <Building2 className="w-5 h-5 text-gray-400" />
               <span className="mr-1">Minerals</span>
               <Badge className="bg-gray-400 text-black">{resources.minerals}/{MAX_RESOURCES.minerals}</Badge>
             </div>
-          </div>
+        </div>
 
-          {/* Finance Logging Section */}
-          <Card className="bg-[#1a2332] border-[#2a3343]">
-            <CardContent className="p-6">
+        {/* Finance Logging Section */}
+        <Card className="bg-[#1a2332] border-[#2a3343]">
+          <CardContent className="p-6">
               <div className="flex flex-col items-center justify-between mb-4">
                 <h3 className="text-xl font-bold text-white mb-1">Daily Financial Log</h3>
                 <p className="text-sm text-gray-400 mb-4">Current Streak: {streak} days (High Score: {highScore})</p>
-                <Button
-                  onClick={handleFinanceLog}
+              <Button
+                onClick={handleFinanceLog}
                   className="bg-[#4cc9f0] hover:bg-[#4cc9f0]/80 text-black font-medium w-[200px]"
-                >
-                  Log Today's Finances
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+              >
+                Log Today's Finances
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
 
-          {/* Buildings Section */}
+        {/* Buildings Section */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-            {BUILDING_TYPES.map((building) => (
-              <Card key={building.type} className="bg-[#1a2332] border-[#2a3343]">
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-2">
-                      {building.icon}
-                      <span className="text-white">{building.name}</span>
-                    </div>
-                    <Button
-                      onClick={() => handleBuild(building)}
+          {BUILDING_TYPES.map((building) => (
+            <Card key={building.type} className="bg-[#1a2332] border-[#2a3343]">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    {building.icon}
+                    <span className="text-white">{building.name}</span>
+                  </div>
+                  <Button
+                    onClick={() => handleBuild(building)}
                       size="sm"
-                      variant="outline"
-                      className="bg-[#2a3343] hover:bg-[#3a4353] text-white border-[#3a4353]"
-                    >
-                      Build
-                    </Button>
-                  </div>
-                  <div className="text-sm text-gray-400">
-                    Cost: {building.baseCost.credits} credits, {building.baseCost.fuel} fuel, {building.baseCost.minerals} minerals
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+                    variant="outline"
+                    className="bg-[#2a3343] hover:bg-[#3a4353] text-white border-[#3a4353]"
+                  >
+                    Build
+                  </Button>
+                </div>
+                <div className="text-sm text-gray-400">
+                  Cost: {building.baseCost.credits} credits, {building.baseCost.fuel} fuel, {building.baseCost.minerals} minerals
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
 
-          {/* Colony Overview */}
-          <Card className="bg-[#1a2332] border-[#2a3343]">
+        {/* Colony Overview */}
+        <Card className="bg-[#1a2332] border-[#2a3343]">
             <CardHeader>
               <h3 className="text-lg font-bold text-white">Colony Buildings ({buildings.length})</h3>
             </CardHeader>
@@ -443,33 +443,33 @@ export function AstroAudit({ backToGames }: AstroAuditProps) {
                   No buildings yet. Build your first structure!
                 </div>
               ) : (
-                <div className="space-y-4">
-                  {buildings.map((building) => (
-                    <div key={building.id} className="flex items-center justify-between p-4 bg-[#2a3343] rounded">
-                      <div className="flex items-center gap-2">
-                        {BUILDING_TYPES.find(b => b.type === building.type)?.icon}
-                        <span className="text-white">{building.name} (Level {building.level})</span>
-                      </div>
-                      <div className="flex items-center gap-4">
-                        <div className="text-sm text-gray-400">
-                          Production: +{building.production.credits || 0}c +{building.production.fuel || 0}f +{building.production.minerals || 0}m
-                        </div>
-                        <Button
-                          onClick={() => handleUpgrade(building)}
-                          size="sm"
-                          variant="outline"
-                          className="bg-[#2a3343] hover:bg-[#3a4353] text-white border-[#3a4353]"
-                          disabled={building.level >= (BUILDING_TYPES.find(b => b.type === building.type)?.maxLevel || 5)}
-                        >
-                          Upgrade
-                        </Button>
-                      </div>
+            <div className="space-y-4">
+              {buildings.map((building) => (
+                <div key={building.id} className="flex items-center justify-between p-4 bg-[#2a3343] rounded">
+                  <div className="flex items-center gap-2">
+                    {BUILDING_TYPES.find(b => b.type === building.type)?.icon}
+                    <span className="text-white">{building.name} (Level {building.level})</span>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <div className="text-sm text-gray-400">
+                      Production: +{building.production.credits || 0}c +{building.production.fuel || 0}f +{building.production.minerals || 0}m
                     </div>
-                  ))}
+                    <Button
+                      onClick={() => handleUpgrade(building)}
+                      size="sm"
+                      variant="outline"
+                      className="bg-[#2a3343] hover:bg-[#3a4353] text-white border-[#3a4353]"
+                      disabled={building.level >= (BUILDING_TYPES.find(b => b.type === building.type)?.maxLevel || 5)}
+                    >
+                      Upgrade
+                    </Button>
+                  </div>
                 </div>
+              ))}
+            </div>
               )}
-            </CardContent>
-          </Card>
+          </CardContent>
+        </Card>
 
           {/* End Game Button */}
           <div className="flex justify-center pb-6">
@@ -483,6 +483,6 @@ export function AstroAudit({ backToGames }: AstroAuditProps) {
           </div>
         </div>
       )}
-    </div>
+      </div>
   )
 }

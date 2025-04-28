@@ -11,7 +11,7 @@ import { Badge } from "../../components/ui/badge"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
-import {
+import { 
   PacmanGame,
   ChessGame,
   HabitChallengeCenter,
@@ -494,7 +494,7 @@ export default function BreakthroughGame() {
             <span>Review</span>
           </Link>
         </div>
-
+        
         <div className="navbar-right">
           <div className="search-container">
             <svg xmlns="http://www.w3.org/2000/svg" className="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

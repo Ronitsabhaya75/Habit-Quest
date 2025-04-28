@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import connectToDatabase from "../../../lib/mongodb";
 import { getUserFromToken } from "../../../lib/auth";
 import Task from "../../../models/Task";
+import { formatDateForAPI } from "../../../utils/dateUtils";
 
 // Get all tasks for the current user
 export async function GET(request) {
@@ -101,6 +102,11 @@ export async function POST(request) {
     
     // Save the task
     await newTask.save();
+    
+    // Log specific details about recurring tasks for debugging
+    if (taskData.isRecurring) {
+      console.log(`Created recurring task with frequency: ${taskData.frequency}, start date: ${taskData.dueDate}, end date: ${taskData.recurringEndDate || 'none'}`);
+    }
     
     return NextResponse.json({
       success: true,

@@ -35,6 +35,7 @@ import { useToast } from "../../components/ui/use-toast"
 import { motion, AnimatePresence } from "framer-motion"
 import { useTask } from "../../components/task-context"
 import { useRouter } from 'next/navigation'
+import { createTaskFromHabit } from "../../utils/dateUtils"
 
 // Example habits suggestions for rotating placeholders
 const habitSuggestions = [
@@ -241,13 +242,18 @@ export default function HabitCreation() {
       
       // Create the initial task for today if applicable
       if (startDay <= today) {
+        // Use our utility function to create the task with proper recurring settings
+        const taskData = createTaskFromHabit(habit, habit.user)
+        
+        console.log("Creating recurring habit task with frequency:", habit.frequency);
+        
         await addTask({
-          title: habit.name,
-          description: habit.description,
-          dueDate: new Date(), // today
-          xpReward: 30, // default XP for habits
-          isHabit: true, // mark as a habit task
-          isRecurring: true, // habits are recurring
+          title: taskData.title,
+          description: taskData.description,
+          dueDate: taskData.dueDate,
+          xpReward: taskData.xpReward,
+          isHabit: true,
+          isRecurring: true,
           frequency: habit.frequency as "daily" | "weekly" | "biweekly" | "monthly",
           recurringEndDate: new Date(habit.endDate)
         })

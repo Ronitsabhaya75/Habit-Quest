@@ -127,7 +127,7 @@ export default function Shop() {
 
   const badges = [
     // Common (10)
-    // { id: 1, name: "Early Bird", description: "Complete 5 tasks before 9 AM", price: 100, rarity: "common" },
+    { id: 1, name: "Early Bird", description: "Complete 5 tasks before 9 AM", price: 100, rarity: "common" },
     { id: 2, name: "Night Owl", description: "Complete 5 tasks after 10 PM", price: 100, rarity: "common" },
     { id: 3, name: "Daily Starter", description: "Complete your first task of the day", price: 100, rarity: "common" },
     { id: 4, name: "Consistent Performer", description: "Complete tasks for 3 days straight", price: 100, rarity: "common" },
