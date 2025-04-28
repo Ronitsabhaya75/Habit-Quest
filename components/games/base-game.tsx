@@ -57,34 +57,54 @@ export default function BaseGame({ onGameEnd, initialLevel = 1, maxTime, difficu
     }
 
     // Update user XP and leaderboard
+    const updateResult = await updateLeaderboard(earnedXP, "game_completion")
+
+    if (updateResult) {
+      if (onGameEnd) {
+        onGameEnd(gameScore)
+      }
+
+      // Show toast notification for XP earned
+      toast({
+        title: "Game Complete!",
+        description: `You earned ${earnedXP} XP!`,
+      })
+    }
+  }
+
+  const updateLeaderboard = async (xpEarned: number, gameType: string) => {
     try {
+      // Create a specific payload for game XP updates
+      const payload = {
+        xpGained: xpEarned,
+        source: gameType || "game_completion", 
+        timestamp: new Date().toISOString()
+      };
+
       const response = await fetch('/api/users/leaderboard/update', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ 
-          xpGained: earnedXP,
-          source: "game_completion" 
-        }),
+        body: JSON.stringify(payload),
       });
 
       if (!response.ok) {
-        console.error('Failed to update leaderboard with game XP');
+        throw new Error(`HTTP error! Status: ${response.status}`);
       }
+
+      // Trigger a global event to refresh leaderboard in any open dashboards
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('leaderboard-update', { 
+          detail: { xp: xpEarned, source: gameType } 
+        }));
+      }
+
+      return true;
     } catch (error) {
-      console.error('Error updating leaderboard:', error);
+      console.error('Failed to update leaderboard with game XP', error);
+      return false;
     }
-
-    if (onGameEnd) {
-      onGameEnd(gameScore)
-    }
-
-    // Show toast notification for XP earned
-    toast({
-      title: "Game Complete!",
-      description: `You earned ${earnedXP} XP!`,
-    })
   }
 
   const pauseGame = () => {

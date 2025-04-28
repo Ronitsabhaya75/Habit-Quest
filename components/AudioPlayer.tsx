@@ -4,26 +4,99 @@ import React, { useState, useEffect, useRef } from 'react'
 import { Volume2, VolumeX, AlertTriangle } from 'lucide-react'
 import { Button } from './ui/button'
 
+// Store audio state in global scope to persist between page navigations
+interface GlobalAudioState {
+  playing: boolean;
+  youtubePlayer: any | null;
+  audioElement: HTMLAudioElement | null;
+  initialized: boolean;
+}
+
+const globalAudioState: GlobalAudioState = {
+  playing: false,
+  youtubePlayer: null,
+  audioElement: null,
+  initialized: false
+};
+
 // Backup audio URL in case YouTube fails
 const FALLBACK_AUDIO_URL = '/audio/background-music.mp3'
 // Set maximum volume (0-100 for YouTube, 0-1 for HTML Audio)
-const DEFAULT_VOLUME = 100
+const DEFAULT_VOLUME = 85
 
 const AudioPlayer = () => {
+  // Set default state to unmuted to ensure music plays by default
   const [muted, setMuted] = useState<boolean>(() => {
     try { return localStorage.getItem('muted') === 'true' } catch { return false }
   })
   const mutedRef = useRef<boolean>(muted)
-  const [player, setPlayer] = useState<any>(null)
+  const [player, setPlayer] = useState<any>(globalAudioState.youtubePlayer)
   const [error, setError] = useState(false)
   const [usingFallback, setUsingFallback] = useState(false)
   const [isUnmounting, setIsUnmounting] = useState(false)
-  const audioRef = useRef<HTMLAudioElement | null>(null)
+  const audioRef = useRef<HTMLAudioElement | null>(globalAudioState.audioElement)
   const youtubeLoadTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const continuityCheckRef = useRef<NodeJS.Timeout | null>(null)
+  const wasPlayingRef = useRef<boolean>(globalAudioState.playing)
   
-  // YouTube video ID extracted from the URL
-  const videoId = "UDVtMYqUAyw"
+  // https://www.youtube.com/watch?v=8vOZYwsm8X0&ab_channel=lofigeek 
+  // Updated YouTube video ID to the specified music track
+  // "UDVtMYqUAyw" is the original ID, replaced with the user's preferred track
+  const videoId = "8vOZYwsm8X0" // Relaxing music from Musictag channel
+  
+  // Check every few seconds that audio is still playing and restart if needed
+  const startContinuityCheck = () => {
+    if (continuityCheckRef.current) clearInterval(continuityCheckRef.current);
+    continuityCheckRef.current = setInterval(() => {
+      if (isUnmounting || mutedRef.current) return;
+      
+      if (usingFallback && audioRef.current) {
+        // If audio is paused or ended, restart it
+        if (audioRef.current.paused || audioRef.current.ended) {
+          console.log("Detected paused audio, restarting playback");
+          audioRef.current.currentTime = 0;
+          audioRef.current.play().catch(err => console.error("Error restarting audio:", err));
+          globalAudioState.playing = true;
+        }
+      } else if (player) {
+        // Check if YouTube player is playing
+        try {
+          const state = player.getPlayerState();
+          // Only restart if not playing and user hasn't interacted
+          if (state !== 1 && !error) { // 1 = playing
+            console.log("Detected stopped YouTube playback, restarting");
+            player.playVideo();
+            globalAudioState.playing = true;
+          }
+        } catch (err) {
+          console.error("Error checking YouTube player state:", err);
+        }
+      }
+    }, 5000); // Check every 5 seconds instead of 10
+  };
+  
+  // Check page visibility to keep playing when tab is visible
+  const handleVisibilityChange = () => {
+    if (document.visibilityState === 'visible' && !mutedRef.current) {
+      // When page becomes visible again and not muted, ensure playback
+      if (usingFallback && audioRef.current) {
+        if (audioRef.current.paused) {
+          audioRef.current.play().catch(err => console.error("Error resuming audio:", err));
+          globalAudioState.playing = true;
+        }
+      } else if (player) {
+        try {
+          const state = player.getPlayerState();
+          if (state !== 1) { // 1 = playing
+            player.playVideo();
+            globalAudioState.playing = true;
+          }
+        } catch (err) {
+          console.error("Error resuming YouTube playback:", err);
+        }
+      }
+    }
+  };
   
   // Move initFallbackAudio to component level
   const initFallbackAudio = () => {
@@ -33,17 +106,17 @@ const AudioPlayer = () => {
       console.log("Using fallback audio player");
       setUsingFallback(true);
       
-      // Create an audio element if it doesn't exist
-      if (!audioRef.current) {
-        audioRef.current = new Audio(FALLBACK_AUDIO_URL);
-        audioRef.current.loop = true; // Enable looping directly
-        audioRef.current.volume = DEFAULT_VOLUME / 100; // Convert to 0-1 range
+      // Create an audio element if it doesn't exist or use the global one
+      if (!audioRef.current && !globalAudioState.audioElement) {
+        const audio = new Audio(FALLBACK_AUDIO_URL);
+        audio.loop = true; // Enable looping directly
+        audio.volume = DEFAULT_VOLUME / 100; // Convert to 0-1 range
         
         // Add event listener for when audio ends (as a backup to loop property)
-        audioRef.current.addEventListener('ended', () => {
-          if (audioRef.current && !isUnmounting) {
-            audioRef.current.currentTime = 0;
-            audioRef.current.play().catch(err => {
+        audio.addEventListener('ended', () => {
+          if (audio && !isUnmounting) {
+            audio.currentTime = 0;
+            audio.play().catch((err: Error) => {
               console.error("Error restarting audio:", err);
               // Don't keep trying to play if there's a persistent error
               if (err.name === 'NotAllowedError' || err.name === 'NotSupportedError') {
@@ -54,10 +127,17 @@ const AudioPlayer = () => {
         });
         
         // Add error handling for the fallback too
-        audioRef.current.onerror = () => {
+        audio.onerror = () => {
           console.error("Fallback audio failed to load");
           setError(true);
         };
+        
+        // Store references
+        audioRef.current = audio;
+        globalAudioState.audioElement = audio;
+      } else if (globalAudioState.audioElement && !audioRef.current) {
+        // Use existing global audio element
+        audioRef.current = globalAudioState.audioElement;
       }
     } catch (err) {
       console.error("Error initializing fallback audio:", err);
@@ -67,6 +147,27 @@ const AudioPlayer = () => {
 
   // Initialize audio player (YouTube or fallback)
   useEffect(() => {
+    // If the audio has already been initialized globally, don't reinitialize
+    if (globalAudioState.initialized) {
+      console.log("Audio already initialized, using existing state");
+      setPlayer(globalAudioState.youtubePlayer);
+      setUsingFallback(!!globalAudioState.audioElement);
+      
+      // Resume playback if it was playing before
+      if (globalAudioState.playing && !mutedRef.current) {
+        if (globalAudioState.audioElement) {
+          globalAudioState.audioElement.play().catch((err: Error) => console.error("Error resuming audio:", err));
+        } else if (globalAudioState.youtubePlayer && typeof globalAudioState.youtubePlayer.playVideo === 'function') {
+          globalAudioState.youtubePlayer.playVideo();
+        }
+      }
+      
+      // Start continuity check
+      startContinuityCheck();
+      
+      return;
+    }
+
     let ytPlayer: any = null;
     
     // Initialize YouTube player
@@ -145,25 +246,39 @@ const AudioPlayer = () => {
                 }
                 console.log("YouTube player ready");
                 setPlayer(ytPlayer);
+                // Store globally
+                globalAudioState.youtubePlayer = ytPlayer;
+                globalAudioState.initialized = true;
+                
                 setError(false);
                 if (!mutedRef.current) {
                   event.target.setVolume(DEFAULT_VOLUME);
                   event.target.playVideo();
+                  globalAudioState.playing = true;
                   startContinuityCheck();
                 } else {
                   event.target.pauseVideo();
+                  globalAudioState.playing = false;
                 }
               },
               onStateChange: (event: any) => {
                 // If video ended, restart
                 if (event.data === (window as any).YT.PlayerState.ENDED) {
                   event.target.playVideo();
+                  globalAudioState.playing = true;
                 }
                 // If video was paused, restart (unless muted)
                 else if (event.data === (window as any).YT.PlayerState.PAUSED && !mutedRef.current) {
                   setTimeout(() => {
-                    if (!isUnmounting) event.target.playVideo();
+                    if (!isUnmounting) {
+                      event.target.playVideo();
+                      globalAudioState.playing = true;
+                    }
                   }, 1000);
+                }
+                // Update global playing state
+                else if (event.data === (window as any).YT.PlayerState.PLAYING) {
+                  globalAudioState.playing = true;
                 }
               },
               onError: (event: any) => {
@@ -183,37 +298,10 @@ const AudioPlayer = () => {
       }
     };
     
-    // Check every 10 seconds that audio is still playing and restart if needed
-    const startContinuityCheck = () => {
-      if (continuityCheckRef.current) clearInterval(continuityCheckRef.current);
-      continuityCheckRef.current = setInterval(() => {
-        if (isUnmounting || mutedRef.current) return;
-        
-        if (usingFallback && audioRef.current) {
-          // If audio is paused or ended, restart it
-          if (audioRef.current.paused || audioRef.current.ended) {
-            console.log("Detected paused audio, restarting playback");
-            audioRef.current.currentTime = 0;
-            audioRef.current.play().catch(err => console.error("Error restarting audio:", err));
-          }
-        } else if (player) {
-          // Check if YouTube player is playing
-          try {
-            const state = player.getPlayerState();
-            // Only restart if not playing and user hasn't interacted
-            if (state !== 1 && !error) { // 1 = playing
-              console.log("Detected stopped YouTube playback, restarting");
-              player.playVideo();
-            }
-          } catch (err) {
-            console.error("Error checking YouTube player state:", err);
-          }
-        }
-      }, 10000); // Check every 10 seconds
-    };
-    
-    // Start initialization
-    initYouTubePlayer();
+    // Only initialize new player if one doesn't already exist
+    if (!globalAudioState.initialized) {
+      initYouTubePlayer();
+    }
     
     // Handle API ready event
     window.onYouTubeIframeAPIReady = () => {
@@ -224,7 +312,11 @@ const AudioPlayer = () => {
       initYouTubePlayerInstance();
     };
     
-    // Cleanup function
+    // Mark as initialized
+    globalAudioState.initialized = true;
+    
+    // Cleanup function - note we're not destroying the players,
+    // just cleaning up this component instance
     return () => {
       setIsUnmounting(true);
       
@@ -236,76 +328,111 @@ const AudioPlayer = () => {
         clearInterval(continuityCheckRef.current);
       }
       
-      if (ytPlayer) {
-        try {
-          if (ytPlayer.stopVideo && typeof ytPlayer.stopVideo === 'function') {
-            ytPlayer.stopVideo();
-          }
-          if (ytPlayer.destroy && typeof ytPlayer.destroy === 'function') {
-            ytPlayer.destroy();
-          }
-        } catch (err) {
-          console.error("Error during YouTube player cleanup:", err);
-        }
-      }
-      
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current.remove();
-      }
-      
-      const container = document.getElementById('youtube-audio-container');
-      if (container) {
-        document.body.removeChild(container);
+      // Don't destroy the YouTube player or audio element on unmount
+      // Just keep track of the playing state
+      if (globalAudioState.youtubePlayer) {
+        wasPlayingRef.current = globalAudioState.playing;
       }
       
       // @ts-ignore
       window.onYouTubeIframeAPIReady = null;
     };
   }, [videoId, muted]);
+
+  // Set up page visibility listener
+  useEffect(() => {
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    // Also add navigation event listeners
+    const handleBeforeUnload = () => {
+      // Save current state before page unload
+      localStorage.setItem('audioState', JSON.stringify({
+        playing: globalAudioState.playing,
+        muted: mutedRef.current,
+        time: usingFallback && audioRef.current ? audioRef.current.currentTime : 0
+      }));
+    };
+    
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    
+    // Set up next.js router event handlers (handle client-side navigation)
+    if (typeof window !== "undefined") {
+      function handleRouteChange() {
+        // Don't stop the music, just preserve state
+        wasPlayingRef.current = globalAudioState.playing;
+      }
+      
+      function handleRouteComplete() {
+        // Resume playback if it was playing before navigation
+        if (wasPlayingRef.current && !mutedRef.current) {
+          setTimeout(() => {
+            if (usingFallback && audioRef.current) {
+              audioRef.current.play().catch((err: Error) => console.error("Error resuming audio after navigation:", err));
+              globalAudioState.playing = true;
+            } else if (globalAudioState.youtubePlayer) {
+              try {
+                globalAudioState.youtubePlayer.playVideo();
+                globalAudioState.playing = true;
+              } catch (err) {
+                console.error("Error resuming YouTube after navigation:", err);
+              }
+            }
+          }, 300);
+        }
+      }
+      
+      // Check if Next.js router events are available
+      const router = (window as any).next?.router;
+      if (router && router.events) {
+        router.events.on('routeChangeStart', handleRouteChange);
+        router.events.on('routeChangeComplete', handleRouteComplete);
+      }
+      
+      return () => {
+        document.removeEventListener('visibilitychange', handleVisibilityChange);
+        window.removeEventListener('beforeunload', handleBeforeUnload);
+        
+        if (router && router.events) {
+          router.events.off('routeChangeStart', handleRouteChange);
+          router.events.off('routeChangeComplete', handleRouteComplete);
+        }
+      };
+    }
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [usingFallback]);
   
   useEffect(() => {
     mutedRef.current = muted
+    // Update localStorage
+    try { localStorage.setItem('muted', String(muted)) } catch {}
   }, [muted])
-
-  useEffect(() => {
-    return () => {
-      setIsUnmounting(true);
-      
-      // Clean up any timeouts
-      if (youtubeLoadTimeoutRef.current) {
-        clearTimeout(youtubeLoadTimeoutRef.current);
-      }
-      if (continuityCheckRef.current) {
-        clearTimeout(continuityCheckRef.current);
-      }
-      
-      // Clean up audio element
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current.remove();
-      }
-    };
-  }, []);
 
   useEffect(() => {
     if (usingFallback) {
       if (audioRef.current) {
         if (muted) {
           audioRef.current.pause();
+          globalAudioState.playing = false;
         } else {
           audioRef.current.volume = DEFAULT_VOLUME / 100;
-          audioRef.current.play().catch(err => console.error("Error playing audio:", err));
+          audioRef.current.play().catch((err: Error) => console.error("Error playing audio:", err));
+          globalAudioState.playing = true;
         }
       }
-    } else if (player && player.isReady) {
+    } else if (player) {
       try {
         if (muted) {
           player.pauseVideo();
+          globalAudioState.playing = false;
         } else {
           player.unMute();
           player.playVideo();
           player.setVolume(DEFAULT_VOLUME);
+          globalAudioState.playing = true;
         }
       } catch (err) {
         console.error("Error muting/unmuting YouTube player:", err);
@@ -320,7 +447,8 @@ const AudioPlayer = () => {
       audioRef.current.volume = DEFAULT_VOLUME / 100;
       audioRef.current.play().then(() => {
         setError(false);
-      }).catch(err => {
+        globalAudioState.playing = true;
+      }).catch((err: Error) => {
         console.error("Failed to play audio after user interaction:", err);
       });
     }
@@ -329,15 +457,18 @@ const AudioPlayer = () => {
   const toggleMute = () => {
     const newMuted = !muted;
     setMuted(newMuted);
-    try { localStorage.setItem('muted', String(newMuted)) } catch {}
+    
     // On mute, clear the auto-restart interval
     if (newMuted && continuityCheckRef.current) {
       clearInterval(continuityCheckRef.current);
+    } else if (!newMuted) {
+      // When unmuting, start the continuity check again
+      startContinuityCheck();
     }
   };
   
   return (
-    <div className="fixed bottom-4 right-4 z-10">
+    <div className="fixed bottom-4 right-4 z-50" onClick={handleUserInteraction}>
       <div className="bg-[#1a2332] rounded-lg p-2 shadow-lg">
         <Button
           variant="ghost"
@@ -363,6 +494,7 @@ const AudioPlayer = () => {
 declare global {
   interface Window {
     onYouTubeIframeAPIReady: () => void;
+    next?: any;
   }
 }
 

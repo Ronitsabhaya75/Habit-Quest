@@ -1,3 +1,4 @@
+import React from "react"
 import { InputHTMLAttributes, forwardRef } from "react"
 
 interface ThemedInputProps extends InputHTMLAttributes<HTMLInputElement> {
@@ -37,4 +38,6 @@ export const ThemedInput = forwardRef<HTMLInputElement, ThemedInputProps>(
       </div>
     )
   }
-) 
+)
+
+ThemedInput.displayName = "ThemedInput" 

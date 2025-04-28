@@ -1,8 +1,44 @@
 import { NextResponse } from "next/server";
+import fs from 'fs';
+import path from 'path';
 
-const SPREADSHEET_ID = '1wPh65bKI6I5zeE1vqeCJTLHQoFhr7EUDlzPa3lXoj5A';
-const SHEET_NAME = 'Sheet1';
-const GOOGLE_API_KEY = process.env.NEXT_PUBLIC_AI_API_KEY;
+// Define the path for storing reviews locally
+const REVIEWS_FILE_PATH = path.join(process.cwd(), 'data', 'reviews.json');
+
+// Ensure the data directory exists
+function ensureDirectoryExists(filePath) {
+  const dirname = path.dirname(filePath);
+  if (!fs.existsSync(dirname)) {
+    fs.mkdirSync(dirname, { recursive: true });
+  }
+}
+
+// Load existing reviews
+function loadReviews() {
+  try {
+    ensureDirectoryExists(REVIEWS_FILE_PATH);
+    if (!fs.existsSync(REVIEWS_FILE_PATH)) {
+      return [];
+    }
+    const data = fs.readFileSync(REVIEWS_FILE_PATH, 'utf8');
+    return JSON.parse(data);
+  } catch (error) {
+    console.error("Error loading reviews:", error);
+    return [];
+  }
+}
+
+// Save reviews to file
+function saveReviews(reviews) {
+  try {
+    ensureDirectoryExists(REVIEWS_FILE_PATH);
+    fs.writeFileSync(REVIEWS_FILE_PATH, JSON.stringify(reviews, null, 2), 'utf8');
+    return true;
+  } catch (error) {
+    console.error("Error saving reviews:", error);
+    return false;
+  }
+}
 
 export async function POST(request) {
   try {
@@ -16,23 +52,29 @@ export async function POST(request) {
       }, { status: 400 });
     }
     
-    // Format data for Google Sheets
-    const rowData = [
-      data.timestamp || new Date().toISOString(),
-      data.name,
-      data.rating.toString(),
-      data.usageFrequency || "",
-      data.favoriteFeatures || "",
-      data.improvements || "",
-      data.recommendation || "",
-      data.review || ""
-    ];
+    // Format data for storage
+    const reviewData = {
+      timestamp: data.timestamp || new Date().toISOString(),
+      name: data.name,
+      rating: data.rating.toString(),
+      usageFrequency: data.usageFrequency || "",
+      favoriteFeatures: data.favoriteFeatures || "",
+      improvements: data.improvements || "",
+      recommendation: data.recommendation || "",
+      review: data.review || ""
+    };
     
-    // Append data to Google Sheets
-    const result = await appendToGoogleSheet(rowData);
+    // Load existing reviews
+    const reviews = loadReviews();
     
-    if (!result.success) {
-      throw new Error(result.message || "Failed to submit review");
+    // Add new review
+    reviews.push(reviewData);
+    
+    // Save updated reviews
+    const saveResult = saveReviews(reviews);
+    
+    if (!saveResult) {
+      throw new Error("Failed to save review to local storage");
     }
     
     return NextResponse.json({ 
@@ -46,44 +88,5 @@ export async function POST(request) {
       success: false, 
       message: error.message || "Server error"
     }, { status: 500 });
-  }
-}
-
-async function appendToGoogleSheet(rowData) {
-  try {
-    // Google Sheets API v4 endpoint for appending values
-    const endpoint = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${SHEET_NAME}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS&key=${GOOGLE_API_KEY}`;
-    
-    // Prepare request body
-    const body = {
-      values: [rowData]
-    };
-    
-    // Make API request
-    const response = await fetch(endpoint, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(body)
-    });
-    
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error?.message || `API request failed with status ${response.status}`);
-    }
-    
-    const responseData = await response.json();
-    return {
-      success: true,
-      data: responseData
-    };
-    
-  } catch (error) {
-    console.error("Google Sheets API error:", error);
-    return {
-      success: false,
-      message: error.message || "Failed to connect to Google Sheets"
-    };
   }
 } 

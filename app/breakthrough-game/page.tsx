@@ -1,19 +1,22 @@
 "use client"
- 
+
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../components/ui/card"
-import { MainLayout } from "../../components/main-layout"
 import { Button } from "../../components/ui/button"
-import { ChessGame } from "../../components/games/chess-game"
 import { QuizGame } from "../../components/games/quiz-game"
 import { WordScrambler } from "../../components/games/word-scrambler"
 import { SpinWheel } from "../../components/games/spin-wheel"
-import { PacmanGame } from "../../components/games/pacman-game"
 import { MemoryGame } from "../../components/games/memory-game"
 import { Badge } from "../../components/ui/badge"
-import { Search } from "lucide-react"
 import Link from "next/link"
- 
+import { useRouter } from "next/navigation"
+import Image from "next/image"
+import {
+  PacmanGame,
+  ChessGame,
+  HabitChallengeCenter,
+  AstroAudit
+} from "../../components/games"
 // Enhanced CSS for space animations with more visibility
 const spaceAnimationsCSS = `
   /* Ensure the animations container covers the whole viewport */
@@ -322,7 +325,7 @@ export default function BreakthroughGame() {
    
     return () => clearInterval(cometInterval);
   }, []);
- 
+
   const games = [
     {
       id: "chess",
@@ -364,47 +367,63 @@ export default function BreakthroughGame() {
       icon: "🧠",
       difficulty: "medium"
     },
+    {
+      id: "astroaudit",
+      name: "AstroAudit",
+      description: "Audit the stars",
+      component: AstroAudit,
+      icon: "🌟",
+      difficulty: "hard"
+    },
+    {
+      id: "habitchallenge",
+      name: "Habit Challenge",
+      description: "Challenge your habits",
+      component: HabitChallengeCenter,
+      icon: "🏆",
+      difficulty: "easy"
+    }
   ]
  
   const GameComponent = activeGame ? games.find((game) => game.id === activeGame)?.component : null
- 
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#0D0D2B] to-[#0f172a] text-white relative overflow-hidden">
       {/* Add style tag for animations */}
       <style dangerouslySetInnerHTML={{ __html: spaceAnimationsCSS }} />
-     
+      
       {/* Animation Elements in a container */}
       <div className="animations-container">
         <div className="nebula"></div>
-       
+        
         {/* Fixed position asteroids */}
         <div className="asteroid asteroid-1"></div>
         <div className="asteroid asteroid-2"></div>
         <div className="asteroid asteroid-3"></div>
-       
+        
         {/* Dynamic stars */}
         {stars.map((star) => (
-          <div
-            key={star.id}
-            className="star"
-            style={{
-              top: star.top,
-              left: star.left,
-              width: star.size,
+          <div 
+            key={star.id} 
+            className="star" 
+            style={{ 
+              top: star.top, 
+              left: star.left, 
+              width: star.size, 
               height: star.size,
               animationDelay: star.delay
             }}
           />
         ))}
-       
+        
         {/* Comets that's appears periodically */}
         {showComet && <div className="comet"></div>}
       </div>
-     
+      
       {/* New navigation bar matching Image 1 exactly with centered navigation */}
       <header className="navbar relative z-10">
         <Link href="/" className="navbar-brand">HabitQuest</Link>
-       
+        
         <div className="navbar-center">
           <Link href="/dashboard" className="nav-link">
             <div className="icon">
@@ -414,7 +433,7 @@ export default function BreakthroughGame() {
             </div>
             <span>Dashboard</span>
           </Link>
-         
+          
           <Link href="/breakthrough-game" className="nav-link active">
             <div className="icon">
               <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -423,7 +442,7 @@ export default function BreakthroughGame() {
             </div>
             <span>Mini Games</span>
           </Link>
-         
+          
           <Link href="/calendar" className="nav-link">
             <div className="icon">
               <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -435,7 +454,7 @@ export default function BreakthroughGame() {
             </div>
             <span>Calendar</span>
           </Link>
-         
+          
           <Link href="/habits" className="nav-link">
             <div className="icon">
               <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -444,7 +463,7 @@ export default function BreakthroughGame() {
             </div>
             <span>Habit Creation</span>
           </Link>
-         
+          
           <Link href="/fitness" className="nav-link">
             <div className="icon">
               <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -453,7 +472,7 @@ export default function BreakthroughGame() {
             </div>
             <span>Fitness</span>
           </Link>
-         
+          
           <Link href="/shop" className="nav-link">
             <div className="icon">
               <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -464,7 +483,7 @@ export default function BreakthroughGame() {
             </div>
             <span>Shop</span>
           </Link>
-         
+          
           <Link href="/review" className="nav-link">
             <div className="icon">
               <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -475,7 +494,7 @@ export default function BreakthroughGame() {
             <span>Review</span>
           </Link>
         </div>
-       
+
         <div className="navbar-right">
           <div className="search-container">
             <svg xmlns="http://www.w3.org/2000/svg" className="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -499,11 +518,11 @@ export default function BreakthroughGame() {
           <h1 className="text-3xl font-bold text-white">Breakthrough Games</h1>
           <p className="text-gray-400">Play games to earn XP and break through your limits</p>
         </div>
-       
+
         {!activeGame ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {games.map((game) => (
-              <Card
+          <Card
                 key={game.id}
                 className="game-card bg-[#1a2332]/80 border-[#2a3343] transition-all cursor-pointer backdrop-blur-sm"
                 onClick={() => setActiveGame(game.id)}
@@ -529,12 +548,12 @@ export default function BreakthroughGame() {
                     >
                       {game.difficulty}
                     </Badge>
-                  </div>
+              </div>
                   <Button className="play-button w-full bg-[#4cc9f0] hover:bg-[#4cc9f0]/80 text-black">Play Now</Button>
-                </CardContent>
-              </Card>
+            </CardContent>
+          </Card>
             ))}
-          </div>
+              </div>
         ) : (
           <Card className="bg-[#1a2332]/80 border-[#2a3343] backdrop-blur-sm">
             <CardHeader className="flex flex-row items-center justify-between">
@@ -550,7 +569,15 @@ export default function BreakthroughGame() {
                 Back to Games
               </Button>
             </CardHeader>
-            <CardContent>{GameComponent && <GameComponent />}</CardContent>
+            <CardContent>
+              {GameComponent && activeGame === "astroaudit" ? (
+                <AstroAudit key="astroaudit-component" backToGames={() => setActiveGame(null)} />
+              ) : GameComponent && activeGame === "habitchallenge" ? (
+                <HabitChallengeCenter key="habitchallenge-component" />
+              ) : (
+                GameComponent && <GameComponent />
+              )}
+            </CardContent>
           </Card>
         )}
       </main>
@@ -561,4 +588,3 @@ export default function BreakthroughGame() {
     </div>
   )
 }
- 

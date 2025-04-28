@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from "react"
 import { toast } from "react-hot-toast"
+import { Button } from "@/components/ui/button"
 
 // Define the task interface
 export interface Task {
@@ -69,8 +70,26 @@ export const TaskProvider = ({ children }: { children: React.ReactNode }) => {
   // Check and unlock achievements when tasks are completed
   const checkAndUnlockAchievements = async (completedTaskCount: number, taskId?: string) => {
     try {
-      // Check if achievements exist in local storage when offline
-      if (!navigator.onLine) {
+      // Track if we're checking achievements offline
+      const isOffline = !navigator.onLine;
+      
+      // Use this function to show achievement notifications
+      const notifyAchievementUnlocked = (achievement: any) => {
+        toast.success(`🏆 Achievement Unlocked: ${achievement.name} (+${achievement.xpReward} XP)`, {
+          duration: 5000,
+          icon: '🏆'
+        });
+        
+        // Trigger event for dashboard to update
+        if (typeof window !== 'undefined' && window.dispatchEvent) {
+          window.dispatchEvent(new CustomEvent('achievement-unlocked', { 
+            detail: { achievements: [achievement] }
+          }));
+        }
+      };
+      
+      // If offline, handle achievements locally
+      if (isOffline) {
         const localAchievements = JSON.parse(localStorage.getItem('userAchievements') || '[]');
         const pendingAchievements = [];
         
@@ -102,50 +121,61 @@ export const TaskProvider = ({ children }: { children: React.ReactNode }) => {
         
         // Show notifications for newly unlocked achievements
         pendingAchievements.forEach(achievement => {
-          toast.success(`🏆 Achievement Unlocked: ${achievement.name} (+${achievement.xpReward} XP)`, {
-            duration: 5000,
-            icon: '🏆'
-          });
+          notifyAchievementUnlocked(achievement);
         });
         
         return;
       }
       
-      // If online, fetch from server
-      const response = await fetch('/api/achievements/check', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ 
-          taskCompleted: true,
-          tasksCompletedToday: completedTaskCount,
-          updatedTaskId: taskId
-        }),
-      });
-      
-      if (!response.ok) return;
-      
-      const data = await response.json();
-      
-      // Show notifications for newly unlocked achievements
-      if (data.unlockedAchievements && data.unlockedAchievements.length > 0) {
-        data.unlockedAchievements.forEach((achievement: any) => {
-          toast.success(`🏆 Achievement Unlocked: ${achievement.name} (+${achievement.xpReward} XP)`, {
-            duration: 5000,
-            icon: '🏆'
+      // If online, fetch from server with retry logic
+      const checkWithRetry = async (retries = 3) => {
+        try {
+          const response = await fetch('/api/achievements/check', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ 
+              taskCompleted: true,
+              tasksCompletedCount: completedTaskCount,
+              updatedTaskId: taskId
+            }),
           });
-        });
-        
-        // Trigger a dashboard refresh if available
-        if (typeof window !== 'undefined' && window.dispatchEvent) {
-          window.dispatchEvent(new CustomEvent('achievement-unlocked', { 
-            detail: { achievements: data.unlockedAchievements }
-          }));
+          
+          if (!response.ok) {
+            throw new Error(`Achievement check failed with status ${response.status}`);
+          }
+          
+          const data = await response.json();
+          
+          // Show notifications for newly unlocked achievements
+          if (data.unlockedAchievements && data.unlockedAchievements.length > 0) {
+            data.unlockedAchievements.forEach((achievement: any) => {
+              notifyAchievementUnlocked(achievement);
+            });
+          }
+          
+          return data;
+        } catch (error) {
+          console.error(`Achievement check attempt failed (${retries} retries left):`, error);
+          if (retries > 0) {
+            // Wait 500ms before trying again
+            await new Promise(resolve => setTimeout(resolve, 500));
+            return checkWithRetry(retries - 1);
+          }
+          throw error;
         }
-      }
+      };
+      
+      // Attempt achievement check with retries
+      await checkWithRetry();
+      
     } catch (error) {
       console.error("Error checking achievements:", error);
+      // Even on error, try to update UI to show any local achievements
+      if (window.dispatchEvent) {
+        window.dispatchEvent(new CustomEvent('refresh-achievements'));
+      }
     }
   };
 
@@ -167,14 +197,49 @@ export const TaskProvider = ({ children }: { children: React.ReactNode }) => {
   // Function to schedule notifications for incomplete tasks
   const scheduleIncompleteTaskNotifications = () => {
     // Check if notifications are supported and permission is granted
-    if (!("Notification" in window)) return;
-    
-    // Request permission if needed
-    if (Notification.permission !== "granted" && Notification.permission !== "denied") {
-      Notification.requestPermission();
+    if (!("Notification" in window)) {
+      console.log("Notifications not supported in this browser");
+      return;
     }
     
-    if (Notification.permission !== "granted") return;
+    // Request permission if needed - show this more prominently to users
+    if (Notification.permission !== "granted" && Notification.permission !== "denied") {
+      // Show a custom UI element explaining why we need notification permission
+      toast({
+        title: "Enable notifications",
+        description: "Allow notifications to get reminders about your tasks when offline",
+        action: (
+          <div className="flex gap-2 mt-2">
+            <Button 
+              onClick={() => {
+                Notification.requestPermission().then(permission => {
+                  if (permission === "granted") {
+                    toast.success("Notifications enabled!");
+                    // Register service worker after permission is granted
+                    registerServiceWorker();
+                    // Try to schedule notifications again
+                    setTimeout(scheduleIncompleteTaskNotifications, 1000);
+                  }
+                });
+              }}
+              className="bg-[#7FE9FF] text-[#050714] hover:bg-[#7FE9FF]/80"
+            >
+              Allow
+            </Button>
+          </div>
+        ),
+        duration: 10000
+      });
+      return;
+    }
+    
+    if (Notification.permission !== "granted") {
+      console.log("Notification permission not granted");
+      return;
+    }
+    
+    // Register service worker for notifications if not already registered
+    registerServiceWorker();
     
     // Get incomplete tasks from local storage
     const incompleteTasks = JSON.parse(localStorage.getItem('incompleteTasks') || '[]');
@@ -186,18 +251,54 @@ export const TaskProvider = ({ children }: { children: React.ReactNode }) => {
       
       // If task is due today or in the next 24 hours
       if (dueDate > now && dueDate.getTime() - now.getTime() < 24 * 60 * 60 * 1000) {
-        // Create notification
-        const notification = new Notification("Task Reminder", {
-          body: `Don't forget to complete your task: ${task.title}`,
-          icon: "/favicon.ico"
-        });
-        
-        // Close notification after 5 seconds
-        setTimeout(() => {
-          notification.close();
-        }, 5000);
+        // Try to use service worker for notifications first
+        if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+          // Send message to service worker to schedule notification
+          navigator.serviceWorker.controller.postMessage({
+            type: 'SCHEDULE_NOTIFICATION',
+            payload: {
+              id: task._id || task.id,
+              title: "Task Reminder",
+              body: `Don't forget to complete your task: ${task.title}`,
+              icon: "/favicon.ico",
+              // Schedule notification after 5 seconds as an example
+              // In a real app, you'd calculate this based on the due time
+              showAt: new Date(Date.now() + 5000).getTime()
+            }
+          });
+        } else {
+          // Fallback to regular notifications if service worker is not available
+          try {
+            const notification = new Notification("Task Reminder", {
+              body: `Don't forget to complete your task: ${task.title}`,
+              icon: "/favicon.ico"
+            });
+            
+            // Close notification after 5 seconds
+            setTimeout(() => {
+              notification.close();
+            }, 5000);
+          } catch (error) {
+            console.error("Error showing notification:", error);
+          }
+        }
       }
     });
+  };
+  
+  // Function to register the service worker for notifications
+  const registerServiceWorker = () => {
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/notification-service-worker.js')
+        .then(registration => {
+          console.log('ServiceWorker registration successful with scope: ', registration.scope);
+        })
+        .catch(error => {
+          console.error('ServiceWorker registration failed: ', error);
+        });
+    } else {
+      console.log('Service workers are not supported by this browser');
+    }
   };
 
   // Function to sync offline tasks with server

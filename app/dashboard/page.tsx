@@ -8,7 +8,7 @@ import { Input } from "../../components/ui/input"
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts"
 import { useAuth } from "../../context/auth-context"
 import { LogOut, Search, RefreshCw } from "lucide-react"
-import AIChat from "../../components/AIChat.jsx"
+import AIChat from "../../components/AIChat"
 import { TodaysTasks } from "../../components/todays-tasks"
  
 // Define types for tasks and notifications
@@ -837,6 +837,31 @@ export default function Dashboard() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
  
+  // Add this event listener in the useEffect to refresh data on XP updates
+  useEffect(() => {
+    // Listen for leaderboard updates to refresh data
+    const handleLeaderboardUpdate = () => {
+      fetchUserProgress();
+      fetchLeaderboard();
+    };
+
+    // Listen for achievement updates to refresh data
+    const handleAchievementUpdate = () => {
+      fetchUserAchievements();
+      fetchUserProgress();
+    };
+
+    // Add event listeners
+    window.addEventListener('leaderboard-update', handleLeaderboardUpdate);
+    window.addEventListener('achievement-unlocked', handleAchievementUpdate);
+    
+    // Clean up
+    return () => {
+      window.removeEventListener('leaderboard-update', handleLeaderboardUpdate);
+      window.removeEventListener('achievement-unlocked', handleAchievementUpdate);
+    };
+  }, [fetchLeaderboard, fetchUserProgress, fetchUserAchievements]);
+ 
   // Handle task completion with notification
   const handleTaskCompletion = async (taskId: number | string, completed: boolean) => {
     setTasks((prevTasks) =>
@@ -1162,6 +1187,63 @@ export default function Dashboard() {
     )
   }
  
+  // Request notification permission on dashboard mount
+  useEffect(() => {
+    // Check if notifications are supported
+    if (!("Notification" in window)) {
+      console.log("This browser does not support notifications");
+      return;
+    }
+
+    // Request permission if needed
+    if (Notification.permission !== "granted" && Notification.permission !== "denied") {
+      addNotification(
+        "Enable notifications to get updates on tasks when offline", 
+        [
+          { 
+            label: "Enable", 
+            onClick: () => {
+              Notification.requestPermission().then(permission => {
+                if (permission === "granted") {
+                  // Register service worker
+                  if ('serviceWorker' in navigator) {
+                    navigator.serviceWorker.register('/notification-service-worker.js')
+                      .then(registration => {
+                        console.log('ServiceWorker registration successful');
+                        addNotification("Notifications enabled! You'll receive task reminders even when offline.");
+                      })
+                      .catch(error => {
+                        console.error('ServiceWorker registration failed: ', error);
+                      });
+                  }
+                }
+              });
+            } 
+          }
+        ]
+      );
+    } else if (Notification.permission === "granted") {
+      // Register service worker if permission is already granted
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/notification-service-worker.js')
+          .catch(error => {
+            console.error('ServiceWorker registration failed: ', error);
+          });
+      }
+    }
+
+    // Listen for messages from service worker
+    if (navigator.serviceWorker) {
+      navigator.serviceWorker.addEventListener('message', (event) => {
+        if (event.data && event.data.type === 'COMPLETE_TASK') {
+          const taskId = event.data.taskId;
+          handleTaskCompletion(taskId, true);
+          addNotification("Task marked as complete from notification");
+        }
+      });
+    }
+  }, []);
+ 
   return (
     <div className="relative min-h-screen flex flex-col bg-gradient-to-br from-[#050714] via-[#0A0F2C] to-[#1C093E]">
       {/* Optimized Canvas Background */}
@@ -1436,50 +1518,9 @@ export default function Dashboard() {
             </CardContent>
           </Card>
  
-          {/* Achievements Card */}
+          {/* Today's Tasks Card - Now spans lg:col-span-3 for full width */}
           <Card
-            className="bg-[#0A0F2C]/30 border border-[#7FE9FF]/10 backdrop-blur-md shadow-cosmic hover:shadow-cosmic-lg hover:-translate-y-2 hover:border-[#7FE9FF]/20 transition-all animate-fadeIn glass-card"
-            style={{ animationDelay: "0.3s" }}
-          >
-            <CardHeader>
-              <CardTitle className="text-[#7FE9FF] text-xl border-b border-[#7FE9FF]/10 pb-2 tracking-wide text-shadow-cosmic">
-                Achievements
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ul className="space-y-2 mt-2">
-                {achievements
-                  .filter((achievement) => showAllAchievements || achievement.earned)
-                  .slice(0, 4) // Only show first 4 to reduce DOM elements
-                  .map((achievement, index) => (
-                    <li
-                      key={achievement.id}
-                      className={`p-4 rounded-lg ${
-                        achievement.earned
-                          ? "bg-[#050714]/60 border-l-3 border-[#7FE9FF] opacity-100"
-                          : "bg-[#050714]/60 border-l-3 border-transparent opacity-70"
-                      } flex justify-between items-center transition-all hover:translate-x-1 hover:bg-[#7FE9FF]/10`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <span className="text-xl">{achievement.earned ? "🏆" : "🔒"}</span>
-                        <span className="text-[#D4EEFF] font-medium">{achievement.title}</span>
-                      </div>
-                      <span className="text-[#D4EEFF]/70 text-sm">{achievement.description}</span>
-                    </li>
-                  ))}
-              </ul>
-              <Button
-                onClick={() => setShowAllAchievements((prev) => !prev)}
-                className="w-full mt-6 bg-gradient-to-r from-[#7FE9FF] to-[#9C6AFF] text-white font-semibold py-2 rounded-lg hover:-translate-y-1 hover:shadow-cosmic transition-all tracking-wide"
-              >
-                {showAllAchievements ? "Show Earned Only" : "View All Achievements"}
-              </Button>
-            </CardContent>
-          </Card>
- 
-          {/* Today's Tasks Card */}
-          <Card
-            className="bg-[#0A0F2C]/30 border border-[#7FE9FF]/10 backdrop-blur-md shadow-cosmic hover:shadow-cosmic-lg hover:-translate-y-2 hover:border-[#7FE9FF]/20 transition-all animate-fadeIn glass-card"
+            className="bg-[#0A0F2C]/30 border border-[#7FE9FF]/10 backdrop-blur-md shadow-cosmic hover:shadow-cosmic-lg hover:-translate-y-2 hover:border-[#7FE9FF]/20 transition-all animate-fadeIn glass-card lg:col-span-3"
             style={{ animationDelay: "0.4s" }}
           >
             <CardHeader>
@@ -1579,10 +1620,11 @@ export default function Dashboard() {
  
       {/* AI Chat Component - Load with lower priority */}
       <AIChat
+        user={user}
         tasks={tasks}
-        onTaskUpdate={handleTaskUpdateFromAI}
+        onTaskUpdate={handleTaskCompletion}
+        onAddTask={handleAddTask}
         onAddTaskWithDate={handleAddTaskWithDate}
-        user={undefined}     
       />
      
       {/* CSS for animation and effects */}

@@ -126,18 +126,63 @@ export default function Shop() {
   };
 
   const badges = [
+    // Common (10)
     // { id: 1, name: "Early Bird", description: "Complete 5 tasks before 9 AM", price: 100, rarity: "common" },
     { id: 2, name: "Night Owl", description: "Complete 5 tasks after 10 PM", price: 100, rarity: "common" },
-    { id: 3, name: "Streak Master", description: "Maintain a 7-day streak", price: 200, rarity: "rare" },
-    { id: 4, name: "Game Champion", description: "Win all mini games", price: 300, rarity: "rare" },
-    { id: 5, name: "Fitness Guru", description: "Complete a 30-day fitness plan", price: 500, rarity: "rare" },
-    { id: 6, name: "Habit Hero", description: "Create and complete 10 habits", price: 500, rarity: "epic" },
-    { id: 7, name: "XP Collector", description: "Collect 1000 XP", price: 1000, rarity: "epic" },
-    { id: 8, name: "Shopaholic", description: "Purchase 5 badges", price: 2000, rarity: "epic" },
-    { id: 9, name: "Master of Badges", description: "Collect all badges", price: 5000, rarity: "epic" },
-    { id: 10, name: "Ultimate Achiever", description: "Complete all achievements", price: 10000, rarity: "epic" }
-
-  ]
+    { id: 3, name: "Daily Starter", description: "Complete your first task of the day", price: 100, rarity: "common" },
+    { id: 4, name: "Consistent Performer", description: "Complete tasks for 3 days straight", price: 100, rarity: "common" },
+    { id: 5, name: "Task Finisher", description: "Complete 10 tasks", price: 100, rarity: "common" },
+    { id: 6, name: "Weekend Warrior", description: "Complete tasks on Saturday and Sunday", price: 100, rarity: "common" },
+    { id: 7, name: "Habit Beginner", description: "Create your first habit", price: 100, rarity: "common" },
+    { id: 8, name: "Motivation Seeker", description: "Login 5 days in a row", price: 100, rarity: "common" },
+    { id: 9, name: "Mini Gamer", description: "Play a mini game", price: 100, rarity: "common" },
+    { id: 10, name: "First Purchase", description: "Buy your first badge", price: 100, rarity: "common" },
+  
+    // Rare (10)
+    { id: 11, name: "Streak Master", description: "Maintain a 7-day streak", price: 200, rarity: "rare" },
+    { id: 12, name: "Game Champion", description: "Win all mini games", price: 300, rarity: "rare" },
+    { id: 13, name: "Fitness Guru", description: "Complete a 30-day fitness plan", price: 500, rarity: "rare" },
+    { id: 14, name: "Calendar Starter", description: "Complete 10 calendar tasks", price: 300, rarity: "rare" },
+    { id: 15, name: "Streak Keeper", description: "Keep a 14-day streak alive", price: 400, rarity: "rare" },
+    { id: 16, name: "Habit Collector", description: "Create 20 habits", price: 500, rarity: "rare" },
+    { id: 17, name: "XP Hunter", description: "Collect 500 XP", price: 400, rarity: "rare" },
+    { id: 18, name: "Task Machine", description: "Complete 50 tasks", price: 500, rarity: "rare" },
+    { id: 19, name: "Weekend Master", description: "Complete 10 tasks on weekends", price: 500, rarity: "rare" },
+    { id: 20, name: "Fitness Enthusiast", description: "Complete a 15-day fitness challenge", price: 500, rarity: "rare" },
+  
+    // Epic (20)
+    { id: 21, name: "Habit Hero", description: "Create and complete 10 habits", price: 500, rarity: "epic" },
+    { id: 22, name: "XP Collector", description: "Collect 1000 XP", price: 1000, rarity: "epic" },
+    { id: 23, name: "Shopaholic", description: "Purchase 5 badges", price: 2000, rarity: "epic" },
+    { id: 24, name: "Master of Badges", description: "Collect all badges", price: 5000, rarity: "epic" },
+    { id: 25, name: "Ultimate Achiever", description: "Complete all achievements", price: 10000, rarity: "epic" },
+    { id: 26, name: "Habit Creator", description: "Create 100 habits", price: 10000, rarity: "epic" },
+    { id: 27, name: "Mini Game Master", description: "Win 50 mini games", price: 10000, rarity: "epic" },
+    { id: 28, name: "Calendar Master", description: "Complete all calendar tasks", price: 10000, rarity: "epic" },
+    { id: 29, name: "Fitness Champion", description: "Complete 60 days of fitness goals", price: 10000, rarity: "epic" },
+    { id: 30, name: "Habit Destroyer", description: "Break 10 bad habits", price: 8000, rarity: "epic" },
+    { id: 31, name: "Daily Legend", description: "Complete 30 days of tasks in a row", price: 9000, rarity: "epic" },
+    { id: 32, name: "Power User", description: "Use the app every day for 2 months", price: 9000, rarity: "epic" },
+    { id: 33, name: "Streak Legend", description: "Maintain a 60-day streak", price: 9500, rarity: "epic" },
+    { id: 34, name: "XP Hoarder", description: "Collect 5000 XP", price: 9500, rarity: "epic" },
+    { id: 35, name: "Master Organizer", description: "Organize 100 calendar events", price: 8000, rarity: "epic" },
+    { id: 36, name: "Mindfulness Guru", description: "Complete 50 meditation sessions", price: 8500, rarity: "epic" },
+    { id: 37, name: "Super Shopper", description: "Buy 20 badges", price: 9000, rarity: "epic" },
+    { id: 38, name: "Challenge Conqueror", description: "Complete 10 challenges", price: 9000, rarity: "epic" },
+    { id: 39, name: "Super Fit", description: "Complete a 100-day fitness journey", price: 9500, rarity: "epic" },
+    { id: 40, name: "Ultimate Organizer", description: "Schedule 200 tasks", price: 9500, rarity: "epic" },
+    { id: 41, name: "Legend of Streaks", description: "Maintain a 1-year streak", price: 20000, rarity: "epic" },
+    { id: 42, name: "Immortal Achiever", description: "Complete all achievements flawlessly", price: 25000, rarity: "epic" },
+    { id: 43, name: "Task Legend", description: "Complete 1000 tasks", price: 30000, rarity: "epic" },
+    { id: 44, name: "Badge King", description: "Own every badge", price: 40000, rarity: "epic" },
+    { id: 45, name: "Ultimate XP Master", description: "Collect 10000 XP", price: 50000, rarity: "epic" },
+    { id: 46, name: "Habit Legend", description: "Create 500 habits", price: 50000, rarity: "epic" },
+    { id: 47, name: "Mind Over Matter", description: "Complete 365 meditation sessions", price: 45000, rarity: "epic" },
+    { id: 48, name: "Mini Game Legend", description: "Win 500 mini games", price: 45000, rarity: "epic" },
+    { id: 49, name: "Calendar Legend", description: "Complete 365 calendar tasks", price: 40000, rarity: "epic" },
+    { id: 50, name: "The Ultimate Champion", description: "Unlock every single feature and badge", price: 60000, rarity: "epic" }
+  ];
+  
 
   const filteredBadges = activeTab === "all" ? badges : badges.filter((badge) => badge.rarity === activeTab)
 
@@ -184,7 +229,7 @@ export default function Shop() {
               ease: "easeOut"
             }
           })
-        };
+        };        
       
       case 'rare':
         return {

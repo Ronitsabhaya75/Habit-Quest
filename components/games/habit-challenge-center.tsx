@@ -3,7 +3,6 @@
 import React, { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import styled, { keyframes } from "styled-components"
-import { toast } from "../ui/use-toast"
 
 const spaceTheme = {
   deepSpace: "#0E1A40",
@@ -610,7 +609,7 @@ const DayCard = styled.div<DayCardProps>`
   }
 
   &:after {
-    content: '${({ isComplete }) => isComplete ? 'COMPLETED' : ''}';
+    content: '${({ isComplete }) => isComplete ? "COMPLETED" : ""}';
     position: absolute;
     top: 10px;
     right: 10px;
@@ -697,7 +696,7 @@ const HabitOption = styled.div<HabitOptionProps>`
   }
 
   &:after {
-    content: '${({ status }) => status === 'checked' ? '✓' : status === 'crossed' ? '✕' : ''}';
+    content: '${({ status }) => status === "checked" ? "✓" : status === "crossed" ? "✕" : ""}';
     position: absolute;
     top: 5px;
     right: 5px;

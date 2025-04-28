@@ -6,6 +6,7 @@ export { SpinWheel } from "./spin-wheel"
 export { MemoryGame } from "./memory-game"
 export { ChessGame } from "./chess-game"
 export { HabitChallengeCenter } from "./habit-challenge-center"
+export { AstroAudit } from "./AstroAudit"
 
 // Export interfaces
 export { default as BaseGame } from "./base-game"

@@ -2,16 +2,13 @@
 
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../components/ui/card"
-import { MainLayout } from "../../components/main-layout"
 import { Button } from "../../components/ui/button"
 import { ChessGame } from "../../components/games/chess-game"
 import { QuizGame } from "../../components/games/quiz-game"
 import { WordScrambler } from "../../components/games/word-scrambler"
 import { SpinWheel } from "../../components/games/spin-wheel"
-import { PacmanGame } from "../../components/games/pacman-game"
 import { MemoryGame } from "../../components/games/memory-game"
 import { Badge } from "../../components/ui/badge"
-import { Search } from "lucide-react"
 import Link from "next/link"
 
 // Enhanced CSS for space animations with more visibility

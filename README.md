@@ -316,10 +316,12 @@ cd habit
 npm install
 ```
 
-3. Create a `.env` file based on `env.example` with your configuration:
+3. Create a `.env.local` file in the root directory with the following environment variables:
 ```
 MONGODB_URI=your_mongodb_connection_string
 JWT_SECRET=your_jwt_secret_key
+GOOGLE_SHEETS_API_KEY=your_google_sheets_api_key
+API_URL=http://localhost:3000
 ```
 
 4. Run the development server:

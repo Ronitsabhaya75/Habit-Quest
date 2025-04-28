@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HabitQuest - Offline</title>
+  <style>
+    body {
+      font-family: 'Poppins', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0;
+      padding: 0;
+      background: linear-gradient(to bottom, #050714, #0A0F2C, #1C093E);
+      color: #D4EEFF;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+    }
+    
+    .container {
+      max-width: 600px;
+      padding: 2rem;
+      background: rgba(10, 15, 44, 0.3);
+      border: 1px solid rgba(127, 233, 255, 0.1);
+      border-radius: 1rem;
+      box-shadow: 0 5px 20px -5px rgba(127, 233, 255, 0.15);
+    }
+    
+    h1 {
+      font-size: 2.5rem;
+      margin-bottom: 1rem;
+      color: #7FE9FF;
+      font-weight: 600;
+    }
+    
+    p {
+      font-size: 1.1rem;
+      line-height: 1.6;
+      margin-bottom: 1.5rem;
+      color: #AAD8FB;
+    }
+    
+    .icon {
+      font-size: 4rem;
+      margin-bottom: 1rem;
+    }
+    
+    .button {
+      display: inline-block;
+      background: linear-gradient(to right, #7FE9FF, #9C6AFF);
+      color: white;
+      font-weight: bold;
+      padding: 0.75rem 2rem;
+      border-radius: 0.5rem;
+      text-decoration: none;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      margin-top: 1rem;
+      font-size: 1rem;
+      cursor: pointer;
+      border: none;
+    }
+    
+    .button:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 5px 15px rgba(127, 233, 255, 0.3);
+    }
+    
+    .tasks-container {
+      margin-top: 2rem;
+      width: 100%;
+      text-align: left;
+    }
+    
+    .task-item {
+      padding: 1rem;
+      margin-bottom: 0.5rem;
+      background: rgba(5, 7, 20, 0.6);
+      border-radius: 0.5rem;
+      border-left: 3px solid #7FE9FF;
+    }
+    
+    .task-title {
+      font-weight: 500;
+      color: #D4EEFF;
+      margin-bottom: 0.25rem;
+    }
+    
+    .task-due {
+      font-size: 0.8rem;
+      color: rgba(170, 216, 251, 0.7);
+    }
+    
+    /* Starfield animation */
+    .stars {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: -1;
+      overflow: hidden;
+    }
+    
+    .star {
+      position: absolute;
+      background: white;
+      border-radius: 50%;
+      opacity: 0;
+      animation: twinkle 4s infinite ease-in-out;
+    }
+    
+    @keyframes twinkle {
+      0% { opacity: 0; transform: scale(0.8); }
+      50% { opacity: 0.8; transform: scale(1.2); }
+      100% { opacity: 0; transform: scale(0.8); }
+    }
+  </style>
+</head>
+<body>
+  <!-- Starfield background -->
+  <div class="stars" id="stars"></div>
+  
+  <div class="container">
+    <div class="icon">🌌</div>
+    <h1>You're Offline</h1>
+    <p>Looks like you've lost your connection to space. Don't worry - your data is safe and your habits will continue to be tracked.</p>
+    
+    <p>When you reconnect, all your progress will be synced automatically.</p>
+    
+    <button class="button" onclick="window.location.reload()">Try Again</button>
+    
+    <div class="tasks-container" id="offline-tasks">
+      <h2>Your Pending Tasks</h2>
+      <!-- Tasks will be loaded here from localStorage -->
+    </div>
+  </div>
+  
+  <script>
+    // Create starfield animation
+    function createStars() {
+      const stars = document.getElementById('stars');
+      const count = 100;
+      
+      for (let i = 0; i < count; i++) {
+        const star = document.createElement('div');
+        star.classList.add('star');
+        
+        // Random position
+        star.style.top = `${Math.random() * 100}%`;
+        star.style.left = `${Math.random() * 100}%`;
+        
+        // Random size
+        const size = `${Math.random() * 3 + 1}px`;
+        star.style.width = size;
+        star.style.height = size;
+        
+        // Random animation delay
+        star.style.animationDelay = `${Math.random() * 4}s`;
+        
+        stars.appendChild(star);
+      }
+    }
+    
+    // Load tasks from localStorage
+    function loadOfflineTasks() {
+      const tasksContainer = document.getElementById('offline-tasks');
+      const incompleteTasks = JSON.parse(localStorage.getItem('incompleteTasks') || '[]');
+      
+      if (incompleteTasks.length === 0) {
+        tasksContainer.innerHTML = '<p>No pending tasks available offline.</p>';
+        return;
+      }
+      
+      let tasksHTML = '<h2>Your Pending Tasks</h2>';
+      
+      incompleteTasks.forEach(task => {
+        // Format the due date
+        const dueDate = new Date(task.dueDate);
+        const formattedDate = dueDate.toLocaleDateString(undefined, {
+          weekday: 'short',
+          month: 'short',
+          day: 'numeric'
+        });
+        
+        tasksHTML += `
+          <div class="task-item">
+            <div class="task-title">${task.title}</div>
+            <div class="task-due">Due: ${formattedDate}</div>
+          </div>
+        `;
+      });
+      
+      tasksContainer.innerHTML = tasksHTML;
+    }
+    
+    // Initialize the page
+    window.addEventListener('DOMContentLoaded', () => {
+      createStars();
+      loadOfflineTasks();
+      
+      // Try to reconnect periodically
+      setInterval(() => {
+        if (navigator.onLine) {
+          window.location.reload();
+        }
+      }, 10000); // Check every 10 seconds
+    });
+  </script>
+</body>
+</html> 
