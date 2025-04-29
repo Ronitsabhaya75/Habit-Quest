@@ -6,19 +6,16 @@ import { addDays, addWeeks, addMonths } from 'date-fns';
  * @returns {Date} - A valid Date object
  */
 export function safelyParseDate(dateInput) {
-  if (!dateInput) return null;
+  if (!dateInput) return new Date();
   
   try {
-    // If it's already a Date object
-    if (dateInput instanceof Date) {
-      return new Date(dateInput);
-    }
+    // If it's already a Date object, return a clone to avoid mutation
+    if (dateInput instanceof Date) return new Date(dateInput);
     
-    // If it's an ISO string or other string format
+    // Otherwise parse the string
     return new Date(dateInput);
   } catch (error) {
-    console.error("Date parsing error:", error);
-    // Fallback to current date
+    console.error("Error parsing date:", error);
     return new Date();
   }
 }
@@ -31,46 +28,48 @@ export function safelyParseDate(dateInput) {
  * @returns {Date|null} - The next occurrence date or null if beyond end date
  */
 export function getNextOccurrenceDate(currentDate, frequency, endDate = null) {
-  // Safely parse dates
-  const parsedCurrentDate = safelyParseDate(currentDate);
-  const parsedEndDate = endDate ? safelyParseDate(endDate) : null;
+  // Parse dates safely
+  const current = safelyParseDate(currentDate);
+  const end = endDate ? safelyParseDate(endDate) : null;
   
-  if (!parsedCurrentDate) {
-    console.error("Invalid current date provided:", currentDate);
+  // Set all dates to start of day to avoid time comparison issues
+  current.setHours(0, 0, 0, 0);
+  if (end) end.setHours(0, 0, 0, 0);
+  
+  // Calculate next date based on frequency
+  let next;
+  
+  switch (frequency) {
+    case 'daily':
+      next = new Date(current);
+      next.setDate(next.getDate() + 1);
+      break;
+    case 'weekly':
+      next = new Date(current);
+      next.setDate(next.getDate() + 7);
+      break;
+    case 'biweekly':
+      next = new Date(current);
+      next.setDate(next.getDate() + 14);
+      break;
+    case 'monthly':
+      next = new Date(current);
+      next.setMonth(next.getMonth() + 1);
+      break;
+    default:
+      // Default to daily if frequency is unknown
+      console.warn(`Unknown frequency: ${frequency}, defaulting to daily`);
+      next = new Date(current);
+      next.setDate(next.getDate() + 1);
+  }
+  
+  // Check if next date exceeds end date
+  if (end && next > end) {
+    console.log(`Next occurrence date ${next.toISOString()} exceeds end date ${end.toISOString()}`);
     return null;
   }
   
-  let nextDate;
-  
-  try {
-    switch (frequency) {
-      case 'daily':
-        nextDate = addDays(parsedCurrentDate, 1);
-        break;
-      case 'weekly':
-        nextDate = addWeeks(parsedCurrentDate, 1);
-        break;
-      case 'biweekly':
-        nextDate = addWeeks(parsedCurrentDate, 2);
-        break;
-      case 'monthly':
-        nextDate = addMonths(parsedCurrentDate, 1);
-        break;
-      default:
-        nextDate = addDays(parsedCurrentDate, 1);
-    }
-  } catch (error) {
-    console.error("Error calculating next date:", error);
-    // Default to tomorrow if calculation fails
-    nextDate = addDays(new Date(), 1);
-  }
-  
-  // If there's an end date and the next occurrence is after that date, return null
-  if (parsedEndDate && nextDate > parsedEndDate) {
-    return null;
-  }
-  
-  return nextDate;
+  return next;
 }
 
 /**
@@ -118,13 +117,53 @@ export function formatDateForAPI(date) {
  * @returns {boolean} - True if dates are the same day
  */
 export function isSameDay(date1, date2) {
-  const d1 = new Date(date1);
-  const d2 = new Date(date2);
+  if (!date1 || !date2) return false;
+  
+  const d1 = safelyParseDate(date1);
+  const d2 = safelyParseDate(date2);
+  
   return (
     d1.getFullYear() === d2.getFullYear() &&
     d1.getMonth() === d2.getMonth() &&
     d1.getDate() === d2.getDate()
   );
+}
+
+/**
+ * Generates all occurrence dates between start and end date based on frequency
+ * @param {Date|string} startDate - The start date
+ * @param {Date|string} endDate - The end date
+ * @param {string} frequency - The recurrence frequency ('daily', 'weekly', 'biweekly', 'monthly')
+ * @returns {Array<Date>} - Array of all occurrence dates
+ */
+export function generateOccurrenceDates(startDate, endDate, frequency) {
+  // Parse dates safely
+  const start = safelyParseDate(startDate);
+  const end = safelyParseDate(endDate);
+  
+  // Set all dates to start of day to avoid time comparison issues
+  start.setHours(12, 0, 0, 0);
+  end.setHours(12, 0, 0, 0);
+  
+  // Ensure start is before end
+  if (start > end) return [];
+  
+  const dates = [];
+  let current = new Date(start);
+  
+  // Add the start date as the first occurrence
+  dates.push(new Date(current));
+  
+  // Add subsequent dates until we reach or exceed the end date
+  while (true) {
+    const next = getNextOccurrenceDate(current, frequency);
+    if (!next || next > end) break;
+    
+    dates.push(next);
+    current = next;
+  }
+  
+  return dates;
 }
 
 /**
@@ -137,9 +176,9 @@ export function createTaskFromHabit(habit, userId) {
   const startDate = safelyParseDate(habit.startDate);
   const endDate = habit.endDate ? safelyParseDate(habit.endDate) : null;
   
-  // Set to midnight to avoid timezone issues
-  startDate.setHours(0, 0, 0, 0);
-  if (endDate) endDate.setHours(0, 0, 0, 0);
+  // Set to noon to avoid timezone issues
+  startDate.setHours(12, 0, 0, 0);
+  if (endDate) endDate.setHours(12, 0, 0, 0);
   
   // Create the task object
   const taskData = {
@@ -160,4 +199,4 @@ export function createTaskFromHabit(habit, userId) {
   console.log(`Creating habit task with frequency: ${taskData.frequency}, due date: ${taskData.dueDate}`);
   
   return taskData;
-} 
+}

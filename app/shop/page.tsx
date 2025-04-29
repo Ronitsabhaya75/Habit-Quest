@@ -44,22 +44,59 @@ export default function Shop() {
 
   // Fetch users data on component mount
   useEffect(() => {
-    const fetchUserData = async () => {
+    async function fetchUserData() {
       try {
-        const response = await fetch('/api/user/profile')
-        if (response.ok) {
-          const userData = await response.json()
-          if (userData.success) {
-            setUserXp(userData.data.xp || 0)
-            setUserBadges(userData.data.badges || [])
-            setUserLevel(Math.floor((userData.data.xp || 0) / 100) + 1)
+        const response = await fetch("/api/users/me")
+        if (!response.ok) {
+          throw new Error(`HTTP error! Status: ${response.status}`)
+        }
+        const data = await response.json()
+        setUserXp(data.data.xp || 0)
+        setUserLevel(data.data.level || 1)
+        
+        // Properly handle badges - convert all badge IDs to strings for consistent comparison
+        if (data.data.badges && Array.isArray(data.data.badges)) {
+          const badgeIds = data.data.badges.map((badge: any) => {
+            // If badge is an object with _id, use that
+            if (badge && typeof badge === 'object' && badge._id) {
+              return badge._id.toString();
+            }
+            // If badge is just an ID string or ObjectId
+            return badge.toString();
+          });
+          
+          // Also add numeric IDs for the badges for frontend comparison
+          if (data.data.badges.length > 0) {
+            // Try to fetch full badge details to get numeric IDs
+            const badgesResponse = await fetch("/api/badges");
+            if (badgesResponse.ok) {
+              const badgesData = await badgesResponse.json();
+              if (badgesData.success && Array.isArray(badgesData.data)) {
+                const ownedBadges = badgesData.data.filter((badge: any) => 
+                  badgeIds.includes(badge._id.toString())
+                );
+                
+                // Add numeric IDs to userBadges
+                ownedBadges.forEach((badge: any) => {
+                  if (badge.numericId && !badgeIds.includes(badge.numericId.toString())) {
+                    badgeIds.push(badge.numericId.toString());
+                  }
+                });
+              }
+            }
           }
+          
+          console.log("User owned badges:", badgeIds);
+          setUserBadges(badgeIds);
         }
       } catch (error) {
-        console.error('Error fetching user data:', error)
+        console.error("Failed to fetch user data:", error)
+        // Use placeholder data for demo if fetch fails
+        setUserXp(350)
+        setUserLevel(4)
       }
     }
-    
+
     fetchUserData()
   }, [])
 
@@ -986,11 +1023,22 @@ export default function Shop() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 tabs-content">
             <AnimatePresence mode="wait">
               {filteredBadges.map((badge, index) => {
-                // Check if user owns this badge by comparing numeric ID
-                const isOwned = userBadges.includes(badge.id.toString());
+                // Fix the ownership check to correctly handle numeric and string IDs
+                const isOwned = userBadges.some(userBadgeId => {
+                  // Convert both to strings for consistent comparison
+                  const badgeIdStr = String(badge.id);
+                  const userBadgeIdStr = String(userBadgeId);
+                  
+                  // Debug logging to help identify the issue
+                  console.log(`Comparing badge ${badgeIdStr} with user badge ${userBadgeIdStr}, match: ${badgeIdStr === userBadgeIdStr}`);
+                  
+                  // Check for ID match in either the numeric ID or MongoDB ObjectId
+                  return badgeIdStr === userBadgeIdStr || 
+                         (badge._id && String(badge._id) === userBadgeIdStr);
+                });
                 
-                const canAfford = userXp >= badge.price
-                const isGlinting = badgeGlintActive.includes(badge.id)
+                const canAfford = userXp >= badge.price;
+                const isGlinting = badgeGlintActive.includes(badge.id);
                 
                 // Use different animation variants based on rarity
                 const variants = getRarityVariants(badge.rarity);

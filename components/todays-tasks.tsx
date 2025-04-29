@@ -221,17 +221,34 @@ export function TodaysTasks({ date = new Date() }: TodaysTasksProps) {
       }
       const completed = !task.completed
 
+      // Update UI immediately for better user experience
+      setTasks(tasks.map((task) => (task._id === id ? { ...task, completed } : task)))
+      
+      // If task was completed, update count immediately
+      if (completed) {
+        const newCompletedCount = completedTaskCount + 1
+        setCompletedTaskCount(newCompletedCount)
+      } else {
+        setCompletedTaskCount(Math.max(0, completedTaskCount - 1))
+      }
+
       // Try the direct PUT request first
-      let res = await fetch(`/api/tasks/${id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ completed }),
-      })
+      let res;
+      try {
+        res = await fetch(`/api/tasks/${id}`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ completed }),
+        })
+      } catch (error) {
+        console.error("PUT request failed:", error)
+        // Continue to fallback
+      }
 
       // If PUT fails with a 405 error, try the fallback POST endpoint
-      if (res.status === 405) {
+      if (!res || res.status === 405) {
         console.log("PUT method not allowed, using fallback POST endpoint")
         res = await fetch(`/api/tasks/update`, {
           method: "POST",
@@ -242,20 +259,17 @@ export function TodaysTasks({ date = new Date() }: TodaysTasksProps) {
         })
       }
 
+      if (!res || !res.ok) {
+        throw new Error(`Request failed with status: ${res?.status}`)
+      }
+
       const data = await res.json()
       
-      if (res.ok && data.success) {
-        // Update tasks list
-        setTasks(tasks.map((task) => (task._id === id ? { ...task, completed } : task)))
-
+      if (data.success) {
         // If task was completed, update user XP and check achievements
         if (completed) {
           // Import the XP_VALUES from lib/xp-system
           const { XP_VALUES } = await import("../lib/xp-system")
-          
-          // Update completed task count
-          const newCompletedCount = completedTaskCount + 1
-          setCompletedTaskCount(newCompletedCount)
           
           // Show toast for XP gained
           toast({
@@ -264,30 +278,22 @@ export function TodaysTasks({ date = new Date() }: TodaysTasksProps) {
           })
           
           // Check for unlocked achievements
-          await checkAchievements(newCompletedCount, id)
-        } else {
-          // Task was uncompleted, decrease count
-          setCompletedTaskCount(prevCount => Math.max(0, prevCount - 1))
+          await checkAchievements(completedTaskCount, id)
         }
       } else {
         throw new Error(data.message || "Failed to update task")
       }
     } catch (error) {
       console.error("Toggle task error:", error)
-      // Update task locally for demo purposes
-      setTasks(tasks.map((task) => (task._id === id ? { ...task, completed: !task.completed } : task)))
-
-      const task = tasks.find((task) => task._id === id)
-      if (task && !task.completed) {
-        // Update completed count locally
-        const newCount = completedTaskCount + 1
-        setCompletedTaskCount(newCount)
-        
-        toast({
-          title: "Task Completed!",
-          description: `You earned 20 XP (offline mode)`,
-        })
-      }
+      
+      // Revert UI changes if the server request failed
+      fetchTasks()
+      
+      toast({
+        title: "Error",
+        description: "Failed to update task. Please try again.",
+        variant: "destructive",
+      })
     }
   }
 

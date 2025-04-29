@@ -404,22 +404,35 @@ export default function CalendarPage() {
   // Define the week days for the calendar header
   const weekDays = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"]
 
-  // Refetch tasks when the component mounts only
+  // Refetch tasks when the date changes or component mounts
   useEffect(() => {
-    fetchTasks()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []) 
+    if (date) {
+      // Format the date as YYYY-MM-DD for consistent API querying
+      const dateStr = format(date, 'yyyy-MM-dd');
+      fetchTasks(dateStr);
+    }
+  }, [date, fetchTasks]) 
 
   const handleAddTask = async () => {
     if (newTaskTitle.trim() && date) {
       try {
-        // Format date for the task
-        const taskDate = startOfDay(date);
+        // Normalize the date to avoid timezone issues
+        const taskDate = new Date(
+          date.getFullYear(),
+          date.getMonth(),
+          date.getDate(),
+          12, 0, 0 // Set to noon to avoid date crossing issues
+        );
+        
+        // Format date string in YYYY-MM-DD format for the API
+        const dateStr = format(taskDate, 'yyyy-MM-dd');
+        console.log("Adding task for date:", dateStr);
         
         // Add the task
         await addTask({
           title: newTaskTitle,
           dueDate: taskDate,
+          dueDateString: dateStr,
           xpReward: 20
         })
         
@@ -432,7 +445,7 @@ export default function CalendarPage() {
         setAddTaskDialogOpen(false)
         
         // Refetch tasks to ensure our new task shows up
-        fetchTasks()
+        fetchTasks(dateStr)
       } catch (error) {
         console.error("Error adding task:", error)
       }

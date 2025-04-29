@@ -10,6 +10,7 @@ export interface Task {
   title: string
   description?: string
   dueDate: Date
+  dueDateString?: string  // Add this field to allow explicit date string passing
   completed: boolean
   completedAt?: Date | null
   xpReward: number
@@ -26,7 +27,7 @@ interface TaskContextType {
   tasks: Task[]
   loading: boolean
   error: string | null
-  fetchTasks: () => Promise<void>
+  fetchTasks: (dateString?: string) => Promise<void>
   addTask: (taskData: AddTaskInput) => Promise<any>
   updateTask: (taskData: UpdateTaskInput) => Promise<any>
   removeTask: (id: string, deleteRecurring?: boolean) => Promise<void>
@@ -40,6 +41,7 @@ interface AddTaskInput {
   title: string
   description?: string
   dueDate: Date
+  dueDateString?: string  // Add this field to allow explicit date string passing
   xpReward?: number
   isHabit?: boolean
   isRecurring?: boolean
@@ -335,26 +337,56 @@ export const TaskProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  const fetchTasks = async () => {
+  const fetchTasks = async (dateString?: string) => {
     try {
       setLoading(true)
-      const response = await fetch("/api/tasks")
-      
+
+      const queryParams = new URLSearchParams()
+      if (dateString) {
+        queryParams.set("date", dateString)
+      }
+
+      const url = `/api/tasks${dateString ? `?${queryParams.toString()}` : ""}`
+      console.log("Fetching tasks from URL:", url)
+
+      const response = await fetch(url)
       if (!response.ok) {
         throw new Error(`HTTP error! Status: ${response.status}`)
       }
+
+      const result = await response.json()
       
-      const data = await response.json()
+      // Log the full response for debugging
+      console.log("Task API response:", result);
       
-      // Ensure we're setting tasks to an array
-      // The API might return data in different formats
-      if (data && data.data && Array.isArray(data.data)) {
-        setTasks(data.data)
+      // Process the response
+      let data
+      if (result.success && result.data) {
+        data = result.data
       } else if (data && Array.isArray(data)) {
         setTasks(data)
       } else {
         console.error("Unexpected API response format:", data)
         setTasks([])
+      }
+      
+      // Standardize date formats in tasks before storing them
+      if (Array.isArray(data)) {
+        const formattedTasks = data.map(task => {
+          if (task.dueDate) {
+            // Ensure dueDateString is consistent
+            const taskDate = new Date(task.dueDate);
+            // Set time to noon to avoid timezone issues
+            taskDate.setHours(12, 0, 0, 0);
+            if (!task.dueDateString) {
+              task.dueDateString = taskDate.toISOString().split('T')[0];
+            }
+          }
+          return task;
+        });
+        setTasks(formattedTasks);
+      } else {
+        setTasks([]);
       }
       
       setError(null)
@@ -384,6 +416,16 @@ export const TaskProvider = ({ children }: { children: React.ReactNode }) => {
         console.log(`End date: ${taskData.recurringEndDate}`);
       }
       
+      // Standardize the date format
+      // Set to noon to avoid timezone issues
+      const taskDate = new Date(taskData.dueDate);
+      taskDate.setHours(12, 0, 0, 0);
+      
+      // Ensure we have a dueDateString in YYYY-MM-DD format
+      const dueDateString = taskData.dueDateString || taskDate.toISOString().split('T')[0];
+      
+      console.log("Adding task with due date:", taskDate.toISOString(), "string:", dueDateString);
+      
       const response = await fetch("/api/tasks", {
         method: "POST",
         headers: {
@@ -391,8 +433,9 @@ export const TaskProvider = ({ children }: { children: React.ReactNode }) => {
         },
         body: JSON.stringify({
           ...taskData,
-          // Ensure dueDate is properly formatted as ISO string
-          dueDate: taskData.dueDate instanceof Date ? taskData.dueDate.toISOString() : taskData.dueDate,
+          // Use standardized date formats
+          dueDate: taskDate.toISOString(),
+          dueDateString: dueDateString,
           xpReward: taskData.xpReward || 10,
           isHabit: taskData.isHabit || false,
           isRecurring: taskData.isRecurring || false,
@@ -408,9 +451,15 @@ export const TaskProvider = ({ children }: { children: React.ReactNode }) => {
         console.error(`API error (${response.status}):`, errorText);
         throw new Error(`HTTP error! Status: ${response.status}`);
       }
-      
+
       const data = await response.json();
-      const newTask = data.task;
+      const newTask = data.data;
+      
+      // Add the standardized dueDateString if it's not there
+      if (newTask && !newTask.dueDateString && newTask.dueDate) {
+        const newTaskDate = new Date(newTask.dueDate);
+        newTask.dueDateString = newTaskDate.toISOString().split('T')[0];
+      }
       
       setTasks((prevTasks) => [...prevTasks, newTask]);
       toast.success("Task added successfully!");
@@ -439,61 +488,60 @@ export const TaskProvider = ({ children }: { children: React.ReactNode }) => {
       
       console.log("Updating task with data:", JSON.stringify(formattedData));
       
-      // Use the proper API endpoint for task updates
-      const response = await fetch(`/api/tasks/update`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(formattedData),
-      })
-      
-      // Better error handling
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => null);
-        console.error("API error response:", errorData || response.statusText);
-        throw new Error(`Failed to update task: ${errorData?.error || response.statusText}`);
+      // First try using PUT method on direct endpoint
+      let response;
+      try {
+        response = await fetch(`/api/tasks/${taskData.id}`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(formattedData)
+        });
+      } catch (putError) {
+        console.error("PUT request failed:", putError);
+        // Continue to fallback
       }
       
-      const data = await response.json()
-      const updatedTask = data.data
-      
-      // If we're updating all instances (array of tasks returned)
-      if (Array.isArray(updatedTask)) {
-        // Replace all the updated tasks in our state
-        setTasks((prevTasks) =>
-          prevTasks.map((t) => {
-            const matchingTask = updatedTask.find(ut => ut._id === t._id)
-            return matchingTask || t
+      // If PUT fails with 405 Method Not Allowed, use the fallback POST endpoint
+      if (!response || response.status === 405) {
+        console.log("PUT method not allowed, using fallback POST endpoint");
+        response = await fetch("/api/tasks/update", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            id: taskData.id,
+            ...formattedData
           })
-        )
-      } else {
-        // Just update the single task
-        setTasks((prevTasks) =>
-          prevTasks.map((t) => (t._id === taskData.id ? updatedTask : t))
-        )
+        });
       }
-      
-      toast.success("Task updated successfully!")
-      
-      // If the update involved completing a recurring task
-      if (taskData.completed && 
-          ((!Array.isArray(updatedTask) && updatedTask.isRecurring) || 
-           (Array.isArray(updatedTask) && updatedTask.some(t => t.isRecurring)))) {
-        // Fetch tasks to get the newly created recurring task
-        fetchTasks()
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`API error (${response.status}):`, errorText);
+        throw new Error(`HTTP error! Status: ${response.status}`);
       }
+
+      const data = await response.json();
       
-      return updatedTask
+      setTasks((prevTasks) =>
+        prevTasks.map((task) => (task._id === taskData.id ? { ...task, ...formattedData } : task))
+      );
+      
+      toast.success("Task updated successfully");
+      setLoading(false);
+      
+      return true;
     } catch (err) {
-      console.error("Error updating task:", err)
-      setError("Failed to update task")
-      toast.error(err instanceof Error ? err.message : "Failed to update task")
-      return null
-    } finally {
-      setLoading(false)
+      console.error("Error updating task:", err);
+      setError("Failed to update task");
+      toast.error("Failed to update task");
+      setLoading(false);
+      return false;
     }
-  }
+  };
 
   const removeTask = async (id: string, deleteRecurring = false) => {
     try {
@@ -656,29 +704,39 @@ export const TaskProvider = ({ children }: { children: React.ReactNode }) => {
       const endOfDay = new Date(date);
       endOfDay.setHours(23, 59, 59, 999);
     
-      // Make sure tasks is actually an array before filtering
+      // First ensure tasks is actually an array before filtering
       if (!Array.isArray(tasks)) {
         console.log("Tasks is not an array in getTasksForDate");
         return [];
       }
-    
+      
+      // Format date string for consistent comparison
+      const dateStr = startOfDay.toISOString().split('T')[0]; // YYYY-MM-DD
+      
       return tasks.filter(task => {
         // Skip null or undefined tasks
         if (!task) return false;
         
-        // Make sure the task has a dueDate
+        // First try to match using the dueDateString field
+        if (task.dueDateString && task.dueDateString === dateStr) {
+          return true;
+        }
+        
+        // Fallback to date object comparison
         if (!task.dueDate) return false;
         
         // Parse the date safely (could be string or Date object)
         let taskDate: Date;
         try {
           taskDate = new Date(task.dueDate);
+          // Normalize time to noon to avoid timezone issues
+          taskDate.setHours(12, 0, 0, 0);
+          const taskDateStr = taskDate.toISOString().split('T')[0];
+          return taskDateStr === dateStr;
         } catch (e) {
           console.error('Invalid date format:', task.dueDate);
           return false;
         }
-        
-        return taskDate >= startOfDay && taskDate <= endOfDay;
       });
     } catch (error) {
       console.error("Error in getTasksForDate:", error);
