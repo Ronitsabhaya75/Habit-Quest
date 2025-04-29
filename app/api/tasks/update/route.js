@@ -1,8 +1,7 @@
 import { NextResponse } from 'next/server';
 import connectToDatabase from '@/lib/mongodb';
 import Task from '@/models/Task';
-import { authOptions } from '@/lib/auth';
-import { getServerSession } from 'next-auth/next';
+import { getUserFromToken } from '@/lib/auth';
 import { ObjectId } from 'mongodb';
 
 export async function POST(request) {
@@ -18,9 +17,10 @@ export async function POST(request) {
       );
     }
 
-    // Authenticate the user
-    const session = await getServerSession(authOptions);
-    if (!session || !session.user) {
+    // Authenticate the user using getUserFromToken
+    const user = await getUserFromToken(request);
+    
+    if (!user) {
       return NextResponse.json(
         { success: false, message: 'Unauthorized' },
         { status: 401 }
@@ -45,7 +45,7 @@ export async function POST(request) {
     }
 
     // Verify this task belongs to the current user
-    if (task.userId && task.userId.toString() !== session.user.id) {
+    if (task.userId && task.userId.toString() !== user._id.toString()) {
       return NextResponse.json(
         { success: false, message: 'Unauthorized to update this task' },
         { status: 403 }

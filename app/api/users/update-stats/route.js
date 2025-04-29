@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 import connectToDatabase from "@/lib/mongodb";
 import User from "@/models/User";
-import { authOptions } from "@/lib/auth";
-import { getServerSession } from "next-auth/next";
+import { getUserFromToken } from "@/lib/auth";
 
 export async function POST(request) {
   try {
@@ -27,26 +26,13 @@ export async function POST(request) {
       );
     }
 
-    // Get the authenticated user session
-    const session = await getServerSession(authOptions);
-    
-    if (!session || !session.user) {
-      return NextResponse.json(
-        { success: false, message: "Unauthorized" },
-        { status: 401 }
-      );
-    }
-
-    // Connect to the database
-    await connectToDatabase();
-    
-    // Find the user
-    const user = await User.findOne({ email: session.user.email });
+    // Get the authenticated user using getUserFromToken
+    const user = await getUserFromToken(request);
     
     if (!user) {
       return NextResponse.json(
-        { success: false, message: "User not found" },
-        { status: 404 }
+        { success: false, message: "Unauthorized" },
+        { status: 401 }
       );
     }
 
