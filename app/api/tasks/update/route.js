@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import connectToDatabase from '@/lib/mongodb';
 import Task from '@/models/Task';
 import { authOptions } from '@/lib/auth';
-import { getServerSession } from 'next-auth';
+import { getServerSession } from 'next-auth/next';
 import { ObjectId } from 'mongodb';
 
 export async function POST(request) {

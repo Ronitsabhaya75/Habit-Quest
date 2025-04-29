@@ -1,9 +1,8 @@
 import { NextResponse } from "next/server";
-import { getSession } from "next-auth/react";
 import connectToDatabase from "@/lib/mongodb";
 import User from "@/models/User";
 import { authOptions } from "@/lib/auth";
-import { getServerSession } from "next-auth";
+import { getServerSession } from "next-auth/next";
 
 export async function POST(request) {
   try {
