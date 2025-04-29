@@ -2,7 +2,6 @@
 
 HabitQuest is a gamified habit tracking application designed to help users build positive habits through game mechanics and interactive features. The application combines the science of habit formation with game design elements to create an engaging experience that motivates users to maintain consistent routines.
 
-![HabitQuest Logo](public/placeholder-logo.png)
 
 ## Table of Contents
 
@@ -384,16 +383,3 @@ Planned features for future releases:
    - Calendar integration (Google Calendar, etc.)
    - Health app integration
    - Smart device connectivity
-
-## Contributors
-
-- Ronit Sabhaya - Lead Developer
-- Aashishpal Reddy - Backend Development
-- Siddartha Reddy Pagilla - UI/UX Design
-- Shivam Sakthivelpandi - Testing/Documentation
-- Diego - Feature Development
-- Jay Findoliya - Database Management
-
----
-
-© 2025 HabitQuest. All rights reserved.
