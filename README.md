@@ -87,31 +87,6 @@ HabitQuest transforms the often challenging process of building habits into an e
   - Streak calendars and heat maps
   - XP progression visualization
 
-## Project Architecture
-
-HabitQuest is built using a modern web application architecture with Next.js as the foundation. The project follows a feature-based organization with clear separation of concerns.
-
-### Directory Structure
-
-```
-/
-├── app/                   # Next.js App Router pages and API routes
-│   ├── api/               # API endpoints
-│   ├── dashboard/         # Dashboard page
-│   ├── calendar/          # Calendar page
-│   ├── recurring-tasks/   # Recurring tasks management
-│   └── ...                # Other application pages
-├── components/            # React components
-│   ├── ui/                # UI components (shadcn)
-│   └── ...                # Application-specific components
-├── context/               # React context providers
-├── hooks/                 # Custom React hooks
-├── lib/                   # Utility functions and services
-├── models/                # MongoDB schema models
-├── public/                # Static assets
-└── utils/                 # Helper utilities
-```
-
 ### Application Flow
 
 1. **Authentication Flow**
