@@ -321,6 +321,22 @@ npm run dev
 - Unit tests can be added using Jest
 - API testing with tools like Postman or Insomnia
 
+### Review System
+
+The review system allows users to submit feedback about their experience with HabitQuest. 
+
+#### Production Setup
+
+In production environments, reviews are currently logged but not stored persistently. This is a temporary solution to address file system limitations in production hosting.
+
+#### Development Setup
+
+In development, reviews can be saved to the local file system in the `data/reviews.json` file.
+
+#### Future Improvements
+
+A future update will implement proper database storage for reviews using a database service.
+
 ## Deployment
 
 The application is configured for deployment on Vercel:
@@ -358,3 +374,16 @@ Planned features for future releases:
    - Calendar integration (Google Calendar, etc.)
    - Health app integration
    - Smart device connectivity
+
+## Troubleshooting
+
+### Review Submission Errors
+
+If you encounter "Failed to save review to local storage" errors in production:
+- This is expected behavior since the production environment has a read-only file system
+- The API is configured to acknowledge the review submission without persisting it to disk
+- Check server logs for the review data which is being logged
+
+## License
+
+MIT
