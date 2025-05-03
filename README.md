@@ -1,6 +1,6 @@
 # HabitQuest - Gamified Habit Tracking Application
 
-HabitQuest is a gamified habit tracking application designed to help users build positive habits through game mechanics and interactive features. The application combines the science of habit formation with game design elements to create an engaging experience that motivates users to maintain consistent routines.
+HabitQuest is a gamified habit tracking application designed to help users build positive habits through game mechanics and interactive features. The application combines the science of habit formation with game design elements to create an engaging experience that motivates users to maintain consistent routines
 
 
 ## Table of Contents
