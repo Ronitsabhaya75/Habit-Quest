@@ -24,8 +24,17 @@ export function TaskList({ date = new Date() }: TaskListProps) {
   const [taskToDelete, setTaskToDelete] = useState<string | null>(null)
   const { toast } = useToast()
   const [isRecurring, setIsRecurring] = useState(false)
-  const [frequency, setFrequency] = useState("daily")
+  const [frequency, setFrequency] = useState<"daily" | "weekly" | "biweekly" | "monthly">("daily")
   const [deletedTaskCount, setDeletedTaskCount] = useState<number>(0)
+  const [userStreak, setUserStreak] = useState<{
+    streak: number;
+    lastActive: string | null;
+    hours: number | null;
+  }>({
+    streak: 0,
+    lastActive: null,
+    hours: null
+  });
 
   // Load the deleted task count from localStorage on component mount
   useEffect(() => {
@@ -33,7 +42,49 @@ export function TaskList({ date = new Date() }: TaskListProps) {
     if (storedCount) {
       setDeletedTaskCount(parseInt(storedCount, 10))
     }
+    
+    // Fetch user streak information
+    fetchUserStreak();
+    
+    // Setup event listener for user data updates
+    window.addEventListener('user-data-updated', handleUserDataUpdate);
+    
+    return () => {
+      window.removeEventListener('user-data-updated', handleUserDataUpdate);
+    };
   }, [])
+  
+  // Handle user data update events
+  const handleUserDataUpdate = (event: Event) => {
+    const customEvent = event as CustomEvent;
+    if (customEvent.detail?.userData) {
+      updateStreakFromData(customEvent.detail.userData);
+    }
+  };
+  
+  // Fetch user streak information
+  const fetchUserStreak = async () => {
+    try {
+      const response = await fetch('/api/user/me');
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.data) {
+          updateStreakFromData(data.data);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching user streak:', error);
+    }
+  };
+  
+  // Update streak data from API response
+  const updateStreakFromData = (userData: any) => {
+    setUserStreak({
+      streak: userData.streak || 0,
+      lastActive: userData.lastActiveFormatted || null,
+      hours: userData.streakExpiresIn?.hours || null
+    });
+  };
 
   // Filter tasks based on the selected date
   useEffect(() => {
@@ -198,6 +249,33 @@ export function TaskList({ date = new Date() }: TaskListProps) {
 
   return (
     <div className="space-y-4">
+      <StreakStyles />
+      
+      {/* Streak display */}
+      {userStreak.streak > 0 && (
+        <div className="bg-gradient-to-r from-[#1a1e33] to-[#2a3050] border border-[#3a4060] rounded-md p-3 mb-4 animate-fadeIn">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center">
+              <span className="text-2xl mr-2 streak-pulse">🔥</span>
+              <div>
+                <h3 className="font-bold text-[#4cc9f0]">{userStreak.streak} Day Streak!</h3>
+                {userStreak.lastActive && (
+                  <p className="text-xs text-gray-400">Last activity: {userStreak.lastActive}</p>
+                )}
+              </div>
+            </div>
+            {userStreak.hours !== null && userStreak.hours < 24 && (
+              <div className="text-right">
+                <div className="text-xs text-gray-400">Time to maintain streak:</div>
+                <div className={`text-sm font-medium ${userStreak.hours < 6 ? 'text-red-400' : 'text-green-400'}`}>
+                  {userStreak.hours} hours left
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {filteredTasks.length > 0 ? (
         <div className="space-y-2">
           {filteredTasks.map((task) => (
@@ -317,7 +395,7 @@ export function TaskList({ date = new Date() }: TaskListProps) {
                 <select
                   id="task-frequency"
                   value={frequency}
-                  onChange={(e) => setFrequency(e.target.value)}
+                  onChange={(e) => setFrequency(e.target.value as "daily" | "weekly" | "biweekly" | "monthly")}
                   className="w-full bg-[#2a3343] border-[#3a4353] text-white rounded-md p-2"
                 >
                   <option value="daily">Daily</option>
@@ -367,3 +445,28 @@ export function TaskList({ date = new Date() }: TaskListProps) {
     </div>
   )
 }
+
+// Add these styles to the global stylesheet
+const StreakStyles = () => (
+  <style jsx global>{`
+    @keyframes fadeIn {
+      0% { opacity: 0; transform: translateY(-10px); }
+      100% { opacity: 1; transform: translateY(0); }
+    }
+    
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+    }
+    
+    .animate-fadeIn {
+      animation: fadeIn 0.5s ease-out forwards;
+    }
+    
+    .streak-pulse {
+      animation: pulse 2s infinite;
+    }
+  `}</style>
+);
+
+export { StreakStyles };

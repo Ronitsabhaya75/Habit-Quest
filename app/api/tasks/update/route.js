@@ -81,12 +81,63 @@ export async function POST(request) {
     if (body.completed === true && !wasCompletedBefore) {
       task.completedAt = new Date();
       
-      // Award XP to the user
-      if (user && task.xpReward) {
-        await User.findByIdAndUpdate(user._id, {
-          $inc: { xp: task.xpReward },
-          $set: { lastActive: new Date() }
-        });
+      // Award XP to the user and update streak
+      if (user) {
+        try {
+          // Get current date (normalized to midnight)
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          
+          // Get last active date (normalized to midnight)
+          const lastActive = user.lastActive ? new Date(user.lastActive) : null;
+          if (lastActive) {
+            lastActive.setHours(0, 0, 0, 0);
+          }
+          
+          // Check if this is first activity today
+          const isFirstActivityToday = !lastActive || 
+            lastActive.toISOString().split('T')[0] !== today.toISOString().split('T')[0];
+          
+          // Update streak calculation
+          let newStreak = user.streak || 0;
+          
+          if (isFirstActivityToday) {
+            const yesterday = new Date(today);
+            yesterday.setDate(yesterday.getDate() - 1);
+            const yesterdayStr = yesterday.toISOString().split('T')[0];
+            
+            // If last active was yesterday, increment streak
+            if (lastActive && lastActive.toISOString().split('T')[0] === yesterdayStr) {
+              newStreak += 1;
+              console.log(`Streak increased to ${newStreak} - last active was yesterday`);
+            } 
+            // If last active was before yesterday, reset streak to 1
+            else if (!lastActive || lastActive.toISOString().split('T')[0] !== today.toISOString().split('T')[0]) {
+              newStreak = 1;
+              console.log(`Streak reset to 1 - wasn't active yesterday`);
+            }
+            // Otherwise keep streak (already active today)
+          }
+          
+          // Update user with XP and streak info
+          const updateData = {
+            $inc: { xp: task.xpReward || 10 },
+            $set: { 
+              lastActive: new Date(),
+              streak: newStreak
+            }
+          };
+          
+          const updatedUser = await User.findByIdAndUpdate(
+            user._id, 
+            updateData,
+            { new: true } // Return updated document
+          );
+          
+          console.log(`User streak updated: ${newStreak}, XP added: ${task.xpReward || 10}`);
+        } catch (error) {
+          console.error("Error updating user streak/XP:", error);
+        }
       }
     }
     

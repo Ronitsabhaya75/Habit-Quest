@@ -671,6 +671,9 @@ export const TaskProvider = ({ children }: { children: React.ReactNode }) => {
         // Update local leaderboard score
         updateLocalLeaderboardScore(20); // Assuming 20 XP per task
         
+        // Update local streak data
+        updateLocalStreak();
+        
         toast.success("Task completed! (offline mode)");
         return null;
       }
@@ -722,6 +725,9 @@ export const TaskProvider = ({ children }: { children: React.ReactNode }) => {
         await fetchTasks();
       }
       
+      // Refresh user data to show updated streak
+      refreshUserData();
+      
       toast.success("Task completed!");
       return updatedTask;
     } catch (err) {
@@ -731,6 +737,81 @@ export const TaskProvider = ({ children }: { children: React.ReactNode }) => {
       return null;
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Function to update streak locally when offline
+  const updateLocalStreak = () => {
+    try {
+      // Get current streak data
+      const streakData = JSON.parse(localStorage.getItem('userStreak') || '{"count": 0, "lastActive": null}');
+      const now = new Date();
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      
+      // Convert lastActive to Date object if it exists
+      let lastActive = null;
+      if (streakData.lastActive) {
+        lastActive = new Date(streakData.lastActive);
+      }
+      
+      // If no previous activity or not today
+      if (!lastActive || lastActive.toDateString() !== today.toDateString()) {
+        // Create yesterday date for comparison
+        const yesterday = new Date(today);
+        yesterday.setDate(yesterday.getDate() - 1);
+        
+        // If last active was yesterday, increment streak
+        if (lastActive && lastActive.toDateString() === yesterday.toDateString()) {
+          streakData.count += 1;
+        } 
+        // If last active was before yesterday, reset streak
+        else if (!lastActive || lastActive < yesterday) {
+          streakData.count = 1;
+        }
+        
+        // Update last active date to today
+        streakData.lastActive = today.toISOString();
+        
+        // Save updated streak data
+        localStorage.setItem('userStreak', JSON.stringify(streakData));
+        
+        // Show streak notification
+        if (streakData.count > 1) {
+          toast.success(`🔥 Day ${streakData.count} streak! Keep it up!`, {
+            icon: '🔥',
+            duration: 3000
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error updating local streak:', error);
+    }
+  };
+  
+  // Function to refresh user data after task completion
+  const refreshUserData = async () => {
+    try {
+      const response = await fetch('/api/user/me');
+      if (response.ok) {
+        const userData = await response.json();
+        
+        // If user has a streak > 1, show streak notification
+        if (userData.data?.streak > 1) {
+          toast.success(`🔥 ${userData.data.streak} day streak! Keep going!`, {
+            icon: '🔥',
+            duration: 3000
+          });
+        }
+        
+        // Dispatch user data update event
+        if (typeof window !== 'undefined' && window.dispatchEvent) {
+          window.dispatchEvent(new CustomEvent('user-data-updated', { 
+            detail: { userData: userData.data }
+          }));
+        }
+      }
+    } catch (error) {
+      console.error('Error refreshing user data:', error);
     }
   };
 
