@@ -343,31 +343,67 @@ export const TaskProvider = ({ children }: { children: React.ReactNode }) => {
 
       const queryParams = new URLSearchParams()
       if (dateString) {
-        queryParams.set("date", dateString)
+        // Check if this is a month query (YYYY-MM) or a day query (YYYY-MM-DD)
+        const isMonthQuery = dateString.split('-').length === 2;
+        
+        if (isMonthQuery) {
+          console.log(`Fetching tasks for month: ${dateString}`);
+          // For month queries, convert to proper format
+          queryParams.set("month", dateString);
+        } else {
+          // For day queries, use the date parameter
+          queryParams.set("date", dateString);
+        }
       }
 
-      const url = `/api/tasks${dateString ? `?${queryParams.toString()}` : ""}`
+      const url = `/api/tasks${queryParams.toString() ? `?${queryParams.toString()}` : ""}`
       console.log("Fetching tasks from URL:", url)
 
-      const response = await fetch(url)
-      if (!response.ok) {
-        throw new Error(`HTTP error! Status: ${response.status}`)
+      // Add retry logic for reliability
+      let response;
+      let retryCount = 0;
+      const maxRetries = 3;
+      
+      while (retryCount < maxRetries) {
+        try {
+          response = await fetch(url);
+          if (response.ok) break;
+          
+          // If server error, retry
+          if (response.status >= 500) {
+            retryCount++;
+            await new Promise(resolve => setTimeout(resolve, 1000 * retryCount)); // Exponential backoff
+          } else {
+            // If client error, don't retry
+            break;
+          }
+        } catch (fetchError) {
+          console.error(`Fetch attempt ${retryCount + 1} failed:`, fetchError);
+          retryCount++;
+          
+          if (retryCount >= maxRetries) throw fetchError;
+          await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
+        }
+      }
+      
+      if (!response || !response.ok) {
+        throw new Error(`HTTP error! Status: ${response?.status || 'unknown'}`);
       }
 
-      const result = await response.json()
+      const result = await response.json();
       
       // Log the full response for debugging
       console.log("Task API response:", result);
       
       // Process the response
-      let data
+      let data;
       if (result.success && result.data) {
-        data = result.data
+        data = result.data;
       } else if (data && Array.isArray(data)) {
-        setTasks(data)
+        setTasks(data);
       } else {
-        console.error("Unexpected API response format:", data)
-        setTasks([])
+        console.error("Unexpected API response format:", data);
+        setTasks([]);
       }
       
       // Standardize date formats in tasks before storing them
@@ -384,18 +420,32 @@ export const TaskProvider = ({ children }: { children: React.ReactNode }) => {
           }
           return task;
         });
-        setTasks(formattedTasks);
-      } else {
-        setTasks([]);
+        
+        // Merge with existing tasks, don't replace (to maintain cached state)
+        setTasks(prevTasks => {
+          // Create a map of existing tasks by ID
+          const taskMap = new Map(prevTasks.map(task => [task._id, task]));
+          
+          // Update or add new tasks
+          formattedTasks.forEach(task => {
+            taskMap.set(task._id, task);
+          });
+          
+          // Convert back to array
+          return Array.from(taskMap.values());
+        });
       }
       
-      setError(null)
+      setError(null);
     } catch (err) {
-      console.error("Error fetching tasks:", err)
-      setError("Failed to fetch tasks")
-      setTasks([]) // Ensure tasks is an array even on error
+      console.error("Error fetching tasks:", err);
+      setError("Failed to fetch tasks");
+      // Only clear tasks on error if it's the initial load
+      if (tasks.length === 0) {
+        setTasks([]);
+      }
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
   }
 
@@ -488,58 +538,72 @@ export const TaskProvider = ({ children }: { children: React.ReactNode }) => {
       
       console.log("Updating task with data:", JSON.stringify(formattedData));
       
-      // First try using PUT method on direct endpoint
-      let response;
-      try {
-        response = await fetch(`/api/tasks/${taskData.id}`, {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(formattedData)
-        });
-      } catch (putError) {
-        console.error("PUT request failed:", putError);
-        // Continue to fallback
+      // Add dueDateString if we're updating dueDate
+      if (taskData.dueDate && !taskData.dueDateString) {
+        const dueDate = new Date(taskData.dueDate);
+        formattedData.dueDateString = dueDate.toISOString().split('T')[0];
       }
       
-      // If PUT fails with 405 Method Not Allowed, use the fallback POST endpoint
-      if (!response || response.status === 405) {
-        console.log("PUT method not allowed, using fallback POST endpoint");
-        response = await fetch("/api/tasks/update", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            id: taskData.id,
-            ...formattedData
-          })
-        });
-      }
+      // Try the update endpoint first
+      const response = await fetch("/api/tasks/update", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(formattedData)
+      });
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error(`API error (${response.status}):`, errorText);
+        console.error(`Task update API error (${response.status}):`, errorText);
+        
+        // If this is a 405 Method Not Allowed, try POST instead
+        if (response.status === 405) {
+          console.log("PUT method failed, trying POST instead");
+          const postResponse = await fetch("/api/tasks/update", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(formattedData)
+          });
+          
+          if (!postResponse.ok) {
+            const postErrorText = await postResponse.text();
+            console.error(`Task update POST API error (${postResponse.status}):`, postErrorText);
+            throw new Error(`HTTP error! Status: ${postResponse.status}`);
+          }
+          
+          const data = await postResponse.json();
+          
+          // Update the task in the local state
+          setTasks((prevTasks) =>
+            prevTasks.map((task) => (task._id === taskData.id ? { ...task, ...formattedData, ...data.data } : task))
+          );
+          
+          toast.success("Task updated successfully");
+          return true;
+        }
+        
         throw new Error(`HTTP error! Status: ${response.status}`);
       }
 
       const data = await response.json();
       
+      // Update the task in the local state
       setTasks((prevTasks) =>
-        prevTasks.map((task) => (task._id === taskData.id ? { ...task, ...formattedData } : task))
+        prevTasks.map((task) => (task._id === taskData.id ? { ...task, ...formattedData, ...data.data } : task))
       );
       
       toast.success("Task updated successfully");
-      setLoading(false);
-      
       return true;
     } catch (err) {
       console.error("Error updating task:", err);
       setError("Failed to update task");
       toast.error("Failed to update task");
-      setLoading(false);
       return false;
+    } finally {
+      setLoading(false);
     }
   };
 

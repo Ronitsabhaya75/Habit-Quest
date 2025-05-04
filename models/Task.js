@@ -71,6 +71,9 @@
  * 2. createHabitTask(habitData, userId)
  *    - Creates a task based on a habit for the specified user, ensuring that a task for today does not already exist.
  * 
+ * 3. createNextRecurringInstance(completedTask, userId)
+ *    - Creates the next recurring instance for a completed task.
+ * 
  * Pre-save Middleware:
  * - Ensures dueDateString is normalized to YYYY-MM-DD format before saving.
  */
@@ -175,6 +178,72 @@ TaskSchema.statics.getNextDueDate = function(currentDate, frequency) {
   return date
 }
 
+// Add a new static method to create the next recurring instance
+TaskSchema.statics.createNextRecurringInstance = async function(completedTask, userId) {
+  // Validate that this is a recurring task
+  if (!completedTask.isRecurring) {
+    return null;
+  }
+  
+  // Check if we've reached the end date
+  if (completedTask.recurringEndDate) {
+    const endDate = new Date(completedTask.recurringEndDate);
+    const today = new Date();
+    
+    if (today >= endDate) {
+      console.log(`Recurring task ${completedTask._id} has reached its end date, not creating next instance`);
+      return null;
+    }
+  }
+  
+  // Calculate the next due date
+  const nextDueDate = this.getNextDueDate(
+    completedTask.dueDate,
+    completedTask.frequency || 'daily'
+  );
+  
+  // Format the date string
+  const nextDueDateString = nextDueDate.toISOString().split('T')[0];
+  
+  // Check if a task for this date already exists
+  const existingTask = await this.findOne({
+    user: userId,
+    habitId: completedTask.habitId,
+    dueDateString: nextDueDateString,
+    isHabit: completedTask.isHabit
+  });
+  
+  if (existingTask) {
+    console.log(`Task already exists for ${nextDueDateString}, not creating duplicate`);
+    return existingTask;
+  }
+  
+  // Create the next instance
+  const parentTaskId = completedTask.parentTaskId || completedTask._id;
+  
+  const newTask = new this({
+    title: completedTask.title,
+    description: completedTask.description,
+    dueDate: nextDueDate,
+    dueDateString: nextDueDateString,
+    completed: false,
+    completedAt: null,
+    xpReward: completedTask.xpReward,
+    isHabit: completedTask.isHabit,
+    habitId: completedTask.habitId,
+    isRecurring: true,
+    frequency: completedTask.frequency,
+    recurringEndDate: completedTask.recurringEndDate,
+    parentTaskId: parentTaskId,
+    user: userId
+  });
+  
+  await newTask.save();
+  console.log(`Created next recurring instance for task ${completedTask._id}, due on ${nextDueDateString}`);
+  
+  return newTask;
+}
+
 // Enhanced pre-save hook with game XP tracking
 TaskSchema.pre('save', async function(next) {
   // Existing dueDateString logic
@@ -226,21 +295,29 @@ TaskSchema.statics.createGameTask = async function(userId, gameType, taskData) {
   return task
 }
 
-// Existing createHabitTask method (unchanged)
+// Existing createHabitTask method (enhanced)
 TaskSchema.statics.createHabitTask = async function(habitData, userId) {
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-  const todayStr = today.toISOString().split('T')[0]
+  // Normalize the date - use startDate if provided, otherwise use today
+  const today = habitData.startDate ? new Date(habitData.startDate) : new Date();
+  today.setHours(0, 0, 0, 0);
+  const todayStr = today.toISOString().split('T')[0];
   
+  console.log(`Creating habit task for ${todayStr} with habitId ${habitData.id}`);
+  
+  // First check if task already exists for this date and habit
   const existingTask = await this.findOne({
     user: userId,
     isHabit: true,
     habitId: habitData.id,
     dueDateString: todayStr
-  })
+  });
   
-  if (existingTask) return existingTask
+  if (existingTask) {
+    console.log(`Task already exists for habit ${habitData.id} on ${todayStr}`);
+    return existingTask;
+  }
   
+  // Create the new habit task
   const newTask = new this({
     title: `${habitData.name || 'Daily Habit'} 💪`,
     description: habitData.description || 'Complete your daily habit',
@@ -255,10 +332,19 @@ TaskSchema.statics.createHabitTask = async function(habitData, userId) {
     isRecurring: true,
     frequency: habitData.frequency || 'daily',
     recurringEndDate: habitData.endDate
-  })
+  });
   
-  await newTask.save()
-  return newTask
+  // Log task creation details
+  console.log(`Creating new habit task: ${newTask.title} for ${todayStr}`);
+  
+  try {
+    await newTask.save();
+    console.log(`Habit task saved successfully: ${newTask._id}`);
+    return newTask;
+  } catch (error) {
+    console.error(`Error saving habit task: ${error}`);
+    throw error; // Rethrow to handle upstream
+  }
 }
 
 export default mongoose.models.Task || mongoose.model("Task", TaskSchema)

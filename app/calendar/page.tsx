@@ -399,19 +399,61 @@ export default function CalendarPage() {
   const [addTaskDialogOpen, setAddTaskDialogOpen] = useState(false)
   const [showTaskAddedAnimation, setShowTaskAddedAnimation] = useState(false)
   const [highlightBeam, setHighlightBeam] = useState(false)
+  const [fetchedDates, setFetchedDates] = useState<Set<string>>(new Set())
+  const [isInitialLoad, setIsInitialLoad] = useState(true)
   const { addTask, fetchTasks } = useTask()
 
   // Define the week days for the calendar header
   const weekDays = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"]
-
-  // Refetch tasks when the date changes or component mounts
+  
+  // On initial load, fetch current month's tasks to avoid repeated API calls
   useEffect(() => {
-    if (date) {
-      // Format the date as YYYY-MM-DD for consistent API querying
-      const dateStr = format(date, 'yyyy-MM-dd');
-      fetchTasks(dateStr);
+    if (isInitialLoad && date) {
+      // First load - fetch whole month data
+      const currentMonth = date.getMonth();
+      const currentYear = date.getFullYear();
+      
+      // Create a new date for the first day of the month
+      const firstDayOfMonth = new Date(currentYear, currentMonth, 1);
+      const dateStr = format(firstDayOfMonth, 'yyyy-MM');
+      
+      console.log(`Initial load: Fetching tasks for month ${dateStr}`);
+      
+      // Fetch all tasks for the month
+      fetchTasks(`${dateStr}`).then(() => {
+        setIsInitialLoad(false);
+        
+        // Mark this month as fetched
+        const newFetchedDates = new Set(fetchedDates);
+        newFetchedDates.add(dateStr);
+        setFetchedDates(newFetchedDates);
+      });
     }
-  }, [date, fetchTasks]) 
+  }, [isInitialLoad, date, fetchTasks, fetchedDates]);
+
+  // Refetch tasks only when the date changes to a day in a month we haven't fetched yet
+  useEffect(() => {
+    if (!isInitialLoad && date) {
+      // Format the date for month fetching and for day display
+      const monthStr = format(date, 'yyyy-MM');
+      const dateStr = format(date, 'yyyy-MM-dd');
+      
+      // Check if we've already fetched data for this month
+      if (!fetchedDates.has(monthStr)) {
+        console.log(`Fetching tasks for new month: ${monthStr}`);
+        
+        // Fetch tasks for the month
+        fetchTasks(monthStr).then(() => {
+          // Mark this month as fetched
+          const newFetchedDates = new Set(fetchedDates);
+          newFetchedDates.add(monthStr);
+          setFetchedDates(newFetchedDates);
+        });
+      } else {
+        console.log(`Using cached data for date: ${dateStr} (month: ${monthStr} already fetched)`);
+      }
+    }
+  }, [date, fetchTasks, fetchedDates, isInitialLoad]);
 
   const handleAddTask = async () => {
     if (newTaskTitle.trim() && date) {
