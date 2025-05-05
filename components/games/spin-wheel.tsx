@@ -16,12 +16,12 @@ interface SpinWheelProps {
 }
 
 const segments: Segment[] = [
-  { label: "1 XP", color: "#FFDDC1", value: 1 },
-  { label: "2 XP", color: "#C1FFD7", value: 2 },
-  { label: "3 XP", color: "#C1E1FF", value: 3 },
-  { label: "4 XP", color: "#FFC1E1", value: 4 },
-  { label: "5 XP", color: "#FFC1C1", value: 5 },
-  { label: "6 XP", color: "#E1C1FF", value: 6 },
+  { label: "5 XP", color: "#FFDDC1", value: 5 },
+  { label: "10 XP", color: "#C1FFD7", value: 10 },
+  { label: "15 XP", color: "#C1E1FF", value: 15 },
+  { label: "7 XP", color: "#FFC1E1", value: 7 },
+  { label: "20 XP", color: "#FFC1C1", value: 20 },
+  { label: "3 XP", color: "#E1C1FF", value: 3 },
 ]
 
 export function SpinWheel({ onXPReward }: SpinWheelProps) {
@@ -32,6 +32,29 @@ export function SpinWheel({ onXPReward }: SpinWheelProps) {
   const [rotation, setRotation] = useState(0)
   const [score, setScore] = useState(0)
   const [gameOver, setGameOver] = useState(false)
+  const [lastPlayedTime, setLastPlayedTime] = useState<number | null>(null)
+  const [canPlay, setCanPlay] = useState(true)
+
+  useEffect(() => {
+    // Check local storage for last played time
+    const lastPlayed = localStorage.getItem('spinWheelLastPlayed');
+    if (lastPlayed) {
+      const lastTime = parseInt(lastPlayed);
+      setLastPlayedTime(lastTime);
+      
+      // Check if 24 hours have passed
+      const now = Date.now();
+      const hoursPassed = (now - lastTime) / (1000 * 60 * 60);
+      if (hoursPassed < 24) {
+        setCanPlay(false);
+        const remainingHours = Math.ceil(24 - hoursPassed);
+        toast({
+          title: "Game Locked",
+          description: `You can play again in ${remainingHours} hour${remainingHours > 1 ? 's' : ''}.`,
+        });
+      }
+    }
+  }, []);
 
   const updateUserStats = async (xp: number) => {
     try {
@@ -49,6 +72,27 @@ export function SpinWheel({ onXPReward }: SpinWheelProps) {
       if (!res.ok) throw new Error('Failed to update stats');
     } catch (error) {
       console.error('Error updating stats:', error);
+    }
+  };
+
+  const updateLeaderboard = async (xp: number) => {
+    try {
+      const res = await fetch('/api/users/leaderboard/update', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          xpGained: xp,
+          source: 'spin_wheel'
+        }),
+      });
+      if (!res.ok) throw new Error('Failed to update leaderboard');
+      
+      // Dispatch a custom event to trigger graph update
+      window.dispatchEvent(new CustomEvent('leaderboard-update'));
+    } catch (error) {
+      console.error('Error updating leaderboard:', error);
     }
   };
 
@@ -149,7 +193,7 @@ export function SpinWheel({ onXPReward }: SpinWheelProps) {
   }
 
   const handleSpin = () => {
-    if (spinning) return
+    if (spinning || !canPlay) return
 
     setSpinning(true)
     setResult(null)
@@ -172,17 +216,30 @@ export function SpinWheel({ onXPReward }: SpinWheelProps) {
         clearInterval(spinInterval)
         setSpinning(false)
         setResult(selectedResult)
-        setScore(prev => prev + selectedResult)
         
-        updateUserStats(selectedResult)
+        // Cap the score at 10 XP maximum
+        const cappedXP = Math.min(selectedResult, 10);
+        setScore(prev => prev + cappedXP)
+        
+        // Update user stats with capped XP
+        updateUserStats(cappedXP)
+
+        // Update leaderboard with capped XP
+        updateLeaderboard(cappedXP)
+        
+        // Set the last played time in localStorage
+        const now = Date.now();
+        localStorage.setItem('spinWheelLastPlayed', now.toString());
+        setLastPlayedTime(now);
+        setCanPlay(false);
 
         if (onXPReward) {
-          onXPReward(selectedResult)
+          onXPReward(cappedXP)
         }
 
         toast({
           title: "Congratulations!",
-          description: `You won ${selectedResult} XP!`,
+          description: `You won ${selectedResult} XP (capped at 10 XP for leaderboard)! You can play again in 24 hours.`,
         })
       }
 
@@ -195,6 +252,18 @@ export function SpinWheel({ onXPReward }: SpinWheelProps) {
   }
 
   const handleStartGame = () => {
+    if (!canPlay) {
+      const now = Date.now();
+      const hoursPassed = lastPlayedTime ? (now - lastPlayedTime) / (1000 * 60 * 60) : 24;
+      const remainingHours = Math.ceil(24 - hoursPassed);
+      
+      toast({
+        title: "Game Locked",
+        description: `You can play again in ${remainingHours} hour${remainingHours > 1 ? 's' : ''}.`,
+      });
+      return;
+    }
+
     setGameStarted(true)
     setGameOver(false)
     setScore(0)
@@ -213,30 +282,56 @@ export function SpinWheel({ onXPReward }: SpinWheelProps) {
     })
   }
 
-  const customControls = (
-    <div className="mt-4 flex justify-between">
-      <Button 
-        className="bg-[#4CAF50] hover:bg-[#45a049] text-white" 
-        onClick={handleSpin} 
-        disabled={spinning}
-      >
-        {spinning ? "Spinning..." : "Spin the Wheel"}
-      </Button>
+  // Calculate time remaining
+  const getTimeRemaining = () => {
+    if (!lastPlayedTime) return null;
+    
+    const now = Date.now();
+    const hoursPassed = (now - lastPlayedTime) / (1000 * 60 * 60);
+    
+    if (hoursPassed >= 24) {
+      setCanPlay(true);
+      return null;
+    }
+    
+    const remainingHours = Math.ceil(24 - hoursPassed);
+    return `Next spin available in ${remainingHours} hour${remainingHours > 1 ? 's' : ''}`;
+  }
 
-      <Button
-        variant="outline"
-        className="bg-[#2a3343] hover:bg-[#3a4353] text-white border-[#3a4353]"
-        onClick={handleEndGame}
-      >
-        End Game
-      </Button>
+  const timeRemaining = getTimeRemaining();
+
+  const customControls = (
+    <div className="mt-4 flex flex-col gap-2">
+      <div className="flex justify-between">
+        <Button 
+          className="bg-[#4CAF50] hover:bg-[#45a049] text-white" 
+          onClick={handleSpin} 
+          disabled={spinning || !canPlay}
+        >
+          {spinning ? "Spinning..." : "Spin the Wheel"}
+        </Button>
+
+        <Button
+          variant="outline"
+          className="bg-[#2a3343] hover:bg-[#3a4353] text-white border-[#3a4353]"
+          onClick={handleEndGame}
+        >
+          End Game
+        </Button>
+      </div>
+      
+      {timeRemaining && (
+        <div className="text-center text-sm text-yellow-400 mt-2">
+          {timeRemaining}
+        </div>
+      )}
     </div>
   )
 
   return (
     <GameWrapper
       title="Spin Wheel"
-      description="Spin the wheel to earn XP rewards!"
+      description="Spin the wheel to earn XP rewards! (Once per day, max 10 XP for leaderboard)"
       gameStarted={gameStarted}
       gameOver={gameOver}
       score={score}
