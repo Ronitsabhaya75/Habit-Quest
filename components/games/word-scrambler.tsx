@@ -219,6 +219,9 @@ export function WordScrambler() {
         title: "XP Updated!",
         description: `You earned ${xp} XP for the leaderboard!`,
       });
+      
+      // Dispatch a custom event to trigger graph update
+      window.dispatchEvent(new CustomEvent('leaderboard-update'));
     } catch (error) {
       console.error('Error updating stats:', error);
     }
