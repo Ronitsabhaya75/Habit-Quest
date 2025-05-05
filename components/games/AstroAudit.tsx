@@ -69,6 +69,35 @@ const BUILDING_TYPES: BuildingType[] = [
   }
 ]
 
+// Add leaderboard update functionality
+async function updateLeaderboard(xpPoints: number) {
+  try {
+    const response = await fetch('/api/users/leaderboard/update', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        xpGained: xpPoints,
+        source: 'astro_audit_game'
+      }),
+    });
+    
+    const data = await response.json();
+    if (data.success) {
+      toast({
+        title: "XP Awarded!",
+        description: `You earned ${xpPoints} XP for playing AstroAudit!`,
+      });
+      
+      // Dispatch a custom event to trigger graph update
+      window.dispatchEvent(new CustomEvent('leaderboard-update'));
+    }
+  } catch (error) {
+    console.error("Failed to update leaderboard:", error);
+  }
+}
+
 export function AstroAudit({ backToGames }: AstroAuditProps) {
   const [gameStarted, setGameStarted] = useState<boolean>(false)
   const [gameOver, setGameOver] = useState<boolean>(false)
@@ -77,6 +106,7 @@ export function AstroAudit({ backToGames }: AstroAuditProps) {
   const [streak, setStreak] = useState<number>(0)
   const [lastLogDate, setLastLogDate] = useState<string | null>(null)
   const [highScore, setHighScore] = useState<number>(0)
+  const [xpAwarded, setXpAwarded] = useState<boolean>(false)
 
   // Start new game
   const handleStartGame = () => {
@@ -91,7 +121,12 @@ export function AstroAudit({ backToGames }: AstroAuditProps) {
       setResources({ credits: 100, fuel: 50, minerals: 30 })
       setBuildings([])
       setStreak(0)
+      setXpAwarded(false)
       loadProgress()
+      
+      // Award 10 XP for playing the game if not already awarded
+      updateLeaderboard(10);
+      setXpAwarded(true);
     } catch (error: unknown) {
       toast({
         title: "Error Starting Game",
@@ -158,37 +193,42 @@ export function AstroAudit({ backToGames }: AstroAuditProps) {
         minerals: Math.min(prev.minerals + reward.minerals, MAX_RESOURCES.minerals)
       }))
 
-      setStreak((prev: number) => prev + 1)
-      setLastLogDate(today)
+      const newStreak = streak + 1;
+      setStreak(newStreak);
+      setLastLogDate(today);
 
       toast({
         title: "Finance Logged!",
-        description: `+${reward.credits} credits, +${reward.fuel} fuel, +${reward.minerals} minerals! Streak: ${streak + 1} days`,
-      })
+        description: `+${reward.credits} credits, +${reward.fuel} fuel, +${reward.minerals} minerals! Streak: ${newStreak} days`,
+      });
 
-      if ((streak + 1) % 7 === 0) {
+      // Award extra XP for keeping a streak
+      if (newStreak % 7 === 0) {
+        // Award 10 XP for each week of streak
+        updateLeaderboard(10);
+        
         const bonusReward: Resource = {
           credits: 200,
           fuel: 100,
           minerals: 75
-        }
+        };
         
         setResources((prev: Resource) => ({
           credits: Math.min(prev.credits + bonusReward.credits, MAX_RESOURCES.credits),
           fuel: Math.min(prev.fuel + bonusReward.fuel, MAX_RESOURCES.fuel),
           minerals: Math.min(prev.minerals + bonusReward.minerals, MAX_RESOURCES.minerals)
-        }))
+        }));
 
         toast({
           title: "Streak Achievement!",
           description: "7 Day Financial Champion! Bonus resources awarded!",
-        })
+        });
       }
     } else {
       toast({
         title: "Already Logged Today",
         description: "Come back tomorrow to continue your streak!",
-      })
+      });
     }
   }
 
@@ -214,7 +254,19 @@ export function AstroAudit({ backToGames }: AstroAuditProps) {
         level: 1
       }
 
-      setBuildings((prev: Building[]) => [...prev, newBuilding])
+      // Check if this is the first building
+      const isFirstBuilding = buildings.length === 0;
+      
+      setBuildings((prev: Building[]) => [...prev, newBuilding]);
+      
+      // Award XP for first building constructed
+      if (isFirstBuilding) {
+        updateLeaderboard(5);
+        toast({
+          title: "First Building Achievement!",
+          description: "You've earned 5 XP for constructing your first building!",
+        });
+      }
 
       toast({
         title: "Building Constructed!",
@@ -258,25 +310,36 @@ export function AstroAudit({ backToGames }: AstroAuditProps) {
         minerals: prev.minerals - upgradeCost.minerals
       }))
 
+      const newLevel = building.level + 1;
+      
       setBuildings((prev: Building[]) => 
         prev.map(b => 
           b.id === building.id 
             ? {
                 ...b,
-                level: b.level + 1,
+                level: newLevel,
                 production: {
-                  credits: Math.floor(buildingType.baseProduction.credits * (1.5 ** (b.level))),
-                  fuel: Math.floor(buildingType.baseProduction.fuel * (1.5 ** (b.level))),
-                  minerals: Math.floor(buildingType.baseProduction.minerals * (1.5 ** (b.level)))
+                  credits: Math.floor(buildingType.baseProduction.credits * (1.5 ** (newLevel - 1))),
+                  fuel: Math.floor(buildingType.baseProduction.fuel * (1.5 ** (newLevel - 1))),
+                  minerals: Math.floor(buildingType.baseProduction.minerals * (1.5 ** (newLevel - 1)))
                 }
               }
             : b
         )
       )
 
+      // Award XP for reaching max level
+      if (newLevel === buildingType.maxLevel) {
+        updateLeaderboard(5);
+        toast({
+          title: "Maximum Level Achievement!",
+          description: `You've earned 5 XP for upgrading ${building.name} to maximum level!`,
+        });
+      }
+
       toast({
         title: "Building Upgraded!",
-        description: `${building.name} upgraded to level ${building.level + 1}!`,
+        description: `${building.name} upgraded to level ${newLevel}!`,
       })
     } else {
       toast({
@@ -321,10 +384,21 @@ export function AstroAudit({ backToGames }: AstroAuditProps) {
 
   // Handle ending the game and navigating back
   const handleEndGame = () => {
-    setGameOver(true)
-    saveProgress()
+    setGameOver(true);
+    saveProgress();
+    
+    // Award bonus XP if player has a significant streak when ending
+    if (streak >= 5) {
+      const bonusXP = Math.min(10, Math.floor(streak / 5) * 5);
+      updateLeaderboard(bonusXP);
+      toast({
+        title: "Streak Bonus!",
+        description: `You earned ${bonusXP} XP for maintaining a ${streak}-day streak!`,
+      });
+    }
+    
     if (backToGames) {
-      backToGames()
+      backToGames();
     }
   }
 
