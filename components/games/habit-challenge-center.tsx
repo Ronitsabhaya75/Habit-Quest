@@ -986,7 +986,7 @@ const getCompletionMessage = (xp: number): string => {
       const handleHabitCompletion = async (index: number, difficulty: 'easy' | 'moderate' | 'hard') => {
         if (completedHourly[index]) return;
      
-        const xp = difficulty === 'easy' ? 1 : difficulty === 'moderate' ? 2 : 3;
+        const xp = difficulty === 'easy' ? 5 : difficulty === 'moderate' ? 7 : 10;
         setCompletedHourly(prev => ({ ...prev, [index]: difficulty }));
      
         const message = feedbackMessages[difficulty][Math.floor(Math.random() * feedbackMessages[difficulty].length)];
@@ -1012,26 +1012,27 @@ const getCompletionMessage = (xp: number): string => {
      
         if (pos > -1) {
           updated[dayIndex].splice(pos, 1);
-          setWeeklyXP(prev => prev - 1);
-          setTotalXP(prev => prev - 1);
+          setWeeklyXP(prev => prev - 10);
+          setTotalXP(prev => prev - 10);
         } else {
           updated[dayIndex].push(habitIndex);
-          setWeeklyXP(prev => prev + 1);
-          setTotalXP(prev => prev + 1);
-          updateProgress('games', 1);
+          setWeeklyXP(prev => prev + 10);
+          setTotalXP(prev => prev + 10);
+          updateProgress('games', 10);
      
           await fetch("/api/users/leaderboard/update", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ xpGained: 1, source: "habit_challenge" }),
+            body: JSON.stringify({ xpGained: 10, source: "habit_challenge" }),
           });
-     
-          setXpGained(1);
+          
+          // Dispatch xp-update event to refresh performance chart
+          window.dispatchEvent(new CustomEvent('xp-update'));
+          
+          setXpGained(10);
           setShowXPNotification(true);
-          setTimeout(() => setShowXPNotification(false), 3000);
+          setTimeout(() => setShowXPNotification(false), 3000);      
         }
-     
-        setCompletedWeekly(updated);
       }      
    
       const regenerateHourlyHabits = () => {
@@ -1066,7 +1067,7 @@ const getCompletionMessage = (xp: number): string => {
         const next = activeDay + 1;
         if (next <= 6) {
           setActiveDay(next);
-          const xp = 1;
+          const xp = 10;
           setTotalXP(prev => prev + xp);
           updateProgress('games', xp);
      
