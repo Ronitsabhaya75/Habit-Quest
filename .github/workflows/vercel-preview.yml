@@ -1,0 +1,91 @@
+name: Vercel Preview Deployment Tests
+
+on:
+  push:
+    branches-ignore:
+      - main
+      - master
+  pull_request:
+    types:
+      - opened
+      - synchronize
+
+jobs:
+  test-before-preview:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        node-version: [18.x]
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Use Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v3
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: npm ci
+    
+    - name: Run linting
+      run: npm run lint
+    
+    - name: Run tests
+      run: npm run test:ci
+
+    - name: Upload coverage reports
+      uses: codecov/codecov-action@v3
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+        directory: ./coverage
+        fail_ci_if_error: false
+
+    # Mock MongoDB for tests
+    - name: Set up MongoDB (for non-mocked tests)
+      uses: supercharge/mongodb-github-action@1.10.0
+      with:
+        mongodb-version: 6.0
+        mongodb-replica-set: test-rs
+
+    # Run build to verify it builds successfully
+    - name: Build application
+      run: npm run build
+      env:
+        MONGODB_URI: mongodb://localhost:27017/habit-quest-test
+        JWT_SECRET: test-jwt-secret
+        NEXT_PUBLIC_API_URL: http://localhost:3000/api
+
+    # Add comment to PR with results and preview link
+    - name: Find Comment
+      uses: peter-evans/find-comment@v2
+      if: github.event_name == 'pull_request'
+      id: fc
+      with:
+        issue-number: ${{ github.event.pull_request.number }}
+        comment-author: 'github-actions[bot]'
+        body-includes: Test Results Summary
+
+    # Create or update a comment with test results
+    - name: Create or update comment
+      uses: peter-evans/create-or-update-comment@v2
+      if: github.event_name == 'pull_request'
+      with:
+        comment-id: ${{ steps.fc.outputs.comment-id }}
+        issue-number: ${{ github.event.pull_request.number }}
+        body: |
+          ## Test Results Summary
+          
+          ✅ Tests passed successfully!
+          ✅ Build was successful
+          
+          ### Coverage Report
+          View the full coverage report on [Codecov](https://codecov.io/gh/${{ github.repository }}/pull/${{ github.event.pull_request.number }})
+          
+          ### Preview Deploy
+          Once Vercel deploys the preview, you'll be able to access it from the Vercel bot comment.
+          
+          _Note: This comment will be updated each time the PR is updated._
+        edit-mode: replace 

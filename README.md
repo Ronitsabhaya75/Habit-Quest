@@ -318,8 +318,11 @@ npm run dev
 4. Update relevant context providers
 
 ### Testing
-- Unit tests can be added using Jest
-- API testing with tools like Postman or Insomnia
+- Unit tests using Jest and React Testing Library
+- Run tests with `npm run test`
+- Run tests in watch mode with `npm run test:watch`
+- Check test coverage with `npm run test:ci`
+- See detailed testing guidelines in [docs/TESTING.md](docs/TESTING.md)
 
 ### Review System
 

@@ -1,2 +1,0 @@
--testing frontend and fixing bugs and checking functionality
--testing backend and taking note of query response time
