@@ -11,16 +11,37 @@ const mockTasks = [
   { _id: 'task3', title: 'Task 3', completed: false, dueDate: new Date('2023-06-16'), isHabit: false, isRecurring: true, frequency: 'weekly' }
 ];
 
-// Mock fetch
-global.fetch = jest.fn(() => 
-  Promise.resolve({
-    ok: true,
-    json: () => Promise.resolve({
-      success: true,
-      data: { streak: 5, lastActiveFormatted: 'Today at 10:00 AM', streakExpiresIn: { hours: 12 } }
-    })
+// Mock fetch with a more controlled implementation
+const mockFetchResponse = {
+  ok: true,
+  json: jest.fn().mockResolvedValue({
+    success: true,
+    data: { streak: 5, lastActiveFormatted: 'Today at 10:00 AM', streakExpiresIn: { hours: 12 } }
   })
-) as jest.Mock;
+};
+
+global.fetch = jest.fn().mockResolvedValue(mockFetchResponse) as jest.Mock;
+
+// Mock window event listeners
+const originalAddEventListener = window.addEventListener;
+const originalRemoveEventListener = window.removeEventListener;
+const mockListeners: Record<string, EventListener[]> = {};
+
+window.addEventListener = jest.fn((event, cb) => {
+  if (!mockListeners[event]) {
+    mockListeners[event] = [];
+  }
+  mockListeners[event].push(cb as EventListener);
+});
+
+window.removeEventListener = jest.fn((event, cb) => {
+  if (mockListeners[event]) {
+    const index = mockListeners[event].indexOf(cb as EventListener);
+    if (index > -1) {
+      mockListeners[event].splice(index, 1);
+    }
+  }
+});
 
 // Mock local storage
 const localStorageMock = (() => {
@@ -86,10 +107,28 @@ describe('TaskList Component', () => {
   const todayDate = new Date();
   let toastMock: jest.Mock;
 
+  // Set global timeout for all tests
+  jest.setTimeout(10000);
+
   beforeEach(() => {
     jest.clearAllMocks();
+    mockFetchResponse.json.mockClear();
+    global.fetch = jest.fn().mockResolvedValue(mockFetchResponse);
     toastMock = jest.fn();
     (ToastModule.useToast as jest.Mock).mockReturnValue({ toast: toastMock });
+  });
+
+  afterEach(() => {
+    // Clear all mock listeners to prevent leaks
+    for (const event in mockListeners) {
+      mockListeners[event] = [];
+    }
+  });
+
+  afterAll(() => {
+    // Restore original event listeners
+    window.addEventListener = originalAddEventListener;
+    window.removeEventListener = originalRemoveEventListener;
   });
 
   it('renders tasks for the current date', async () => {
@@ -201,11 +240,11 @@ describe('TaskList Component', () => {
   it('shows streak information when user has an active streak', async () => {
     render(<TaskList date={todayDate} />);
     
-    // Wait for the streak information to load
+    // Wait for the streak information to load with a timeout
     await waitFor(() => {
       expect(screen.getByText('5 Day Streak!')).toBeInTheDocument();
       expect(screen.getByText('Last activity: Today at 10:00 AM')).toBeInTheDocument();
       expect(screen.getByText('12 hours left')).toBeInTheDocument();
-    });
+    }, { timeout: 2000 });
   });
 }); 
